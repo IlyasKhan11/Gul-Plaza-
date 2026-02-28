@@ -1,0 +1,93 @@
+const express = require('express');
+const rateLimit = require('express-rate-limit');
+const {
+  getAllCategories,
+  getCategoryById,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  createCategoryValidation,
+  updateCategoryValidation,
+  categoryIdValidation,
+} = require('../controllers/categoryController');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const { requireAdmin, requireAnyRole } = require('../middleware/roleMiddleware');
+
+const router = express.Router();
+
+// Rate limiting for category operations
+const categoryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    success: false,
+    message: 'Too many category requests, please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// More restrictive rate limiting for admin category operations
+const adminCategoryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 admin requests per windowMs
+  message: {
+    success: false,
+    message: 'Too many admin category operations, please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Category routes info endpoint
+router.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Category API endpoints',
+    endpoints: {
+      'GET /api/categories': 'Get all categories (public)',
+      'GET /api/categories/:id': 'Get category by ID (public)',
+      'POST /api/categories': 'Create new category (admin only)',
+      'PUT /api/categories/:id': 'Update category (admin only)',
+      'DELETE /api/categories/:id': 'Delete category (admin only)',
+    },
+    note: 'Create, update, and delete endpoints require admin role',
+  });
+});
+
+/**
+ * @route   GET /api/categories
+ * @desc    Get all categories (with optional parent filtering)
+ * @access  Public
+ */
+router.get('/', categoryLimiter, getAllCategories);
+
+/**
+ * @route   GET /api/categories/:id
+ * @desc    Get category by ID with subcategories
+ * @access  Public
+ */
+router.get('/:id', categoryLimiter, categoryIdValidation, getCategoryById);
+
+/**
+ * @route   POST /api/categories
+ * @desc    Create new category
+ * @access  Private (Admin only)
+ */
+router.post('/', authenticateToken, requireAdmin, adminCategoryLimiter, createCategoryValidation, createCategory);
+
+/**
+ * @route   PUT /api/categories/:id
+ * @desc    Update category
+ * @access  Private (Admin only)
+ */
+router.put('/:id', authenticateToken, requireAdmin, adminCategoryLimiter, categoryIdValidation, updateCategoryValidation, updateCategory);
+
+/**
+ * @route   DELETE /api/categories/:id
+ * @desc    Delete category
+ * @access  Private (Admin only)
+ */
+router.delete('/:id', authenticateToken, requireAdmin, adminCategoryLimiter, categoryIdValidation, deleteCategory);
+
+module.exports = router;

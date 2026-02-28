@@ -29,7 +29,7 @@ const authenticateToken = async (req, res, next) => {
     // Attach user information to request object
     req.user = {
       userId: decoded.userId,
-      username: decoded.username,
+      name: decoded.name,
       email: decoded.email,
       role: decoded.role,
     };
@@ -71,7 +71,7 @@ const optionalAuth = async (req, res, next) => {
     
     req.user = {
       userId: decoded.userId,
-      username: decoded.username,
+      name: decoded.name,
       email: decoded.email,
       role: decoded.role,
     };
