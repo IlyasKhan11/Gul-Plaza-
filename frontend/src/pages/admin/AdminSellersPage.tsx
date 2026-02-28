@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle, XCircle, Shield } from 'lucide-react'
+import { FiCheckCircle, FiXCircle, FiShield } from 'react-icons/fi'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -7,7 +7,7 @@ import { mockStores } from '@/data/mockData'
 import type { Store } from '@/types'
 
 export function AdminSellersPage() {
-  const [stores, setStores] = useState<Store[]>(mockStores)
+  const [stores, setStores] = useState<FiGlobe[]>(mockStores)
 
   function toggleApproval(id: string) {
     setStores(prev => prev.map(s => s.id === id ? { ...s, isApproved: !s.isApproved } : s))
@@ -51,7 +51,7 @@ export function AdminSellersPage() {
                     className={store.isApproved ? 'text-amber-600 border-amber-300 hover:bg-amber-50' : 'text-green-600 border-green-300 hover:bg-green-50'}
                     onClick={() => toggleApproval(store.id)}
                   >
-                    {store.isApproved ? <XCircle className="h-4 w-4 mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+                    {store.isApproved ? <FiXCircle className="h-4 w-4 mr-1" /> : <FiCheckCircle className="h-4 w-4 mr-1" />}
                     {store.isApproved ? 'Revoke' : 'Approve'}
                   </Button>
                   <Button
@@ -60,7 +60,7 @@ export function AdminSellersPage() {
                     className={store.isBlocked ? 'text-green-600 border-green-300 hover:bg-green-50' : 'text-red-500 border-red-200 hover:bg-red-50'}
                     onClick={() => toggleBlock(store.id)}
                   >
-                    <Shield className="h-4 w-4 mr-1" />
+                    <FiShield className="h-4 w-4 mr-1" />
                     {store.isBlocked ? 'Unblock' : 'Block'}
                   </Button>
                 </div>

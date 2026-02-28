@@ -1,4 +1,4 @@
-import { DollarSign, Clock, CheckCircle } from 'lucide-react'
+import { FiDollarSign, FiClock, FiCheckCircle } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/AuthContext'
@@ -14,9 +14,9 @@ export function SellerEarningsPage() {
   const withdrawn = myTransactions.filter(t => t.status === 'withdrawn').reduce((s, t) => s + t.sellerShare, 0)
 
   const stats = [
-    { title: 'Total Earned', value: formatPrice(totalEarned), icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-    { title: 'Pending Release', value: formatPrice(pendingRelease), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { title: 'Withdrawn', value: formatPrice(withdrawn), icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { title: 'Total Earned', value: formatPrice(totalEarned), icon: FiDollarSign, color: 'text-green-600', bg: 'bg-green-50' },
+    { title: 'Pending Release', value: formatPrice(pendingRelease), icon: FiClock, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { title: 'Withdrawn', value: formatPrice(withdrawn), icon: FiCheckCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
   ]
 
   const statusVariant = (s: string): 'success' | 'warning' | 'secondary' => {

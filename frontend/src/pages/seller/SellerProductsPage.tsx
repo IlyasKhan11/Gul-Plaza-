@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Package, X, CheckCircle } from 'lucide-react'
+import { FiPlus, FiEdit2, FiTrash2, FiPackage, FiX, FiCheckCircle } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -121,7 +121,7 @@ export function SellerProductsPage() {
           <p className="text-slate-500 text-sm mt-1">{products.length} products in your store</p>
         </div>
         <Button onClick={openAdd}>
-          <Plus className="h-4 w-4" /> Add Product
+          <FiPlus className="h-4 w-4" /> Add Product
         </Button>
       </div>
 
@@ -132,7 +132,7 @@ export function SellerProductsPage() {
         <CardContent>
           {products.length === 0 ? (
             <div className="text-center py-16">
-              <Package className="h-12 w-12 text-slate-200 mx-auto mb-3" />
+              <FiPackage className="h-12 w-12 text-slate-200 mx-auto mb-3" />
               <p className="text-slate-400 mb-4">You haven't added any products yet</p>
               <Button onClick={openAdd}>Add Your First Product</Button>
             </div>
@@ -271,7 +271,7 @@ export function SellerProductsPage() {
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
-              <Button type="submit">{editProduct ? 'Save Changes' : 'Add Product'}</Button>
+              <Button type="submit">{editProduct ? 'FiSave Changes' : 'Add Product'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

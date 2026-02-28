@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageCircle, CheckCircle, ShoppingBag, MapPin, Phone, User, CreditCard } from 'lucide-react'
+import { FiMessageCircle, FiCheckCircle, FiShoppingBag, FiMapPin, FiPhone, FiUser, FiCreditCard } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -116,7 +116,7 @@ export function CheckoutPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 border-4 border-green-200">
-          <CheckCircle className="h-10 w-10 text-green-600" />
+          <FiCheckCircle className="h-10 w-10 text-green-600" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Order Placed Successfully!</h2>
         <p className="text-slate-500 mb-1 text-sm">
@@ -158,7 +158,7 @@ export function CheckoutPage() {
                 className="w-full bg-green-600 hover:bg-green-700 text-white gap-2"
                 onClick={() => window.open(`https://wa.me/${store.whatsapp}?text=${msg}`, '_blank')}
               >
-                <MessageCircle className="h-5 w-5" />
+                <FiMessageCircle className="h-5 w-5" />
                 Contact {store.name} on WhatsApp
               </Button>
             )
@@ -180,7 +180,7 @@ export function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center">
-        <ShoppingBag className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+        <FiShoppingBag className="h-16 w-16 text-slate-300 mx-auto mb-4" />
         <p className="text-xl font-semibold text-slate-700 mb-2">Your cart is empty</p>
         <p className="text-slate-500 mb-6">Add some products before checking out</p>
         <Button asChild><Link to="/products">Browse Products</Link></Button>
@@ -198,12 +198,12 @@ export function CheckoutPage() {
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Left: Forms */}
         <div className="lg:col-span-3 space-y-5">
-          {/* Delivery Info */}
+          {/* Delivery FiInfo */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
-                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <FiMapPin className="h-4 w-4 text-blue-600" />
                 </div>
                 Delivery Information
               </CardTitle>
@@ -212,7 +212,7 @@ export function CheckoutPage() {
               <div>
                 <Label htmlFor="name">
                   <span className="flex items-center gap-1.5">
-                    <User className="h-3.5 w-3.5" /> Full Name <span className="text-red-500">*</span>
+                    <FiUser className="h-3.5 w-3.5" /> Full Name <span className="text-red-500">*</span>
                   </span>
                 </Label>
                 <Input
@@ -226,7 +226,7 @@ export function CheckoutPage() {
               <div>
                 <Label htmlFor="phone">
                   <span className="flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5" /> Phone Number <span className="text-red-500">*</span>
+                    <FiPhone className="h-3.5 w-3.5" /> FiPhone Number <span className="text-red-500">*</span>
                   </span>
                 </Label>
                 <Input
@@ -240,7 +240,7 @@ export function CheckoutPage() {
               <div>
                 <Label htmlFor="address">
                   <span className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5" /> Delivery Address <span className="text-red-500">*</span>
+                    <FiMapPin className="h-3.5 w-3.5" /> Delivery Address <span className="text-red-500">*</span>
                   </span>
                 </Label>
                 <Input
@@ -259,7 +259,7 @@ export function CheckoutPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center">
-                  <CreditCard className="h-4 w-4 text-green-600" />
+                  <FiCreditCard className="h-4 w-4 text-green-600" />
                 </div>
                 Payment Method
               </CardTitle>
@@ -310,7 +310,7 @@ export function CheckoutPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <ShoppingBag className="h-4 w-4 text-blue-600" />
+                  <FiShoppingBag className="h-4 w-4 text-blue-600" />
                   Order Summary
                   <span className="ml-auto text-sm font-normal text-slate-500">{items.length} item(s)</span>
                 </CardTitle>

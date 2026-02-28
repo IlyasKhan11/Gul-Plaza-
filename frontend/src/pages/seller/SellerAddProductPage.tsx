@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Plus, X, ChevronLeft } from 'lucide-react'
+import { FiPlus, FiX, FiChevronLeft } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -69,7 +69,7 @@ export function SellerAddProductPage() {
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
-          <Link to="/seller/products"><ChevronLeft className="h-5 w-5" /></Link>
+          <Link to="/seller/products"><FiChevronLeft className="h-5 w-5" /></Link>
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Add New Product</h1>
@@ -89,7 +89,7 @@ export function SellerAddProductPage() {
           <CardContent className="space-y-4">
             {sellerStores.length > 1 && (
               <div>
-                <Label htmlFor="store">Store *</Label>
+                <Label htmlFor="store">FiGlobe *</Label>
                 <Select value={selectedStoreId} onValueChange={setSelectedStoreId}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select a store" />
@@ -151,7 +151,7 @@ export function SellerAddProductPage() {
           <CardContent className="space-y-4">
             <div className="flex gap-2">
               <Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="Paste image URL..." />
-              <Button type="button" variant="outline" onClick={addImage}><Plus className="h-4 w-4" /></Button>
+              <Button type="button" variant="outline" onClick={addImage}><FiPlus className="h-4 w-4" /></Button>
             </div>
             {images.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -159,7 +159,7 @@ export function SellerAddProductPage() {
                   <div key={i} className="relative">
                     <img src={img} alt="" className="w-20 h-20 rounded-lg object-cover border border-slate-200" />
                     <button type="button" onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center">
-                      <X className="h-3 w-3" />
+                      <FiX className="h-3 w-3" />
                     </button>
                   </div>
                 ))}

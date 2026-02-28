@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Package, Star } from 'lucide-react'
+import { FiPackage, FiStar } from 'react-icons/fi'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { Store } from '@/types'
@@ -34,11 +34,11 @@ export function StoreCard({ store }: StoreCardProps) {
           <p className="mt-2 text-xs text-slate-500 line-clamp-2">{store.description}</p>
           <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
             <div className="flex items-center gap-1">
-              <Package className="h-3.5 w-3.5" />
+              <FiPackage className="h-3.5 w-3.5" />
               <span>{store.productCount} products</span>
             </div>
             <div className="flex items-center gap-1">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <FiStar className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
               <span className="font-medium">{store.rating}</span>
               <span>({store.reviewCount})</span>
             </div>

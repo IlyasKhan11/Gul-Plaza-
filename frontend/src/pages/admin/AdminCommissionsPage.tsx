@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Percent, TrendingUp, DollarSign, CheckCircle, Pencil } from 'lucide-react'
+import { FiPercent, FiTrendingUp, FiDollarSign, FiCheckCircle, FiEdit2 } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,10 +52,10 @@ export function AdminCommissionsPage() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Percent className="h-5 w-5 text-blue-600" />
+                <FiPercent className="h-5 w-5 text-blue-600" />
               </div>
               <Button size="sm" variant="outline" onClick={() => { setInputRate(String(rate)); setEditOpen(true) }}>
-                <Pencil className="h-3.5 w-3.5" /> Edit
+                <FiEdit2 className="h-3.5 w-3.5" /> Edit
               </Button>
             </div>
             <p className="text-3xl font-bold text-blue-700">{rate}%</p>
@@ -65,7 +65,7 @@ export function AdminCommissionsPage() {
         <Card>
           <CardContent className="p-5">
             <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mb-3">
-              <TrendingUp className="h-5 w-5 text-green-600" />
+              <FiTrendingUp className="h-5 w-5 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-slate-900">{formatPrice(totalCommission)}</p>
             <p className="text-xs text-slate-500 mt-1">Total Commission Earned</p>
@@ -74,7 +74,7 @@ export function AdminCommissionsPage() {
         <Card>
           <CardContent className="p-5">
             <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center mb-3">
-              <DollarSign className="h-5 w-5 text-amber-600" />
+              <FiDollarSign className="h-5 w-5 text-amber-600" />
             </div>
             <p className="text-2xl font-bold text-slate-900">{formatPrice(pendingCommission)}</p>
             <p className="text-xs text-slate-500 mt-1">Pending (Not Yet Released)</p>
@@ -83,7 +83,7 @@ export function AdminCommissionsPage() {
         <Card>
           <CardContent className="p-5">
             <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center mb-3">
-              <DollarSign className="h-5 w-5 text-purple-600" />
+              <FiDollarSign className="h-5 w-5 text-purple-600" />
             </div>
             <p className="text-2xl font-bold text-slate-900">{formatPrice(releasedCommission)}</p>
             <p className="text-xs text-slate-500 mt-1">Confirmed (Released Orders)</p>
@@ -104,7 +104,7 @@ export function AdminCommissionsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200">
-                    <th className="text-left pb-3 text-slate-500 font-medium">Seller / Store</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Seller / FiGlobe</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Orders</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Total GMV</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Commission ({rate}%)</th>
@@ -159,7 +159,7 @@ export function AdminCommissionsPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Rate</Button>
+              <Button type="submit">FiSave Rate</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -170,7 +170,7 @@ export function AdminCommissionsPage() {
         <DialogContent className="max-w-sm">
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="h-7 w-7 text-green-600" />
+              <FiCheckCircle className="h-7 w-7 text-green-600" />
             </div>
             <DialogTitle>Rate Updated!</DialogTitle>
             <p className="text-sm text-slate-500">Commission rate has been set to <strong>{rate}%</strong>. It will apply to all new orders.</p>

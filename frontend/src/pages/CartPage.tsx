@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag } from 'lucide-react'
+import { FiTrash2, FiPlus, FiMinus, FiShoppingBag, FiArrowRight, FiTag } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -16,7 +16,7 @@ export function CartPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-24 text-center">
         <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
-          <ShoppingBag className="h-10 w-10 text-slate-300" />
+          <FiShoppingBag className="h-10 w-10 text-slate-300" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Not available</h2>
         <p className="text-slate-500 mb-7">The shopping cart is only available for buyer accounts.</p>
@@ -31,7 +31,7 @@ export function CartPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-24 text-center">
         <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
-          <ShoppingBag className="h-10 w-10 text-slate-300" />
+          <FiShoppingBag className="h-10 w-10 text-slate-300" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Your cart is empty</h2>
         <p className="text-slate-500 mb-7">Looks like you haven't added anything to your cart yet.</p>
@@ -50,7 +50,7 @@ export function CartPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-          <ShoppingBag className="h-5 w-5 text-blue-600" />
+          <FiShoppingBag className="h-5 w-5 text-blue-600" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Shopping Cart</h1>
@@ -84,7 +84,7 @@ export function CartPage() {
                       onClick={() => updateQuantity(product.id, quantity - 1)}
                       className="w-8 h-8 flex items-center justify-center hover:bg-red-50 hover:text-red-600 text-slate-600 transition-colors"
                     >
-                      <Minus className="h-3.5 w-3.5" />
+                      <FiMinus className="h-3.5 w-3.5" />
                     </button>
                     <span className="w-9 text-center text-sm font-bold text-slate-900">{quantity}</span>
                     <button
@@ -92,7 +92,7 @@ export function CartPage() {
                       disabled={quantity >= product.stock}
                       className="w-8 h-8 flex items-center justify-center hover:bg-green-50 hover:text-green-600 text-slate-600 transition-colors disabled:opacity-30"
                     >
-                      <Plus className="h-3.5 w-3.5" />
+                      <FiPlus className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
@@ -102,7 +102,7 @@ export function CartPage() {
                       onClick={() => removeItem(product.id)}
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <FiTrash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -121,7 +121,7 @@ export function CartPage() {
             <Card className="shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-blue-600" />
+                  <FiTag className="h-4 w-4 text-blue-600" />
                   Order Summary
                 </CardTitle>
               </CardHeader>
@@ -159,12 +159,12 @@ export function CartPage() {
 
                 {isAuthenticated ? (
                   <Button className="w-full h-12 text-base font-semibold gap-2" onClick={() => navigate('/checkout')}>
-                    Proceed to Checkout <ArrowRight className="h-4 w-4" />
+                    Proceed to Checkout <FiArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (
                   <div className="space-y-3">
                     <Button className="w-full h-12 text-base gap-2" asChild>
-                      <Link to="/login">Login to Checkout <ArrowRight className="h-4 w-4" /></Link>
+                      <Link to="/login">Login to Checkout <FiArrowRight className="h-4 w-4" /></Link>
                     </Button>
                     <p className="text-xs text-center text-slate-400">
                       New here?{' '}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Save, Store as StoreIcon, Pencil, CheckCircle, Mail, Phone, PlusCircle } from 'lucide-react'
+import { FiSave, FiGlobe as StoreIcon, FiEdit2, FiCheckCircle, FiMail, FiPhone, FiPlusCircle } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,8 +20,8 @@ const emptyForm = { name: '', description: '', logo: '', banner: '', contactEmai
 
 export function SellerStorePage() {
   const { user } = useAuth()
-  const [stores, setStores] = useState<Store[]>(mockStores.filter(s => s.sellerId === user?.id))
-  const [editingStore, setEditingStore] = useState<Store | null>(null)
+  const [stores, setStores] = useState<FiGlobe[]>(mockStores.filter(s => s.sellerId === user?.id))
+  const [editingStore, setEditingStore] = useState<FiGlobe | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [dialogOpen, setDialogOpen] = useState(stores.length === 0)
   const [successOpen, setSuccessOpen] = useState(false)
@@ -34,7 +34,7 @@ export function SellerStorePage() {
     setDialogOpen(true)
   }
 
-  function openEdit(store: Store) {
+  function openEdit(store: FiGlobe) {
     setEditingStore(store)
     setForm({
       name: store.name,
@@ -65,7 +65,7 @@ export function SellerStorePage() {
       setSuccessTitle('Store Updated!')
       setSuccessMsg('Your store settings have been saved successfully.')
     } else {
-      const newStore: Store = {
+      const newStore: FiGlobe = {
         id: generateId(),
         sellerId: user.id,
         sellerName: user.name,
@@ -107,7 +107,7 @@ export function SellerStorePage() {
         </div>
         {stores.length > 0 && (
           <Button onClick={openCreate}>
-            <PlusCircle className="h-4 w-4" /> Add New Store
+            <FiPlusCircle className="h-4 w-4" /> Add New FiGlobe
           </Button>
         )}
       </div>
@@ -126,13 +126,13 @@ export function SellerStorePage() {
               </p>
             </div>
             <Button size="lg" onClick={openCreate}>
-              <PlusCircle className="h-5 w-5" /> Create My First Store
+              <FiPlusCircle className="h-5 w-5" /> Create My First FiGlobe
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Store list */}
+      {/* FiGlobe list */}
       <div className="grid gap-4">
         {stores.map(store => (
           <Card key={store.id} className="overflow-hidden">
@@ -175,18 +175,18 @@ export function SellerStorePage() {
                   <div className="flex items-center gap-5 mt-2.5 text-xs text-slate-400">
                     {store.contactEmail && (
                       <span className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />{store.contactEmail}
+                        <FiMail className="h-3 w-3" />{store.contactEmail}
                       </span>
                     )}
                     {store.whatsapp && (
                       <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />+{store.whatsapp}
+                        <FiPhone className="h-3 w-3" />+{store.whatsapp}
                       </span>
                     )}
                   </div>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => openEdit(store)}>
-                  <Pencil className="h-4 w-4" /> Edit
+                  <FiEdit2 className="h-4 w-4" /> Edit
                 </Button>
               </div>
             </CardContent>
@@ -214,7 +214,7 @@ export function SellerStorePage() {
 
           <form onSubmit={handleSave} className="space-y-4 mt-2">
             <div>
-              <Label htmlFor="sname">Store Name *</Label>
+              <Label htmlFor="sname">FiGlobe Name *</Label>
               <Input
                 id="sname"
                 value={form.name}
@@ -225,7 +225,7 @@ export function SellerStorePage() {
               />
             </div>
             <div>
-              <Label htmlFor="sdesc">Store Description</Label>
+              <Label htmlFor="sdesc">FiGlobe Description</Label>
               <Textarea
                 id="sdesc"
                 value={form.description}
@@ -289,7 +289,7 @@ export function SellerStorePage() {
                 </Button>
               )}
               <Button type="submit">
-                <Save className="h-4 w-4" />
+                <FiSave className="h-4 w-4" />
                 {editingStore ? 'Save Changes' : 'Create Store'}
               </Button>
             </DialogFooter>
@@ -302,7 +302,7 @@ export function SellerStorePage() {
         <DialogContent className="max-w-sm">
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="h-7 w-7 text-green-600" />
+              <FiCheckCircle className="h-7 w-7 text-green-600" />
             </div>
             <DialogTitle>{successTitle}</DialogTitle>
             <p className="text-sm text-slate-500">{successMsg}</p>

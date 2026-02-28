@@ -1,4 +1,4 @@
-import { ShoppingCart, Heart } from 'lucide-react'
+import { FiShoppingCart, FiHeart } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,7 +37,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </Badge>
         )}
         <button className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 transition-colors">
-          <Heart className="h-4 w-4" />
+          <FiHeart className="h-4 w-4" />
         </button>
       </div>
       <CardContent className="p-4">
@@ -63,7 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
             onClick={() => addItem(product)}
             disabled={product.stock === 0}
           >
-            <ShoppingCart className="h-4 w-4" />
+            <FiShoppingCart className="h-4 w-4" />
             {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
           </Button>
         ) : (

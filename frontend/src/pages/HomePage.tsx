@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, ShieldCheck, Truck, Headphones, Star } from 'lucide-react'
+import { FiArrowRight, FiShield, FiTruck, FiHeadphones, FiStar } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { ProductCard } from '@/components/common/ProductCard'
 import { StoreCard } from '@/components/common/StoreCard'
@@ -16,7 +16,7 @@ export function HomePage() {
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 bg-blue-500/30 border border-blue-400/30 rounded-full px-4 py-1.5 text-sm">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <FiStar className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 <span>Pakistan's Trusted Marketplace</span>
               </div>
               <h1 className="text-4xl md:text-5xl font-bold leading-tight">
@@ -28,7 +28,7 @@ export function HomePage() {
               </p>
               <div className="flex items-center gap-3 flex-wrap">
                 <Button size="lg" className="bg-white text-black hover:bg-slate-100" asChild>
-                  <Link to="/products">Shop Now <ArrowRight className="h-4 w-4" /></Link>
+                  <Link to="/products">Shop Now <FiArrowRight className="h-4 w-4" /></Link>
                 </Button>
                 <Button size="lg" variant="outline" className="border-white/50 text-white hover:bg-white/10 bg-transparent" asChild>
                   <Link to="/register">Sell on GUL PLAZA</Link>
@@ -62,9 +62,9 @@ export function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <div className="grid grid-cols-3 gap-4">
             {[
-              { icon: ShieldCheck, title: 'Secure Payments', desc: 'Multiple payment options' },
-              { icon: Truck, title: 'Fast Delivery', desc: 'Nationwide coverage' },
-              { icon: Headphones, title: '24/7 Support', desc: 'Always here to help' },
+              { icon: FiShield, title: 'Secure Payments', desc: 'Multiple payment options' },
+              { icon: FiTruck, title: 'Fast Delivery', desc: 'Nationwide coverage' },
+              { icon: FiHeadphones, title: '24/7 Support', desc: 'Always here to help' },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
@@ -86,7 +86,7 @@ export function HomePage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-slate-900">Shop by Category</h2>
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/products" className="text-blue-600">View All <ArrowRight className="h-4 w-4 ml-1" /></Link>
+              <Link to="/products" className="text-blue-600">View All <FiArrowRight className="h-4 w-4 ml-1" /></Link>
             </Button>
           </div>
           <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3">
@@ -114,7 +114,7 @@ export function HomePage() {
               <p className="text-slate-500 text-sm mt-1">Hand-picked products just for you</p>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/products">See All <ArrowRight className="h-4 w-4 ml-1" /></Link>
+              <Link to="/products">See All <FiArrowRight className="h-4 w-4 ml-1" /></Link>
             </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

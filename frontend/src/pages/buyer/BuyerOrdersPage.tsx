@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Package } from 'lucide-react'
+import { FiPackage } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -26,7 +26,7 @@ export function BuyerOrdersPage() {
       {orders.length === 0 ? (
         <Card>
           <CardContent className="py-20 text-center">
-            <Package className="h-12 w-12 text-slate-200 mx-auto mb-3" />
+            <FiPackage className="h-12 w-12 text-slate-200 mx-auto mb-3" />
             <p className="text-slate-400 mb-4">You haven't placed any orders yet</p>
             <Button asChild><Link to="/products">Start Shopping</Link></Button>
           </CardContent>

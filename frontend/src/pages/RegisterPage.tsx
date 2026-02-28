@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Store, ShoppingBag, AlertCircle } from 'lucide-react'
+import { FiGlobe, FiShoppingBag, FiAlertCircle } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -39,7 +39,7 @@ export function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-            <Store className="h-7 w-7 text-white" />
+            <FiGlobe className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Create Account</h1>
           <p className="text-slate-500 text-sm mt-1">Join GUL PLAZA today</p>
@@ -54,8 +54,8 @@ export function RegisterPage() {
             {/* Role Selector */}
             <div className="grid grid-cols-2 gap-3 mb-5">
               {([
-                { role: 'buyer' as UserRole, icon: ShoppingBag, title: 'Buyer', desc: 'Shop & order products' },
-                { role: 'seller' as UserRole, icon: Store, title: 'Seller', desc: 'Open your store' },
+                { role: 'buyer' as UserRole, icon: FiShoppingBag, title: 'Buyer', desc: 'Shop & order products' },
+                { role: 'seller' as UserRole, icon: FiGlobe, title: 'Seller', desc: 'Open your store' },
               ] as const).map(({ role: r, icon: Icon, title, desc }) => (
                 <button
                   key={r}
@@ -104,7 +104,7 @@ export function RegisterPage() {
         <DialogContent className="max-w-sm">
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
-              <AlertCircle className="h-7 w-7 text-red-600" />
+              <FiAlertCircle className="h-7 w-7 text-red-600" />
             </div>
             <DialogHeader>
               <DialogTitle>Registration Failed</DialogTitle>

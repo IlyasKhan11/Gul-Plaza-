@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { FiSearch } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +10,7 @@ import { formatDate } from '@/lib/utils'
 import type { User } from '@/types'
 
 export function AdminUsersPage() {
-  const [users, setUsers] = useState<User[]>(mockUsers.filter(u => u.role !== 'admin'))
+  const [users, setUsers] = useState<FiUser[]>(mockUsers.filter(u => u.role !== 'admin'))
   const [search, setSearch] = useState('')
 
   const filtered = search ? users.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.includes(search)) : users
@@ -22,16 +22,16 @@ export function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Users</h1>
+        <h1 className="text-2xl font-bold text-slate-900">FiUsers</h1>
         <p className="text-slate-500 text-sm mt-1">{users.length} registered users</p>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">User Management</CardTitle>
+            <CardTitle className="text-base">FiUser Management</CardTitle>
             <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." className="pl-9" />
             </div>
           </div>
@@ -41,7 +41,7 @@ export function AdminUsersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left pb-3 text-slate-500 font-medium">User</th>
+                  <th className="text-left pb-3 text-slate-500 font-medium">FiUser</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Role</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Joined</th>

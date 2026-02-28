@@ -40,7 +40,7 @@ export function AdminOrdersPage() {
                 <tr className="border-b border-slate-200">
                   <th className="text-left pb-3 text-slate-500 font-medium">Order ID</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Buyer</th>
-                  <th className="text-left pb-3 text-slate-500 font-medium">Store</th>
+                  <th className="text-left pb-3 text-slate-500 font-medium">FiGlobe</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Items</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Total</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Status</th>

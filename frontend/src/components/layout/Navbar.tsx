@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, Search, Menu, X, User, LogOut, LayoutDashboard, Package } from 'lucide-react'
+import { FiShoppingCart, FiSearch, FiMenu, FiX, FiUser, FiLogOut, FiGrid, FiPackage } from 'react-icons/fi'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,10 +44,10 @@ export function Navbar() {
             <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 w-auto rounded-lg object-contain" />
           </Link>
 
-          {/* Search */}
+          {/* FiSearch */}
           <form onSubmit={handleSearch} className="flex-1 flex items-center gap-2 max-w-2xl">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -55,7 +55,7 @@ export function Navbar() {
                 className="pl-9 h-10"
               />
             </div>
-            <Button type="submit" className="hidden sm:flex h-10">Search</Button>
+            <Button type="submit" className="hidden sm:flex h-10"><FiSearch className="h-4 w-4" /></Button>
           </form>
 
           {/* Actions */}
@@ -64,7 +64,7 @@ export function Navbar() {
             {(!user || user.role === 'buyer') && (
               <Link to="/cart" className="relative">
                 <Button variant="ghost" size="icon">
-                  <ShoppingCart className="h-5 w-5" />
+                  <FiShoppingCart className="h-5 w-5" />
                 </Button>
                 {itemCount > 0 && (
                   <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
@@ -93,18 +93,18 @@ export function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate(getDashboardLink())}>
-                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                    <FiGrid className="h-4 w-4 mr-2" />
                     Dashboard
                   </DropdownMenuItem>
                   {user.role === 'buyer' && (
                     <DropdownMenuItem onClick={() => navigate('/buyer/orders')}>
-                      <Package className="h-4 w-4 mr-2" />
+                      <FiPackage className="h-4 w-4 mr-2" />
                       My Orders
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => { logout(); navigate('/') }} className="text-red-600">
-                    <LogOut className="h-4 w-4 mr-2" />
+                    <FiLogOut className="h-4 w-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -112,7 +112,7 @@ export function Navbar() {
             ) : (
               <div className="hidden sm:flex items-center gap-2">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link to="/login"><User className="h-4 w-4 mr-1" />Login</Link>
+                  <Link to="/login"><FiUser className="h-4 w-4 mr-1" />Login</Link>
                 </Button>
                 <Button size="sm" asChild>
                   <Link to="/register">Register</Link>
@@ -122,7 +122,7 @@ export function Navbar() {
 
             {/* Mobile toggle */}
             <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileOpen ? <FiX className="h-5 w-5" /> : <FiMenu className="h-5 w-5" />}
             </Button>
           </div>
         </div>

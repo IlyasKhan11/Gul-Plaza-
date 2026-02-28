@@ -1,4 +1,4 @@
-import { Star } from 'lucide-react'
+import { FiStar } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 
 interface StarRatingProps {
@@ -16,7 +16,7 @@ export function StarRating({ rating, reviewCount, size = 'sm', className }: Star
     <div className={cn('flex items-center gap-1', className)}>
       <div className="flex items-center">
         {[1, 2, 3, 4, 5].map(star => (
-          <Star
+          <FiStar
             key={star}
             className={cn(
               sizeClasses[size],

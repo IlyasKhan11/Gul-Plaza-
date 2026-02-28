@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
-import { MessageCircle, Package, Star, MapPin } from 'lucide-react'
+import { FiMessageCircle, FiPackage, FiStar, FiMapPin } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ProductCard } from '@/components/common/ProductCard'
@@ -45,16 +45,16 @@ export function StorePage() {
               </div>
               <div className="flex items-center gap-4 text-sm text-slate-500 flex-wrap">
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  <FiStar className="h-4 w-4 fill-amber-400 text-amber-400" />
                   <span className="font-medium text-slate-700">{store.rating}</span>
                   <span>({store.reviewCount} reviews)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Package className="h-4 w-4" />
+                  <FiPackage className="h-4 w-4" />
                   <span>{store.productCount} products</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
+                  <FiMapPin className="h-4 w-4" />
                   <span>Pakistan</span>
                 </div>
               </div>
@@ -65,7 +65,7 @@ export function StorePage() {
               variant="outline"
               onClick={() => window.open(whatsappUrl, '_blank')}
             >
-              <MessageCircle className="h-4 w-4" />
+              <FiMessageCircle className="h-4 w-4" />
               Contact on WhatsApp
             </Button>
           </div>

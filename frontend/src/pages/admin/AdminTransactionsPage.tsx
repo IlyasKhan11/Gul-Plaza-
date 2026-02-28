@@ -43,7 +43,7 @@ export function AdminTransactionsPage() {
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left pb-3 text-slate-500 font-medium">Order</th>
-                  <th className="text-left pb-3 text-slate-500 font-medium">Store</th>
+                  <th className="text-left pb-3 text-slate-500 font-medium">FiGlobe</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Order Amount</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Commission (5%)</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Seller Share</th>

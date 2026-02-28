@@ -1,4 +1,4 @@
-import { DollarSign, Package, ShoppingBag, Wallet, TrendingUp, Store, ArrowRight } from 'lucide-react'
+import { FiDollarSign, FiPackage, FiShoppingBag, FiBriefcase, FiTrendingUp, FiGlobe, FiArrowRight } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,10 +28,10 @@ export function SellerDashboardPage() {
   ].filter(s => s.value > 0)
 
   const stats = [
-    { title: 'Total Revenue', value: formatPrice(totalRevenue), icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-    { title: 'Total Orders', value: myOrders.length, icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { title: 'Products', value: myProducts.length, icon: Package, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { title: 'Pending Withdrawal', value: formatPrice(pendingWithdrawals), icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { title: 'Total Revenue', value: formatPrice(totalRevenue), icon: FiDollarSign, color: 'text-green-600', bg: 'bg-green-50' },
+    { title: 'Total Orders', value: myOrders.length, icon: FiShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { title: 'Products', value: myProducts.length, icon: FiPackage, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { title: 'Pending Withdrawal', value: formatPrice(pendingWithdrawals), icon: FiBriefcase, color: 'text-amber-600', bg: 'bg-amber-50' },
   ]
 
   return (
@@ -45,7 +45,7 @@ export function SellerDashboardPage() {
       {!myStore && (
         <div className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-            <Store className="h-5 w-5 text-amber-600" />
+            <FiGlobe className="h-5 w-5 text-amber-600" />
           </div>
           <div className="flex-1">
             <p className="font-semibold text-slate-900 text-sm">Complete your store setup</p>
@@ -53,7 +53,7 @@ export function SellerDashboardPage() {
           </div>
           <Button size="sm" asChild>
             <Link to="/seller/store">
-              Set Up Store <ArrowRight className="h-4 w-4" />
+              Set Up Store <FiArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
@@ -83,7 +83,7 @@ export function SellerDashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4 text-blue-600" /> Monthly Revenue
+              <FiTrendingUp className="h-4 w-4 text-blue-600" /> Monthly Revenue
             </CardTitle>
           </CardHeader>
           <CardContent>

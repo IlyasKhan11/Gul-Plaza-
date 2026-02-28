@@ -1,15 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Package, ShoppingBag, DollarSign, Wallet, Settings, Store, LogOut } from 'lucide-react'
+import { FiGrid, FiPackage, FiShoppingBag, FiDollarSign, FiBriefcase, FiSettings, FiGlobe, FiLogOut } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 
 const navItems = [
-  { to: '/seller/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/seller/products', icon: Package, label: 'Products' },
-  { to: '/seller/orders', icon: ShoppingBag, label: 'Orders' },
-  { to: '/seller/earnings', icon: DollarSign, label: 'Earnings' },
-  { to: '/seller/withdrawals', icon: Wallet, label: 'Withdrawals' },
-  { to: '/seller/store', icon: Settings, label: 'Store Settings' },
+  { to: '/seller/dashboard', icon: FiGrid, label: 'Dashboard' },
+  { to: '/seller/products', icon: FiPackage, label: 'Products' },
+  { to: '/seller/orders', icon: FiShoppingBag, label: 'Orders' },
+  { to: '/seller/earnings', icon: FiDollarSign, label: 'Earnings' },
+  { to: '/seller/withdrawals', icon: FiBriefcase, label: 'Withdrawals' },
+  { to: '/seller/store', icon: FiSettings, label: 'Store Settings' },
 ]
 
 export function SellerSidebar({ onLinkClick }: { onLinkClick?: () => void }) {
@@ -21,7 +21,7 @@ export function SellerSidebar({ onLinkClick }: { onLinkClick?: () => void }) {
       <div className="px-4 py-3 border-b border-slate-100">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <Store className="h-4 w-4 text-white" />
+            <FiGlobe className="h-4 w-4 text-white" />
           </div>
           <div>
             <p className="text-sm font-bold text-slate-900">Seller Panel</p>
@@ -61,7 +61,7 @@ export function SellerSidebar({ onLinkClick }: { onLinkClick?: () => void }) {
           onClick={() => { onLinkClick?.(); logout(); navigate('/') }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
         >
-          <LogOut className="h-4 w-4 shrink-0" />
+          <FiLogOut className="h-4 w-4 shrink-0" />
           Logout
         </button>
       </div>

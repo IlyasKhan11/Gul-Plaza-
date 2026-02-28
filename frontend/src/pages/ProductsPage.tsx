@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { SlidersHorizontal } from 'lucide-react'
+import { FiSliders } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -109,7 +109,7 @@ export function ProductsPage() {
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon" className="md:hidden" onClick={() => setShowFilters(!showFilters)}>
-                <SlidersHorizontal className="h-4 w-4" />
+                <FiSliders className="h-4 w-4" />
               </Button>
             </div>
           </div>

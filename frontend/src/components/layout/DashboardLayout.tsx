@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { LogOut, Bell, Home, ShoppingBag, Wallet, CheckCircle, Info, Check, Menu, X } from 'lucide-react'
+import { FiLogOut, FiBell, FiHome, FiShoppingBag, FiBriefcase, FiCheckCircle, FiInfo, FiCheck, FiMenu, FiX } from 'react-icons/fi'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -15,10 +15,10 @@ import { mockNotifications } from '@/data/mockData'
 import type { Notification } from '@/types'
 
 const typeIcon = (type: Notification['type']) => {
-  if (type === 'order') return <ShoppingBag className="h-4 w-4 text-blue-500" />
-  if (type === 'withdrawal') return <Wallet className="h-4 w-4 text-amber-500" />
-  if (type === 'approval') return <CheckCircle className="h-4 w-4 text-green-500" />
-  return <Info className="h-4 w-4 text-slate-400" />
+  if (type === 'order') return <FiShoppingBag className="h-4 w-4 text-blue-500" />
+  if (type === 'withdrawal') return <FiBriefcase className="h-4 w-4 text-amber-500" />
+  if (type === 'approval') return <FiCheckCircle className="h-4 w-4 text-green-500" />
+  return <FiInfo className="h-4 w-4 text-slate-400" />
 }
 
 export function DashboardLayout() {
@@ -55,7 +55,7 @@ export function DashboardLayout() {
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Hamburger — mobile only */}
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(v => !v)}>
-            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {sidebarOpen ? <FiX className="h-5 w-5" /> : <FiMenu className="h-5 w-5" />}
           </Button>
 
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
@@ -67,14 +67,14 @@ export function DashboardLayout() {
 
         <div className="flex items-center gap-1 sm:gap-2">
           <Button variant="ghost" size="sm" asChild className="text-slate-500 hover:text-blue-600 gap-1.5 hidden sm:flex">
-            <Link to="/"><Home className="h-4 w-4" /> Store</Link>
+            <Link to="/"><FiHome className="h-4 w-4" /> Home</Link>
           </Button>
 
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-4.5 w-4.5 text-slate-500" />
+                <FiBell className="h-4.5 w-4.5 text-slate-500" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -85,7 +85,7 @@ export function DashboardLayout() {
             <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-slate-600" />
+                  <FiBell className="h-4 w-4 text-slate-600" />
                   <span className="font-semibold text-slate-900 text-sm">Notifications</span>
                   {unreadCount > 0 && (
                     <span className="bg-red-100 text-red-600 text-xs font-bold px-1.5 py-0.5 rounded-full">{unreadCount}</span>
@@ -93,14 +93,14 @@ export function DashboardLayout() {
                 </div>
                 {unreadCount > 0 && (
                   <button onClick={markAllRead} className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                    <Check className="h-3 w-3" /> Mark all read
+                    <FiCheck className="h-3 w-3" /> Mark all read
                   </button>
                 )}
               </div>
               <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-50">
                 {notifications.length === 0 ? (
                   <div className="py-10 text-center text-slate-400 text-sm">
-                    <Bell className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                    <FiBell className="h-8 w-8 mx-auto mb-2 text-slate-200" />
                     No notifications
                   </div>
                 ) : (
@@ -150,7 +150,7 @@ export function DashboardLayout() {
             onClick={() => { logout(); navigate('/') }}
             className="text-red-500 hover:text-red-600 hover:bg-red-50 gap-1.5"
           >
-            <LogOut className="h-4 w-4" />
+            <FiLogOut className="h-4 w-4" />
             <span className="hidden sm:inline">Logout</span>
           </Button>
         </div>

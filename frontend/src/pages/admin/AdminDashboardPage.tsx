@@ -1,4 +1,4 @@
-import { Users, Store, ShoppingBag, DollarSign, TrendingUp } from 'lucide-react'
+import { FiUsers, FiGlobe, FiShoppingBag, FiDollarSign, FiTrendingUp } from 'react-icons/fi'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,11 +13,11 @@ export function AdminDashboardPage() {
   const sellers = mockUsers.filter(u => u.role === 'seller').length
 
   const stats = [
-    { title: 'Total GMV', value: formatPrice(totalGMV), icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-    { title: 'Platform Revenue', value: formatPrice(totalRevenue), icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { title: 'Total Users', value: buyers + sellers, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { title: 'Active Sellers', value: sellers, icon: Store, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { title: 'Total Orders', value: mockOrders.length, icon: ShoppingBag, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { title: 'Total GMV', value: formatPrice(totalGMV), icon: FiDollarSign, color: 'text-green-600', bg: 'bg-green-50' },
+    { title: 'Platform Revenue', value: formatPrice(totalRevenue), icon: FiTrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { title: 'Total Users', value: buyers + sellers, icon: FiUsers, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { title: 'Active Sellers', value: sellers, icon: FiGlobe, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { title: 'Total Orders', value: mockOrders.length, icon: FiShoppingBag, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   ]
 
   return (
@@ -45,7 +45,7 @@ export function AdminDashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <TrendingUp className="h-4 w-4 text-blue-600" /> Monthly Platform Revenue
+            <FiTrendingUp className="h-4 w-4 text-blue-600" /> Monthly Platform Revenue
           </CardTitle>
         </CardHeader>
         <CardContent>

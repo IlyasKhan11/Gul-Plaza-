@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp, ShoppingBag, Users, Store } from 'lucide-react'
+import { FiTrendingUp, FiShoppingBag, FiUsers, FiGlobe } from 'react-icons/fi'
 import { mockOrders, mockUsers, mockStores, mockAdminSalesData, mockTransactions, mockCategories } from '@/data/mockData'
 import { formatPrice } from '@/lib/utils'
 
@@ -29,7 +29,7 @@ export function AdminReportsPage() {
     orders: mockOrders.filter(o => o.items.some(i => i.product.categoryId === cat.id)).length,
   })).filter(c => c.orders > 0).sort((a, b) => b.orders - a.orders)
 
-  // User growth (mock by month)
+  // FiUser growth (mock by month)
   const userGrowth = mockAdminSalesData.map((d, i) => ({
     month: d.month,
     users: 20 + i * 8,
@@ -50,10 +50,10 @@ export function AdminReportsPage() {
       {/* Summary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total GMV', value: formatPrice(totalGMV), icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: 'Platform Revenue', value: formatPrice(totalCommission), icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Total Orders', value: mockOrders.length, icon: ShoppingBag, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-          { label: 'Delivery Rate', value: `${conversionRate}%`, icon: Users, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Total GMV', value: formatPrice(totalGMV), icon: FiTrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Platform Revenue', value: formatPrice(totalCommission), icon: FiTrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Total Orders', value: mockOrders.length, icon: FiShoppingBag, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+          { label: 'Delivery Rate', value: `${conversionRate}%`, icon: FiUsers, color: 'text-amber-600', bg: 'bg-amber-50' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <Card key={label}>
             <CardContent className="p-5">
@@ -76,7 +76,7 @@ export function AdminReportsPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4 text-blue-600" /> Monthly Revenue
+              <FiTrendingUp className="h-4 w-4 text-blue-600" /> Monthly Revenue
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -112,11 +112,11 @@ export function AdminReportsPage() {
         </Card>
       </div>
 
-      {/* User Growth */}
+      {/* FiUser Growth */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="h-4 w-4 text-purple-600" /> User & Seller Growth
+            <FiUsers className="h-4 w-4 text-purple-600" /> FiUser & Seller Growth
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -139,7 +139,7 @@ export function AdminReportsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Store className="h-4 w-4 text-amber-600" /> Top Sellers by GMV
+              <FiGlobe className="h-4 w-4 text-amber-600" /> Top Sellers by GMV
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -166,7 +166,7 @@ export function AdminReportsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <ShoppingBag className="h-4 w-4 text-indigo-600" /> Orders by Category
+              <FiShoppingBag className="h-4 w-4 text-indigo-600" /> Orders by Category
             </CardTitle>
           </CardHeader>
           <CardContent>

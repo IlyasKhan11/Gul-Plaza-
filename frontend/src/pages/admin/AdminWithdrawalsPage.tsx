@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle, XCircle, Wallet } from 'lucide-react'
+import { FiCheckCircle, FiXCircle, FiBriefcase } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -50,7 +50,7 @@ export function AdminWithdrawalsPage() {
         <Card>
           <CardContent className="p-5">
             <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center mb-3">
-              <Wallet className="h-5 w-5 text-amber-600" />
+              <FiBriefcase className="h-5 w-5 text-amber-600" />
             </div>
             <p className="text-2xl font-bold text-slate-900">{pending}</p>
             <p className="text-xs text-slate-500 mt-1">Pending Requests</p>
@@ -59,7 +59,7 @@ export function AdminWithdrawalsPage() {
         <Card>
           <CardContent className="p-5">
             <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center mb-3">
-              <Wallet className="h-5 w-5 text-amber-600" />
+              <FiBriefcase className="h-5 w-5 text-amber-600" />
             </div>
             <p className="text-2xl font-bold text-slate-900">{formatPrice(totalPending)}</p>
             <p className="text-xs text-slate-500 mt-1">Amount Pending</p>
@@ -68,7 +68,7 @@ export function AdminWithdrawalsPage() {
         <Card>
           <CardContent className="p-5">
             <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mb-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <FiCheckCircle className="h-5 w-5 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-slate-900">{formatPrice(totalApproved)}</p>
             <p className="text-xs text-slate-500 mt-1">Total Approved</p>
@@ -102,7 +102,7 @@ export function AdminWithdrawalsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200">
-                    <th className="text-left pb-3 text-slate-500 font-medium">Seller / Store</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Seller / FiGlobe</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Amount</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Bank / Method</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Account</th>
@@ -134,7 +134,7 @@ export function AdminWithdrawalsPage() {
                               className="text-green-600 border-green-300 hover:bg-green-50"
                               onClick={() => setConfirmAction({ id: w.id, action: 'approved' })}
                             >
-                              <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
+                              <FiCheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
                             </Button>
                             <Button
                               size="sm"
@@ -142,7 +142,7 @@ export function AdminWithdrawalsPage() {
                               className="text-red-500 border-red-200 hover:bg-red-50"
                               onClick={() => setConfirmAction({ id: w.id, action: 'rejected' })}
                             >
-                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                              <FiXCircle className="h-3.5 w-3.5 mr-1" /> Reject
                             </Button>
                           </div>
                         ) : (
@@ -164,8 +164,8 @@ export function AdminWithdrawalsPage() {
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <div className={`w-14 h-14 rounded-full flex items-center justify-center ${confirmAction?.action === 'approved' ? 'bg-green-100' : 'bg-red-100'}`}>
               {confirmAction?.action === 'approved'
-                ? <CheckCircle className="h-7 w-7 text-green-600" />
-                : <XCircle className="h-7 w-7 text-red-600" />}
+                ? <FiCheckCircle className="h-7 w-7 text-green-600" />
+                : <FiXCircle className="h-7 w-7 text-red-600" />}
             </div>
             <DialogTitle>
               {confirmAction?.action === 'approved' ? 'Approve Withdrawal?' : 'Reject Withdrawal?'}
@@ -193,7 +193,7 @@ export function AdminWithdrawalsPage() {
         <DialogContent className="max-w-sm">
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <div className={`w-14 h-14 rounded-full flex items-center justify-center ${lastAction === 'approved' ? 'bg-green-100' : 'bg-slate-100'}`}>
-              <CheckCircle className={`h-7 w-7 ${lastAction === 'approved' ? 'text-green-600' : 'text-slate-600'}`} />
+              <FiCheckCircle className={`h-7 w-7 ${lastAction === 'approved' ? 'text-green-600' : 'text-slate-600'}`} />
             </div>
             <DialogTitle>Withdrawal {lastAction === 'approved' ? 'Approved' : 'Rejected'}</DialogTitle>
             <p className="text-sm text-slate-500">The withdrawal request has been {lastAction}.</p>

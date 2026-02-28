@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react'
+import { FiFacebook, FiInstagram, FiTwitter, FiMail, FiPhone, FiMapPin } from 'react-icons/fi'
 import { Separator } from '@/components/ui/separator'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
 
@@ -17,9 +17,9 @@ export function Footer() {
               Pakistan's trusted multi-vendor marketplace. Shop from thousands of verified sellers.
             </p>
             <div className="flex items-center gap-3">
-              <a href="#" className="hover:text-white transition-colors"><Facebook className="h-5 w-5" /></a>
-              <a href="#" className="hover:text-pink-400 transition-colors"><Instagram className="h-5 w-5" /></a>
-              <a href="#" className="hover:text-white transition-colors"><Twitter className="h-5 w-5" /></a>
+              <a href="#" className="hover:text-white transition-colors"><FiFacebook className="h-5 w-5" /></a>
+              <a href="#" className="hover:text-pink-400 transition-colors"><FiInstagram className="h-5 w-5" /></a>
+              <a href="#" className="hover:text-white transition-colors"><FiTwitter className="h-5 w-5" /></a>
             </div>
           </div>
 
@@ -51,15 +51,15 @@ export function Footer() {
             <h3 className="font-semibold text-white">Contact</h3>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                <FiMail className="h-4 w-4 text-slate-400 shrink-0" />
                 <span>support@gulplaza.pk</span>
               </li>
               <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                <FiPhone className="h-4 w-4 text-slate-400 shrink-0" />
                 <span>+92 300 0000000</span>
               </li>
               <li className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                <FiMapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
                 <span>Lahore, Punjab, Pakistan</span>
               </li>
             </ul>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, MessageCircle, ChevronLeft, Package, Shield, Truck } from 'lucide-react'
+import { FiShoppingCart, FiMessageCircle, FiChevronLeft, FiPackage, FiShield, FiTruck } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -48,7 +48,7 @@ export function ProductDetailPage() {
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 hover:text-blue-600">
-          <ChevronLeft className="h-4 w-4" /> Back
+          <FiChevronLeft className="h-4 w-4" /> Back
         </button>
         <span>/</span>
         <Link to="/products" className="hover:text-blue-600">Products</Link>
@@ -123,7 +123,7 @@ export function ProductDetailPage() {
           <div className="flex gap-3 flex-wrap">
             {isBuyer ? (
               <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.stock === 0}>
-                <ShoppingCart className="h-5 w-5" />
+                <FiShoppingCart className="h-5 w-5" />
                 Add to Cart
               </Button>
             ) : (
@@ -137,7 +137,7 @@ export function ProductDetailPage() {
               className="flex-1 border-green-500 text-green-700 hover:bg-green-50"
               onClick={() => window.open(whatsappUrl, '_blank')}
             >
-              <MessageCircle className="h-5 w-5" />
+              <FiMessageCircle className="h-5 w-5" />
               WhatsApp Seller
             </Button>
           </div>
@@ -145,20 +145,20 @@ export function ProductDetailPage() {
           {/* Trust icons */}
           <div className="grid grid-cols-3 gap-3 text-center text-xs text-slate-500">
             <div className="flex flex-col items-center gap-1">
-              <Shield className="h-5 w-5 text-blue-600" />
+              <FiShield className="h-5 w-5 text-blue-600" />
               <span>Verified Seller</span>
             </div>
             <div className="flex flex-col items-center gap-1">
-              <Truck className="h-5 w-5 text-blue-600" />
+              <FiTruck className="h-5 w-5 text-blue-600" />
               <span>Fast Delivery</span>
             </div>
             <div className="flex flex-col items-center gap-1">
-              <Package className="h-5 w-5 text-blue-600" />
+              <FiPackage className="h-5 w-5 text-blue-600" />
               <span>Easy Returns</span>
             </div>
           </div>
 
-          {/* Store Card */}
+          {/* FiGlobe Card */}
           {store && (
             <div className="border border-slate-200 rounded-xl p-4 flex items-start gap-3 bg-slate-50/50 shadow-sm">
               <img src={store.logo} alt={store.name} className="w-12 h-12 rounded-lg border border-slate-200 object-cover" />

@@ -19,7 +19,7 @@ export function AdminProductsPage() {
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left pb-3 text-slate-500 font-medium">Product</th>
-                  <th className="text-left pb-3 text-slate-500 font-medium">Store</th>
+                  <th className="text-left pb-3 text-slate-500 font-medium">FiGlobe</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Category</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Price</th>
                   <th className="text-left pb-3 text-slate-500 font-medium">Stock</th>

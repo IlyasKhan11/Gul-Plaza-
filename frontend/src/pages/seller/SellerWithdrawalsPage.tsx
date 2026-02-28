@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Wallet, Plus, CheckCircle } from "lucide-react"
+import { FiBriefcase, FiPlus, FiCheckCircle } from "react-icons/fi"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -90,7 +90,7 @@ export function SellerWithdrawalsPage() {
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Request Withdrawal
+          <FiPlus className="h-4 w-4 mr-2" /> Request Withdrawal
         </Button>
       </div>
 
@@ -106,7 +106,7 @@ export function SellerWithdrawalsPage() {
                 </p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                <Wallet className="h-5 w-5 text-blue-600" />
+                <FiBriefcase className="h-5 w-5 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -122,7 +122,7 @@ export function SellerWithdrawalsPage() {
                 </p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                <Wallet className="h-5 w-5 text-blue-600" />
+                <FiBriefcase className="h-5 w-5 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -269,7 +269,7 @@ export function SellerWithdrawalsPage() {
         <DialogContent className="max-w-sm">
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="h-7 w-7 text-green-600" />
+              <FiCheckCircle className="h-7 w-7 text-green-600" />
             </div>
             <DialogTitle>Requested!</DialogTitle>
             <p className="text-sm text-slate-500">
