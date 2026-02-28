@@ -179,10 +179,10 @@ export function SellerProductsPage() {
                       <td className="py-3">
                         <div className="flex items-center justify-end gap-2">
                           <Button size="sm" variant="outline" onClick={() => openEdit(product)}>
-                            <Pencil className="h-3.5 w-3.5" />
+                            <FiEdit2 className="h-3.5 w-3.5" />
                           </Button>
                           <Button size="sm" variant="outline" className="text-red-500 hover:text-red-600 hover:border-red-300" onClick={() => setDeleteId(product.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <FiTrash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </td>
@@ -252,7 +252,7 @@ export function SellerProductsPage() {
               <p className="text-sm font-semibold text-slate-700">Product Images</p>
               <div className="flex gap-2">
                 <Input value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} placeholder="Paste image URL..." />
-                <Button type="button" variant="outline" onClick={addImage}><Plus className="h-4 w-4" /></Button>
+                <Button type="button" variant="outline" onClick={addImage}><FiPlus className="h-4 w-4" /></Button>
               </div>
               {form.images.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -260,7 +260,7 @@ export function SellerProductsPage() {
                     <div key={i} className="relative">
                       <img src={img} alt="" className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
                       <button type="button" onClick={() => setForm(f => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }))} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center">
-                        <X className="h-3 w-3" />
+                        <FiX className="h-3 w-3" />
                       </button>
                     </div>
                   ))}
@@ -271,7 +271,7 @@ export function SellerProductsPage() {
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
-              <Button type="submit">{editProduct ? 'FiSave Changes' : 'Add Product'}</Button>
+              <Button type="submit">{editProduct ? 'Save Changes' : 'Add Product'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -296,7 +296,7 @@ export function SellerProductsPage() {
         <DialogContent className="max-w-sm">
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="h-7 w-7 text-green-600" />
+              <FiCheckCircle className="h-7 w-7 text-green-600" />
             </div>
             <DialogTitle>{successMsg}</DialogTitle>
             <p className="text-sm text-slate-500">Your product list has been updated.</p>

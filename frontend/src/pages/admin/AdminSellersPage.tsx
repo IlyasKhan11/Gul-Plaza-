@@ -3,18 +3,32 @@ import { FiCheckCircle, FiXCircle, FiShield } from 'react-icons/fi'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { mockStores } from '@/data/mockData'
+import { mockStores, mockUsers } from '@/data/mockData'
 import type { Store } from '@/types'
 
 export function AdminSellersPage() {
-  const [stores, setStores] = useState<FiGlobe[]>(mockStores)
+  const [stores, setStores] = useState<Store[]>(mockStores)
 
   function toggleApproval(id: string) {
-    setStores(prev => prev.map(s => s.id === id ? { ...s, isApproved: !s.isApproved } : s))
+    const store = mockStores.find(s => s.id === id)
+    if (!store) return
+    const nowApproved = !store.isApproved
+    store.isApproved = nowApproved
+
+    // Sync user role: buyer → seller on approve, seller → buyer on revoke
+    const userIdx = mockUsers.findIndex(u => u.id === store.sellerId)
+    if (userIdx !== -1) {
+      mockUsers[userIdx] = { ...mockUsers[userIdx], role: nowApproved ? 'seller' : 'buyer' }
+    }
+
+    setStores([...mockStores])
   }
 
   function toggleBlock(id: string) {
-    setStores(prev => prev.map(s => s.id === id ? { ...s, isBlocked: !s.isBlocked } : s))
+    const store = mockStores.find(s => s.id === id)
+    if (!store) return
+    store.isBlocked = !store.isBlocked
+    setStores([...mockStores])
   }
 
   return (

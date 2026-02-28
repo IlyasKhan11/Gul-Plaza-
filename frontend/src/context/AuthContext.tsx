@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null
   login: (email: string, _password: string) => Promise<{ success: boolean; message: string }>
   register: (name: string, email: string, _password: string, role: UserRole) => Promise<{ success: boolean; message: string }>
+  upgradeToSeller: () => void
   logout: () => void
   isAuthenticated: boolean
 }
@@ -49,13 +50,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true, message: 'Account created successfully.' }
   }
 
+  function upgradeToSeller() {
+    if (!user) return
+    const updated = { ...user, role: 'seller' as UserRole }
+    const idx = mockUsers.findIndex(u => u.id === user.id)
+    if (idx !== -1) mockUsers[idx] = updated
+    localStorage.setItem('gul_plaza_user', JSON.stringify(updated))
+    setUser(updated)
+  }
+
   function logout() {
     localStorage.removeItem('gul_plaza_user')
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, register, upgradeToSeller, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

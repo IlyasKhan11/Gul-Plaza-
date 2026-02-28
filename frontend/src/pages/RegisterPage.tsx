@@ -7,13 +7,10 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useAuth } from '@/context/AuthContext'
-import { cn } from '@/lib/utils'
-import type { UserRole } from '@/types'
 
 export function RegisterPage() {
   const { register } = useAuth()
   const navigate = useNavigate()
-  const [role, setRole] = useState<UserRole>('buyer')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,10 +22,10 @@ export function RegisterPage() {
     setError('')
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
     setLoading(true)
-    const result = await register(name, email, password, role)
+    const result = await register(name, email, password, 'buyer')
     setLoading(false)
     if (result.success) {
-      navigate(role === 'seller' ? '/seller/store' : '/')
+      navigate('/')
     } else {
       setError(result.message)
     }
@@ -48,31 +45,14 @@ export function RegisterPage() {
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle>Register</CardTitle>
-            <CardDescription>Choose your account type and fill in your details</CardDescription>
+            <CardDescription>
+              <span className="flex items-center gap-2">
+                <FiShoppingBag className="h-4 w-4 text-blue-600" />
+                All new accounts start as a Buyer. You can apply to become a Seller from your profile after signing up.
+              </span>
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Role Selector */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              {([
-                { role: 'buyer' as UserRole, icon: FiShoppingBag, title: 'Buyer', desc: 'Shop & order products' },
-                { role: 'seller' as UserRole, icon: FiGlobe, title: 'Seller', desc: 'Open your store' },
-              ] as const).map(({ role: r, icon: Icon, title, desc }) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRole(r)}
-                  className={cn(
-                    'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center',
-                    role === r ? 'border-blue-600 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
-                  )}
-                >
-                  <Icon className={cn('h-6 w-6', role === r ? 'text-blue-600' : 'text-slate-400')} />
-                  <span className={cn('font-semibold text-sm', role === r ? 'text-blue-700' : 'text-slate-700')}>{title}</span>
-                  <span className="text-xs text-slate-400">{desc}</span>
-                </button>
-              ))}
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="name">Full Name</Label>
@@ -87,7 +67,7 @@ export function RegisterPage() {
                 <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" className="mt-1" required />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating account...' : `Create ${role === 'seller' ? 'Seller' : 'Buyer'} Account`}
+                {loading ? 'Creating account...' : 'Create Buyer Account'}
               </Button>
             </form>
 
