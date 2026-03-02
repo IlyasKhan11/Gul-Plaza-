@@ -7,7 +7,12 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["ecommerce", "backend", "nodejs", "express"],
+  "keywords": [
+    "ecommerce",
+    "backend",
+    "nodejs",
+    "express"
+  ],
   "author": "",
   "license": "ISC",
   "description": "Secure multi-vendor e-commerce backend",
@@ -22,7 +27,8 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "pg": "^8.19.0",
-    "redis": "^4.6.12"
+    "redis": "^4.6.12",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

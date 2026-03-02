@@ -92,6 +92,8 @@ const initializeDatabase = async () => {
         price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
         stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
         is_active BOOLEAN NOT NULL DEFAULT true,
+        is_deleted BOOLEAN NOT NULL DEFAULT false,
+        seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
         created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
@@ -115,6 +117,7 @@ const initializeDatabase = async () => {
         status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled')),
         total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
         payment_status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
+        user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
         created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
@@ -132,7 +135,33 @@ const initializeDatabase = async () => {
       )
     `);
 
-    // Create user_profiles table for extended user information
+    // Create payments table for offline payment system
+    await query(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id BIGSERIAL PRIMARY KEY,
+        order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        amount DECIMAL(10,2) NOT NULL CHECK (amount >= 0),
+        payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('offline', 'online')),
+        payment_status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
+        transaction_id TEXT,
+        payment_details JSONB,
+        created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create cart table
+    await query(`
+      CREATE TABLE IF NOT EXISTS cart (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        quantity INTEGER NOT NULL CHECK (quantity > 0),
+        created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, product_id)
+      )
+    `);
     await query(`
       CREATE TABLE IF NOT EXISTS user_profiles (
         id BIGSERIAL PRIMARY KEY,
@@ -175,11 +204,22 @@ const initializeDatabase = async () => {
     await query('CREATE INDEX IF NOT EXISTS idx_products_store_id ON products(store_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active)');
+    await query('CREATE INDEX IF NOT EXISTS idx_products_is_deleted ON products(is_deleted)');
+    await query('CREATE INDEX IF NOT EXISTS idx_products_seller_id ON products(seller_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_products_stock ON products(stock)');
+    await query('CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at)');
     await query('CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(product_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)');
+    await query('CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status)');
+    await query('CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at)');
     await query('CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(payment_status)');
+    await query('CREATE INDEX IF NOT EXISTS idx_cart_user_id ON cart(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_cart_product_id ON cart(product_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_user_blocks_user_id ON user_blocks(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_user_blocks_active ON user_blocks(is_active)');
@@ -228,6 +268,16 @@ const initializeDatabase = async () => {
 
     await query(`
       CREATE TRIGGER update_user_blocks_updated_at BEFORE UPDATE ON user_blocks
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `);
+
+    await query(`
+      CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `);
+
+    await query(`
+      CREATE TRIGGER update_cart_updated_at BEFORE UPDATE ON cart
       FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
     `);
 

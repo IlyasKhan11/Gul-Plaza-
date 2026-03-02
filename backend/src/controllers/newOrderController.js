@@ -1,4 +1,12 @@
 const OrderService = require('../services/orderService');
+const { query } = require('../config/db');
+const {
+  isValidStatusTransition,
+  getStatusAfterPaymentSelection,
+  isValidPaymentMethod,
+  formatStatus,
+  VALIDATION_ERRORS
+} = require('../helpers/orderStateValidation');
 
 // Create Order (CRITICAL - Buyer Only)
 const createOrder = async (req, res) => {
@@ -199,6 +207,272 @@ const getOrderStatistics = async (req, res) => {
   }
 };
 
+// Select Payment Method (Buyer Only)
+const selectPaymentMethod = async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const buyerId = req.user.userId;
+    const { payment_method } = req.body;
+
+    // Validate payment method
+    if (!payment_method) {
+      return res.status(400).json({
+        success: false,
+        message: VALIDATION_ERRORS.PAYMENT_METHOD_REQUIRED
+      });
+    }
+
+    if (!isValidPaymentMethod(payment_method)) {
+      return res.status(400).json({
+        success: false,
+        message: VALIDATION_ERRORS.INVALID_PAYMENT_METHOD(payment_method)
+      });
+    }
+
+    // Get order and verify ownership
+    const orderQuery = `
+      SELECT id, status, buyer_id, payment_method, payment_status
+      FROM orders
+      WHERE id = $1
+    `;
+    
+    const orderResult = await query(orderQuery, [orderId]);
+    
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const order = orderResult.rows[0];
+
+    // Verify order ownership
+    if (order.buyer_id !== buyerId) {
+      return res.status(403).json({
+        success: false,
+        message: VALIDATION_ERRORS.ORDER_OWNERSHIP_REQUIRED
+      });
+    }
+
+    // Check if order is in PENDING status
+    if (order.status !== 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        message: VALIDATION_ERRORS.INVALID_TRANSITION(order.status, 'Payment selection only allowed for PENDING orders')
+      });
+    }
+
+    // Check if payment method is already selected
+    if (order.payment_method) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment method already selected for this order'
+      });
+    }
+
+    // Determine next status based on payment method
+    const nextStatus = getStatusAfterPaymentSelection(payment_method);
+    
+    // Start transaction
+    const client = require('../config/db').pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Update order with payment method and new status
+      const updateQuery = `
+        UPDATE orders 
+        SET payment_method = $1, 
+            status = $2, 
+            payment_status = 'PENDING',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
+        RETURNING id, status, payment_method, payment_status, total_amount, created_at, updated_at
+      `;
+      
+      const updatedOrderResult = await client.query(updateQuery, [
+        formatStatus(payment_method),
+        nextStatus,
+        orderId
+      ]);
+      
+      await client.query('COMMIT');
+      
+      const updatedOrder = updatedOrderResult.rows[0];
+      
+      res.status(200).json({
+        success: true,
+        message: `Payment method selected successfully. Order status updated to ${nextStatus}`,
+        data: updatedOrder
+      });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('Error selecting payment method:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Verify Payment (Admin Only)
+const verifyPayment = async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const adminId = req.user.userId;
+
+    // Get order
+    const orderQuery = `
+      SELECT id, status, payment_method, payment_status, buyer_id
+      FROM orders
+      WHERE id = $1
+    `;
+    
+    const orderResult = await query(orderQuery, [orderId]);
+    
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const order = orderResult.rows[0];
+
+    // Check if order is in AWAITING_VERIFICATION status
+    if (order.status !== 'AWAITING_VERIFICATION') {
+      return res.status(400).json({
+        success: false,
+        message: VALIDATION_ERRORS.PAYMENT_NOT_VERIFIABLE(order.status)
+      });
+    }
+
+    // Start transaction
+    const client = require('../config/db').pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Update order status and payment status
+      const updateQuery = `
+        UPDATE orders 
+        SET status = 'PAID', 
+            payment_status = 'VERIFIED',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING id, status, payment_method, payment_status, total_amount, created_at, updated_at
+      `;
+      
+      const updatedOrderResult = await client.query(updateQuery, [orderId]);
+      
+      // Log payment verification (optional audit)
+      const auditQuery = `
+        INSERT INTO payment_verifications (
+          order_id, admin_id, previous_status, new_status, payment_method, verification_notes
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+      `;
+      
+      await client.query(auditQuery, [
+        orderId,
+        adminId,
+        order.status,
+        'PAID',
+        order.payment_method,
+        'Payment verified and order marked as paid'
+      ]);
+      
+      await client.query('COMMIT');
+      
+      const updatedOrder = updatedOrderResult.rows[0];
+      
+      res.status(200).json({
+        success: true,
+        message: 'Payment verified successfully. Order status updated to PAID',
+        data: updatedOrder
+      });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('Error verifying payment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Ship Order (Admin Only)
+const shipOrder = async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+
+    // Get order
+    const orderQuery = `
+      SELECT id, status, payment_method, payment_status
+      FROM orders
+      WHERE id = $1
+    `;
+    
+    const orderResult = await query(orderQuery, [orderId]);
+    
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const order = orderResult.rows[0];
+
+    // Check if order can be shipped (PAID or CONFIRMED)
+    if (order.status !== 'PAID' && order.status !== 'CONFIRMED') {
+      return res.status(400).json({
+        success: false,
+        message: VALIDATION_ERRORS.ORDER_NOT_SHIPPABLE(order.status)
+      });
+    }
+
+    // Update order status to SHIPPED
+    const updateQuery = `
+      UPDATE orders 
+      SET status = 'SHIPPED', 
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING id, status, payment_method, payment_status, total_amount, created_at, updated_at
+    `;
+    
+    const updatedOrderResult = await query(updateQuery, [orderId]);
+    const updatedOrder = updatedOrderResult.rows[0];
+    
+    res.status(200).json({
+      success: true,
+      message: 'Order shipped successfully',
+      data: updatedOrder
+    });
+    
+  } catch (error) {
+    console.error('Error shipping order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getMyOrders,
@@ -206,5 +480,8 @@ module.exports = {
   getAllOrders,
   getAdminOrderById,
   updateOrderStatus,
-  getOrderStatistics
+  getOrderStatistics,
+  selectPaymentMethod,
+  verifyPayment,
+  shipOrder
 };

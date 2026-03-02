@@ -96,6 +96,17 @@ const orderQuerySchema = Joi.object({
     })
 });
 
+// Payment method selection validation schema
+const selectPaymentMethodSchema = Joi.object({
+  payment_method: Joi.string()
+    .valid('COD', 'BANK_TRANSFER')
+    .required()
+    .messages({
+      'any.only': 'Payment method must be either COD or BANK_TRANSFER',
+      'any.required': 'Payment method is required'
+    })
+});
+
 // Admin order query validation schema (includes user filtering)
 const adminOrderQuerySchema = orderQuerySchema.keys({
   user_id: Joi.number()
@@ -180,6 +191,21 @@ const validateOrderQuery = (req, res, next) => {
   next();
 };
 
+const validateSelectPaymentMethod = (req, res, next) => {
+  const { error } = selectPaymentMethodSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: error.details.map(detail => ({
+        field: detail.path.join('.'),
+        message: detail.message
+      }))
+    });
+  }
+  next();
+};
+
 const validateAdminOrderQuery = (req, res, next) => {
   const { error, value } = adminOrderQuerySchema.validate(req.query);
   if (error) {
@@ -202,9 +228,11 @@ module.exports = {
   updateOrderStatusSchema,
   orderQuerySchema,
   adminOrderQuerySchema,
+  selectPaymentMethodSchema,
   validateCreateOrder,
   validateOrderId,
   validateUpdateOrderStatus,
   validateOrderQuery,
-  validateAdminOrderQuery
+  validateAdminOrderQuery,
+  validateSelectPaymentMethod
 };

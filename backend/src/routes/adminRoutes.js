@@ -7,6 +7,14 @@ const {
   getUserById,
   blockUserValidation,
 } = require('../controllers/adminController');
+const {
+  getDashboardSummary,
+  getSalesReport,
+  getTopProducts,
+  getLowStockProducts,
+  dashboardSummaryValidation,
+  salesReportValidation,
+} = require('../controllers/adminDashboardController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireAdmin } = require('../middleware/roleMiddleware');
 
@@ -46,6 +54,10 @@ router.get('/', (req, res) => {
       'GET /api/admin/users/:id': 'Get user details by ID',
       'PATCH /api/admin/users/:id/block': 'Block user',
       'PATCH /api/admin/users/:id/unblock': 'Unblock user',
+      'GET /api/admin/dashboard/summary': 'Get dashboard summary statistics',
+      'GET /api/admin/dashboard/sales-report': 'Get sales report with date range',
+      'GET /api/admin/dashboard/top-products': 'Get top 5 products by sales',
+      'GET /api/admin/products/low-stock': 'Get low stock products alert',
     },
     note: 'All endpoints require authentication and admin role',
   });
@@ -78,5 +90,35 @@ router.patch('/users/:id/block', authenticateToken, requireAdmin, blockLimiter, 
  * @access  Private (Admin only)
  */
 router.patch('/users/:id/unblock', authenticateToken, requireAdmin, blockLimiter, blockUserValidation, unblockUser);
+
+// Dashboard Analytics Routes
+
+/**
+ * @route   GET /api/admin/dashboard/summary
+ * @desc    Get dashboard summary statistics
+ * @access  Private (Admin only)
+ */
+router.get('/dashboard/summary', authenticateToken, requireAdmin, adminLimiter, dashboardSummaryValidation, getDashboardSummary);
+
+/**
+ * @route   GET /api/admin/dashboard/sales-report
+ * @desc    Get sales report with date range
+ * @access  Private (Admin only)
+ */
+router.get('/dashboard/sales-report', authenticateToken, requireAdmin, adminLimiter, salesReportValidation, getSalesReport);
+
+/**
+ * @route   GET /api/admin/dashboard/top-products
+ * @desc    Get top 5 products by sales
+ * @access  Private (Admin only)
+ */
+router.get('/dashboard/top-products', authenticateToken, requireAdmin, adminLimiter, getTopProducts);
+
+/**
+ * @route   GET /api/admin/products/low-stock
+ * @desc    Get low stock products alert
+ * @access  Private (Admin only)
+ */
+router.get('/products/low-stock', authenticateToken, requireAdmin, adminLimiter, getLowStockProducts);
 
 module.exports = router;
