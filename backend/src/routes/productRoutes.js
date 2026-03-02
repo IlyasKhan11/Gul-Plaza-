@@ -1,18 +1,25 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+
+// Import new controllers and validation
 const {
-  getAllProducts,
-  getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
-  getSellerProducts,
-  createProductValidation,
-  updateProductValidation,
-  productIdValidation,
-} = require('../controllers/productController');
+  getProductById,
+  getAllProducts,
+  getSellerProducts
+} = require('../controllers/newProductController');
+
+const {
+  validateCreateProduct,
+  validateUpdateProduct,
+  validateProductId,
+  validateProductQuery
+} = require('../validations/productValidation');
+
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { requireSeller, requireAnyRole } = require('../middleware/roleMiddleware');
+const { requireSeller } = require('../middleware/roleMiddleware');
 
 const router = express.Router();
 
@@ -62,41 +69,41 @@ router.get('/', (req, res) => {
  * @desc    Get all products with filtering and pagination
  * @access  Public
  */
-router.get('/', productLimiter, getAllProducts);
+router.get('/', productLimiter, validateProductQuery, getAllProducts);
 
 /**
  * @route   GET /api/products/:id
  * @desc    Get product by ID with images
  * @access  Public
  */
-router.get('/:id', productLimiter, productIdValidation, getProductById);
+router.get('/:id', productLimiter, validateProductId, getProductById);
 
 /**
  * @route   POST /api/products
  * @desc    Create new product
  * @access  Private (Seller only)
  */
-router.post('/', authenticateToken, requireSeller, sellerProductLimiter, createProductValidation, createProduct);
+router.post('/', authenticateToken, requireSeller, sellerProductLimiter, validateCreateProduct, createProduct);
 
 /**
  * @route   PUT /api/products/:id
  * @desc    Update product
  * @access  Private (Seller only)
  */
-router.put('/:id', authenticateToken, requireSeller, sellerProductLimiter, productIdValidation, updateProductValidation, updateProduct);
+router.put('/:id', authenticateToken, requireSeller, sellerProductLimiter, validateProductId, validateUpdateProduct, updateProduct);
 
 /**
  * @route   DELETE /api/products/:id
  * @desc    Delete product
  * @access  Private (Seller only)
  */
-router.delete('/:id', authenticateToken, requireSeller, sellerProductLimiter, productIdValidation, deleteProduct);
+router.delete('/:id', authenticateToken, requireSeller, sellerProductLimiter, validateProductId, deleteProduct);
 
 /**
  * @route   GET /api/products/seller/my-products
  * @desc    Get seller's products
  * @access  Private (Seller only)
  */
-router.get('/seller/my-products', authenticateToken, requireSeller, sellerProductLimiter, getSellerProducts);
+router.get('/seller/my-products', authenticateToken, requireSeller, sellerProductLimiter, validateProductQuery, getSellerProducts);
 
 module.exports = router;

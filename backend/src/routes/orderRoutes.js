@@ -1,18 +1,27 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+
+// Import new order controllers and validation
 const {
-  getBuyerOrders,
-  getOrderById,
   createOrder,
+  getMyOrders,
+  getOrderById,
+  getAllOrders,
+  getAdminOrderById,
   updateOrderStatus,
-  cancelOrder,
-  getSellerOrders,
-  createOrderValidation,
-  updateOrderStatusValidation,
-  orderIdValidation,
-} = require('../controllers/orderController');
+  getOrderStatistics
+} = require('../controllers/newOrderController');
+
+const {
+  validateCreateOrder,
+  validateOrderId,
+  validateUpdateOrderStatus,
+  validateOrderQuery,
+  validateAdminOrderQuery
+} = require('../validations/orderValidation');
+
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { requireBuyer, requireSeller, requireAdmin } = require('../middleware/roleMiddleware');
+const { requireBuyer, requireAdmin } = require('../middleware/roleMiddleware');
 
 const router = express.Router();
 
@@ -46,57 +55,118 @@ router.get('/', (req, res) => {
     success: true,
     message: 'Order API endpoints',
     endpoints: {
-      'GET /api/orders/buyer/my-orders': 'Get buyer\'s orders (buyer only)',
-      'GET /api/orders/seller/my-orders': 'Get seller\'s orders (seller only)',
-      'GET /api/orders/:id': 'Get order by ID (buyer/seller)',
-      'POST /api/orders': 'Create new order (buyer only)',
-      'PATCH /api/orders/:id/status': 'Update order status (admin only)',
-      'PATCH /api/orders/:id/cancel': 'Cancel order (buyer only)',
+      'POST /api/orders': 'Create order from cart (buyer only)',
+      'GET /api/orders': 'Get user orders (buyer only)',
+      'GET /api/orders/:orderId': 'Get order by ID (buyer only - own orders)',
+      'GET /api/admin/orders': 'Get all orders (admin only)',
+      'GET /api/admin/orders/:orderId': 'Get any order by ID (admin only)',
+      'PUT /api/admin/orders/:orderId/status': 'Update order status (admin only)',
+      'GET /api/admin/orders/statistics': 'Get order statistics (admin only)',
     },
-    note: 'Different endpoints require different roles (buyer, seller, admin)',
+    note: 'Order creation uses PostgreSQL transactions with row locking to prevent race conditions',
   });
 });
 
-/**
- * @route   GET /api/orders/buyer/my-orders
- * @desc    Get all orders for a buyer
- * @access  Private (Buyer only)
- */
-router.get('/buyer/my-orders', authenticateToken, requireBuyer, orderLimiter, getBuyerOrders);
-
-/**
- * @route   GET /api/orders/seller/my-orders
- * @desc    Get seller's orders (orders containing seller's products)
- * @access  Private (Seller only)
- */
-router.get('/seller/my-orders', authenticateToken, requireSeller, orderLimiter, getSellerOrders);
-
-/**
- * @route   GET /api/orders/:id
- * @desc    Get order by ID with items
- * @access  Private (Buyer/Seller)
- */
-router.get('/:id', authenticateToken, orderLimiter, orderIdValidation, getOrderById);
+// BUYER ROUTES
 
 /**
  * @route   POST /api/orders
- * @desc    Create new order
+ * @desc    Create order from cart (CRITICAL - uses transaction with row locking)
  * @access  Private (Buyer only)
  */
-router.post('/', authenticateToken, requireBuyer, orderActionLimiter, createOrderValidation, createOrder);
+router.post(
+  '/',
+  authenticateToken,
+  requireBuyer,
+  orderActionLimiter,
+  validateCreateOrder,
+  createOrder
+);
 
 /**
- * @route   PATCH /api/orders/:id/status
- * @desc    Update order status
+ * @route   GET /api/orders
+ * @desc    Get user's orders with pagination and filtering
+ * @access  Private (Buyer only)
+ */
+router.get(
+  '/',
+  authenticateToken,
+  requireBuyer,
+  orderLimiter,
+  validateOrderQuery,
+  getMyOrders
+);
+
+/**
+ * @route   GET /api/orders/:orderId
+ * @desc    Get specific order by ID (user's own orders only)
+ * @access  Private (Buyer only)
+ */
+router.get(
+  '/:orderId',
+  authenticateToken,
+  requireBuyer,
+  orderLimiter,
+  validateOrderId,
+  getOrderById
+);
+
+// ADMIN ROUTES
+
+/**
+ * @route   GET /api/admin/orders
+ * @desc    Get all orders with pagination and filtering (admin only)
  * @access  Private (Admin only)
  */
-router.patch('/:id/status', authenticateToken, requireAdmin, orderActionLimiter, orderIdValidation, updateOrderStatusValidation, updateOrderStatus);
+router.get(
+  '/admin/orders',
+  authenticateToken,
+  requireAdmin,
+  orderLimiter,
+  validateAdminOrderQuery,
+  getAllOrders
+);
 
 /**
- * @route   PATCH /api/orders/:id/cancel
- * @desc    Cancel order (only for pending orders)
- * @access  Private (Buyer only)
+ * @route   GET /api/admin/orders/:orderId
+ * @desc    Get any order by ID (admin only)
+ * @access  Private (Admin only)
  */
-router.patch('/:id/cancel', authenticateToken, requireBuyer, orderActionLimiter, orderIdValidation, cancelOrder);
+router.get(
+  '/admin/orders/:orderId',
+  authenticateToken,
+  requireAdmin,
+  orderLimiter,
+  validateOrderId,
+  getAdminOrderById
+);
+
+/**
+ * @route   PUT /api/admin/orders/:orderId/status
+ * @desc    Update order status (admin only)
+ * @access  Private (Admin only)
+ */
+router.put(
+  '/admin/orders/:orderId/status',
+  authenticateToken,
+  requireAdmin,
+  orderLimiter,
+  validateOrderId,
+  validateUpdateOrderStatus,
+  updateOrderStatus
+);
+
+/**
+ * @route   GET /api/admin/orders/statistics
+ * @desc    Get order statistics (admin only)
+ * @access  Private (Admin only)
+ */
+router.get(
+  '/admin/orders/statistics',
+  authenticateToken,
+  requireAdmin,
+  orderLimiter,
+  getOrderStatistics
+);
 
 module.exports = router;
