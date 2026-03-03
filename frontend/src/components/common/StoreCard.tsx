@@ -23,12 +23,15 @@ export function StoreCard({ store }: StoreCardProps) {
               src={store.logo}
               alt={store.name}
               className="w-12 h-12 rounded-xl border-2 border-white shadow-sm bg-white"
+              onError={e => { e.currentTarget.src = '/default-store-logo.png' }}
             />
             <div className="flex-1 min-w-0 pb-1">
               <h3 className="font-semibold text-slate-800 text-sm truncate group-hover:text-blue-600 transition-colors">
                 {store.name}
               </h3>
-              <Badge variant="success" className="text-xs mt-0.5">Verified</Badge>
+              {store.isVerified && (
+                <Badge variant="success" className="text-xs mt-0.5">Verified</Badge>
+              )}
             </div>
           </div>
           <p className="mt-2 text-xs text-slate-500 line-clamp-2">{store.description}</p>

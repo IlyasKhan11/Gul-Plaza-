@@ -30,8 +30,12 @@ export const orderService = {
 
     // 2. Add each local cart item to the server cart
     for (const item of cartItems) {
+      const productId = Number(item.product.id)
+      if (!productId || isNaN(productId)) {
+        throw new Error(`Invalid product ID: ${item.product.id}`)
+      }
       await api.post('/cart', {
-        product_id: parseInt(item.product.id),
+        product_id: productId,
         quantity: item.quantity,
       })
     }

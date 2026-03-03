@@ -10,6 +10,7 @@ const statusConfig: Record<OrderStatus, { label: string; variant: 'warning' | 'i
 }
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  const { label, variant } = statusConfig[status]
+  const fallback = { label: 'Unknown', variant: 'outline' }
+  const { label, variant } = statusConfig[status] || fallback
   return <Badge variant={variant}>{label}</Badge>
 }

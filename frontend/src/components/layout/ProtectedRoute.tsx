@@ -8,8 +8,9 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
 
+  if (isLoading) return null
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />

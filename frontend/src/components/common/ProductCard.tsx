@@ -17,7 +17,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart()
   const { user } = useAuth()
   const isBuyer = !user || user.role === 'buyer'
-  const discount = product.originalPrice
+  // Defensive: Only calculate discount if originalPrice is a valid number > 0
+  const discount = (typeof product.originalPrice === 'number' && product.originalPrice > 0)
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0
 
@@ -27,7 +28,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <Link to={`/products/${product.id}`}>
           <img
             src={product.images[0]}
-            alt={product.name}
+            alt={typeof product.name === 'string' ? product.name : ''}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </Link>
@@ -42,11 +43,11 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
       <CardContent className="p-4">
         <Link to={`/stores/${product.storeId}`} className="text-xs text-blue-600 hover:underline font-medium">
-          {product.storeName}
+          {typeof product.storeName === 'string' ? product.storeName : ''}
         </Link>
         <Link to={`/products/${product.id}`}>
           <h3 className="mt-1 text-sm font-medium text-slate-800 line-clamp-2 hover:text-blue-600 transition-colors leading-snug">
-            {product.name}
+            {typeof product.name === 'string' ? product.name : ''}
           </h3>
         </Link>
         <StarRating rating={product.rating} reviewCount={product.reviewCount} className="mt-2" />
@@ -60,7 +61,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <Button
             size="sm"
             className="mt-3 w-full"
-            onClick={() => addItem(product)}
+            onClick={() => addItem(product, 1)}
             disabled={product.stock === 0}
           >
             <FiShoppingCart className="h-4 w-4" />

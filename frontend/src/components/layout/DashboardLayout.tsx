@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { useState, Component, type ReactNode } from 'react'
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { FiLogOut, FiBell, FiHome, FiShoppingBag, FiBriefcase, FiCheckCircle, FiInfo, FiCheck, FiMenu, FiX } from 'react-icons/fi'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,37 @@ import { BuyerSidebar } from './BuyerSidebar'
 import { mockNotifications } from '@/data/mockData'
 import type { Notification } from '@/types'
 
+// Error boundary to catch crashes in page components
+class PageErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { error: null }
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+            <span className="text-2xl">⚠</span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Something went wrong</h2>
+          <p className="text-slate-500 text-sm mb-1 max-w-md">{this.state.error.message}</p>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 const typeIcon = (type: Notification['type']) => {
   if (type === 'order') return <FiShoppingBag className="h-4 w-4 text-blue-500" />
   if (type === 'withdrawal') return <FiBriefcase className="h-4 w-4 text-amber-500" />
@@ -24,6 +55,7 @@ const typeIcon = (type: Notification['type']) => {
 export function DashboardLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>(
     mockNotifications.filter(n => n.userId === user?.id)
@@ -178,7 +210,9 @@ export function DashboardLayout() {
         </div>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-auto min-w-0">
-          <Outlet />
+          <PageErrorBoundary key={pathname}>
+            <Outlet />
+          </PageErrorBoundary>
         </main>
       </div>
     </div>

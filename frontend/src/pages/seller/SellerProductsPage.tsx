@@ -38,11 +38,12 @@ export function SellerProductsPage() {
     setError(null)
     try {
       const data = await sellerService.getProducts({ page: p, search: q, limit: 15 })
-      setProducts(data.products)
-      setTotalPages(data.pagination.total_pages)
-      setTotalProducts(data.pagination.total_products)
+      setProducts(Array.isArray(data?.products) ? data.products : [])
+      setTotalPages(data?.pagination?.total_pages ?? 1)
+      setTotalProducts(data?.pagination?.total_products ?? 0)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load products')
+      setProducts([])
     } finally {
       setLoading(false)
     }
@@ -50,7 +51,9 @@ export function SellerProductsPage() {
 
   useEffect(() => {
     fetchProducts(1, '')
-    sellerService.getCategories().then(setCategories).catch(() => {})
+    sellerService.getCategories()
+      .then(res => setCategories(Array.isArray(res) ? res : []))
+      .catch(() => setCategories([]))
   }, [fetchProducts])
 
   function handleSearch(e: React.FormEvent) {

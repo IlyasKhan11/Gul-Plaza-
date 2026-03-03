@@ -18,12 +18,14 @@ interface AuthContextType {
   upgradeToSeller: () => void
   logout: () => Promise<void>
   isAuthenticated: boolean
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -36,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem(TOKEN_KEY)
       }
     }
+    setIsLoading(false)
   }, [])
 
   async function login(email: string, password: string) {
@@ -86,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, upgradeToSeller, logout, isAuthenticated: !!user }}
+      value={{ user, login, register, upgradeToSeller, logout, isAuthenticated: !!user, isLoading }}
     >
       {children}
     </AuthContext.Provider>
