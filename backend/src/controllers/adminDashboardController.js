@@ -4,8 +4,8 @@ const { body, param, query: queryValidator, validationResult } = require('expres
 // Validation rules for dashboard analytics
 const dashboardSummaryValidation = [];
 const salesReportValidation = [
-  query('start_date').isISO8601().withMessage('Start date must be a valid date'),
-  query('end_date').isISO8601().withMessage('End date must be a valid date'),
+  queryValidator('start_date').isISO8601().withMessage('Start date must be a valid date'),
+  queryValidator('end_date').isISO8601().withMessage('End date must be a valid date'),
 ];
 
 // Get dashboard summary
