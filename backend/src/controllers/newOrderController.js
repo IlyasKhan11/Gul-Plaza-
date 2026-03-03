@@ -255,8 +255,8 @@ const selectPaymentMethod = async (req, res) => {
       });
     }
 
-    // Check if order is in PENDING status
-    if (order.status !== 'PENDING') {
+    // Check if order is in pending status
+    if (order.status !== 'pending') {
       return res.status(400).json({
         success: false,
         message: VALIDATION_ERRORS.INVALID_TRANSITION(order.status, 'Payment selection only allowed for PENDING orders')
@@ -275,7 +275,7 @@ const selectPaymentMethod = async (req, res) => {
     const nextStatus = getStatusAfterPaymentSelection(payment_method);
     
     // Start transaction
-    const client = require('../config/db').pool.connect();
+    const client = await require('../config/db').pool.connect();
     
     try {
       await client.query('BEGIN');
@@ -285,7 +285,7 @@ const selectPaymentMethod = async (req, res) => {
         UPDATE orders 
         SET payment_method = $1, 
             status = $2, 
-            payment_status = 'PENDING',
+            payment_status = 'pending',
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
         RETURNING id, status, payment_method, payment_status, total_amount, created_at, updated_at
@@ -347,8 +347,8 @@ const verifyPayment = async (req, res) => {
 
     const order = orderResult.rows[0];
 
-    // Check if order is in AWAITING_VERIFICATION status
-    if (order.status !== 'AWAITING_VERIFICATION') {
+    // Check if order is in awaiting_verification status
+    if (order.status !== 'awaiting_verification') {
       return res.status(400).json({
         success: false,
         message: VALIDATION_ERRORS.PAYMENT_NOT_VERIFIABLE(order.status)
@@ -356,7 +356,7 @@ const verifyPayment = async (req, res) => {
     }
 
     // Start transaction
-    const client = require('../config/db').pool.connect();
+    const client = await require('../config/db').pool.connect();
     
     try {
       await client.query('BEGIN');
@@ -364,30 +364,14 @@ const verifyPayment = async (req, res) => {
       // Update order status and payment status
       const updateQuery = `
         UPDATE orders 
-        SET status = 'PAID', 
-            payment_status = 'VERIFIED',
+        SET status = 'paid', 
+            payment_status = 'verified',
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
         RETURNING id, status, payment_method, payment_status, total_amount, created_at, updated_at
       `;
       
       const updatedOrderResult = await client.query(updateQuery, [orderId]);
-      
-      // Log payment verification (optional audit)
-      const auditQuery = `
-        INSERT INTO payment_verifications (
-          order_id, admin_id, previous_status, new_status, payment_method, verification_notes
-        ) VALUES ($1, $2, $3, $4, $5, $6)
-      `;
-      
-      await client.query(auditQuery, [
-        orderId,
-        adminId,
-        order.status,
-        'PAID',
-        order.payment_method,
-        'Payment verified and order marked as paid'
-      ]);
       
       await client.query('COMMIT');
       

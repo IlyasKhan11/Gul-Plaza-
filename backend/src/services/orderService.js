@@ -18,7 +18,7 @@ class OrderService {
           p.title,
           p.is_active,
           p.store_id
-        FROM cart_items ci
+        FROM cart ci
         INNER JOIN products p ON ci.product_id = p.id
         WHERE ci.user_id = $1 AND p.is_deleted = false
         FOR UPDATE OF ci, p
@@ -55,8 +55,7 @@ class OrderService {
         orderItems.push({
           product_id: item.product_id,
           quantity: item.quantity,
-          unit_price: item.price,
-          total_price: itemTotal,
+          price_at_purchase: item.price,
           store_id: item.store_id
         });
       }
@@ -66,12 +65,13 @@ class OrderService {
       
       // STEP D: Insert order
       const insertOrderQuery = `
-        INSERT INTO orders (user_id, total_amount, status, currency)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, user_id, total_amount, status, currency, created_at
+        INSERT INTO orders (user_id, buyer_id, total_amount, status, currency)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, user_id, buyer_id, total_amount, status, currency, created_at
       `;
       
       const orderResult = await query(insertOrderQuery, [
+        userId,
         userId,
         totalAmount,
         'pending',
@@ -83,17 +83,16 @@ class OrderService {
       // STEP E: Insert order_items
       for (const item of orderItems) {
         const insertOrderItemQuery = `
-          INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price)
-          VALUES ($1, $2, $3, $4, $5)
-          RETURNING id, order_id, product_id, quantity, unit_price, total_price
+          INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id, order_id, product_id, quantity, price_at_purchase
         `;
         
         await query(insertOrderItemQuery, [
           newOrder.id,
           item.product_id,
           item.quantity,
-          item.unit_price,
-          item.total_price
+          item.price_at_purchase
         ]);
       }
       
@@ -111,7 +110,7 @@ class OrderService {
       
       // STEP G: Clear cart
       const clearCartQuery = `
-        DELETE FROM cart_items
+        DELETE FROM cart
         WHERE user_id = $1
       `;
       
@@ -184,8 +183,7 @@ class OrderService {
           oi.id,
           oi.product_id,
           oi.quantity,
-          oi.unit_price,
-          oi.total_price,
+          oi.price_at_purchase,
           p.title,
           (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY id ASC LIMIT 1) as product_image
         FROM order_items oi

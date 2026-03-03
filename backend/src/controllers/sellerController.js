@@ -72,7 +72,7 @@ const getSellerProfile = async (req, res) => {
 
     // Get user basic information
     const userResult = await query(
-      'SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = $1',
+      'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = $1',
       [userId]
     );
 

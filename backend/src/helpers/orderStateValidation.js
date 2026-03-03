@@ -6,13 +6,13 @@
  */
 
 const ORDER_STATUSES = {
-  PENDING: 'PENDING',
-  CONFIRMED: 'CONFIRMED',
-  AWAITING_VERIFICATION: 'AWAITING_VERIFICATION',
-  PAID: 'PAID',
-  SHIPPED: 'SHIPPED',
-  DELIVERED: 'DELIVERED',
-  CANCELLED: 'CANCELLED'
+  PENDING: 'pending',
+  CONFIRMED: 'confirmed',
+  AWAITING_VERIFICATION: 'awaiting_verification',
+  PAID: 'paid',
+  SHIPPED: 'shipped',
+  DELIVERED: 'delivered',
+  CANCELLED: 'cancelled'
 };
 
 const PAYMENT_METHODS = {
@@ -21,8 +21,8 @@ const PAYMENT_METHODS = {
 };
 
 const PAYMENT_STATUSES = {
-  PENDING: 'PENDING',
-  VERIFIED: 'VERIFIED'
+  PENDING: 'pending',
+  VERIFIED: 'verified'
 };
 
 /**
@@ -60,16 +60,16 @@ const VALID_TRANSITIONS = {
  * @returns {boolean} - True if transition is valid
  */
 const isValidStatusTransition = (currentStatus, newStatus, paymentMethod = null) => {
-  // Normalize statuses to uppercase
-  currentStatus = currentStatus?.toUpperCase();
-  newStatus = newStatus?.toUpperCase();
+  // Normalize statuses to lowercase
+  currentStatus = currentStatus?.toLowerCase();
+  newStatus = newStatus?.toLowerCase();
   
   // Check if current status exists
   if (!currentStatus || !VALID_TRANSITIONS[currentStatus]) {
     return false;
   }
   
-  // Check if new status is in the allowed transitions
+  // Check if new status is in allowed transitions
   const allowedTransitions = VALID_TRANSITIONS[currentStatus];
   if (!allowedTransitions.includes(newStatus)) {
     return false;
@@ -122,7 +122,7 @@ const isValidPaymentMethod = (paymentMethod) => {
  * @returns {boolean} - True if payment status is valid
  */
 const isValidPaymentStatus = (paymentStatus) => {
-  return Object.values(PAYMENT_STATUSES).includes(paymentStatus?.toUpperCase());
+  return Object.values(PAYMENT_STATUSES).includes(paymentStatus?.toLowerCase());
 };
 
 /**
@@ -131,7 +131,7 @@ const isValidPaymentStatus = (paymentStatus) => {
  * @returns {boolean} - True if order status is valid
  */
 const isValidOrderStatus = (orderStatus) => {
-  return Object.values(ORDER_STATUSES).includes(orderStatus?.toUpperCase());
+  return Object.values(ORDER_STATUSES).includes(orderStatus?.toLowerCase());
 };
 
 /**
@@ -171,12 +171,12 @@ const getPossibleNextStatuses = (currentStatus) => {
 };
 
 /**
- * Formats status for database storage (uppercase)
+ * Formats status for database storage (lowercase)
  * @param {string} status - Status to format
  * @returns {string} - Formatted status
  */
 const formatStatus = (status) => {
-  return status?.toUpperCase();
+  return status?.toLowerCase();
 };
 
 /**
