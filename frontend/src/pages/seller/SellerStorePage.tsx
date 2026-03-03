@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { FiSave, FiGlobe as StoreIcon, FiEdit2, FiCheckCircle, FiMail, FiPhone, FiPlusCircle } from 'react-icons/fi'
+import { useState, useEffect } from 'react'
+import { FiSave, FiGlobe as StoreIcon, FiEdit2, FiCheckCircle, FiMail, FiPhone, FiPlusCircle, FiRefreshCw } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,206 +7,189 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { useAuth } from '@/context/AuthContext'
-import { mockStores } from '@/data/mockData'
-import { generateId } from '@/lib/utils'
-import type { Store } from '@/types'
+import { sellerService, type SellerStore } from '@/services/sellerService'
 
-function toSlug(name: string) {
-  return name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-}
-
-const emptyForm = { name: '', description: '', logo: '', banner: '', contactEmail: '', whatsapp: '' }
+const emptyForm = { store_name: '', description: '', logo_url: '', banner_url: '', contact_email: '', contact_phone: '' }
 
 export function SellerStorePage() {
-  const { user } = useAuth()
-  const [stores, setStores] = useState<FiGlobe[]>(mockStores.filter(s => s.sellerId === user?.id))
-  const [editingStore, setEditingStore] = useState<FiGlobe | null>(null)
+  const [store, setStore] = useState<SellerStore | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
-  const [dialogOpen, setDialogOpen] = useState(stores.length === 0)
+  const [saving, setSaving] = useState(false)
   const [successOpen, setSuccessOpen] = useState(false)
   const [successTitle, setSuccessTitle] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
 
+  async function loadProfile() {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await sellerService.getProfile()
+      setStore(data.store)
+      if (!data.store) setDialogOpen(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load store')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { loadProfile() }, [])
+
   function openCreate() {
-    setEditingStore(null)
     setForm(emptyForm)
     setDialogOpen(true)
   }
 
-  function openEdit(store: FiGlobe) {
-    setEditingStore(store)
+  function openEdit() {
+    if (!store) return
     setForm({
-      name: store.name,
-      description: store.description,
-      logo: store.logo,
-      banner: store.banner,
-      contactEmail: store.contactEmail,
-      whatsapp: store.whatsapp,
+      store_name: store.name,
+      description: store.description ?? '',
+      logo_url: store.logo_url ?? '',
+      banner_url: store.banner_url ?? '',
+      contact_email: store.contact_email ?? '',
+      contact_phone: store.contact_phone ?? '',
     })
     setDialogOpen(true)
   }
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (!user) return
-
-    if (editingStore) {
-      Object.assign(editingStore, {
-        name: form.name,
-        description: form.description,
-        logo: form.logo,
-        banner: form.banner,
-        contactEmail: form.contactEmail,
-        whatsapp: form.whatsapp,
-        slug: toSlug(form.name),
-      })
-      setStores([...mockStores.filter(s => s.sellerId === user.id)])
-      setSuccessTitle('Store Updated!')
-      setSuccessMsg('Your store settings have been saved successfully.')
-    } else {
-      const newStore: FiGlobe = {
-        id: generateId(),
-        sellerId: user.id,
-        sellerName: user.name,
-        name: form.name,
-        slug: toSlug(form.name),
-        description: form.description,
-        logo: form.logo,
-        banner: form.banner,
-        contactEmail: form.contactEmail,
-        whatsapp: form.whatsapp,
-        rating: 0,
-        reviewCount: 0,
-        productCount: 0,
-        isApproved: false,
-        isBlocked: false,
-        createdAt: new Date().toISOString().split('T')[0],
+    setSaving(true)
+    try {
+      const payload = {
+        store_name: form.store_name,
+        description: form.description || undefined,
+        logo_url: form.logo_url || undefined,
+        banner_url: form.banner_url || undefined,
+        contact_email: form.contact_email || undefined,
+        contact_phone: form.contact_phone || undefined,
       }
-      mockStores.push(newStore)
-      setStores([...mockStores.filter(s => s.sellerId === user.id)])
-      setSuccessTitle('Store Created!')
-      setSuccessMsg('Your store has been submitted for admin approval. It will go live once approved.')
+      if (store) {
+        const updated = await sellerService.updateStore(payload)
+        setStore(updated)
+        setSuccessTitle('Store Updated!')
+        setSuccessMsg('Your store settings have been saved successfully.')
+      } else {
+        const created = await sellerService.createStore(payload)
+        setStore(created)
+        setSuccessTitle('Store Created!')
+        setSuccessMsg('Your store has been submitted for admin approval. It will go live once approved.')
+      }
+      setDialogOpen(false)
+      setSuccessOpen(true)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save store')
+    } finally {
+      setSaving(false)
     }
+  }
 
-    setDialogOpen(false)
-    setSuccessOpen(true)
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">My Stores</h1>
+          <h1 className="text-2xl font-bold text-slate-900">My Store</h1>
           <p className="text-slate-500 text-sm mt-1">
-            {stores.length === 0
-              ? 'Create your first store to start selling'
-              : `You have ${stores.length} store${stores.length > 1 ? 's' : ''}`}
+            {store ? 'Manage your store profile' : 'Create your store to start selling'}
           </p>
         </div>
-        {stores.length > 0 && (
-          <Button onClick={openCreate}>
-            <FiPlusCircle className="h-4 w-4" /> Add New FiGlobe
+        {store && (
+          <Button onClick={openCreate} variant="outline" size="sm">
+            <FiPlusCircle className="h-4 w-4 mr-1" /> New Store
           </Button>
         )}
       </div>
 
-      {/* No stores — prominent CTA */}
-      {stores.length === 0 && (
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <Button size="sm" variant="outline" onClick={loadProfile}>
+            <FiRefreshCw className="h-3.5 w-3.5 mr-1" /> Retry
+          </Button>
+        </div>
+      )}
+
+      {!store ? (
         <Card className="border-2 border-dashed border-blue-200 bg-blue-50/40">
           <CardContent className="py-14 flex flex-col items-center text-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center">
               <StoreIcon className="h-8 w-8 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">No stores yet</h2>
-              <p className="text-slate-500 text-sm mt-1">
-                Create your store to list products and start receiving orders.
-              </p>
+              <h2 className="text-lg font-bold text-slate-900">No store yet</h2>
+              <p className="text-slate-500 text-sm mt-1">Create your store to list products and start receiving orders.</p>
             </div>
             <Button size="lg" onClick={openCreate}>
-              <FiPlusCircle className="h-5 w-5" /> Create My First FiGlobe
+              <FiPlusCircle className="h-5 w-5 mr-1" /> Create My Store
             </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          {store.banner_url && (
+            <div className="h-28 w-full overflow-hidden bg-slate-100">
+              <img src={store.banner_url} alt="" className="w-full h-full object-cover"
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+            </div>
+          )}
+          <CardContent className="p-5">
+            <div className="flex items-start gap-4">
+              {store.logo_url ? (
+                <img src={store.logo_url} alt="" className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 bg-white"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              ) : (
+                <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                  <StoreIcon className="h-6 w-6 text-slate-400" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-slate-900 text-base">{store.name}</h3>
+                  <Badge variant={store.is_approved ? 'success' : 'warning'}>
+                    {store.is_approved ? 'Approved' : 'Pending Approval'}
+                  </Badge>
+                  {!store.is_active && <Badge variant="destructive">Inactive</Badge>}
+                </div>
+                <p className="text-sm text-slate-500 mt-1 line-clamp-2">
+                  {store.description || 'No description added yet.'}
+                </p>
+                <div className="flex items-center gap-5 mt-2.5 text-xs text-slate-400">
+                  {store.contact_email && (
+                    <span className="flex items-center gap-1"><FiMail className="h-3 w-3" />{store.contact_email}</span>
+                  )}
+                  {store.contact_phone && (
+                    <span className="flex items-center gap-1"><FiPhone className="h-3 w-3" />{store.contact_phone}</span>
+                  )}
+                  {store.city && <span>{store.city}</span>}
+                </div>
+              </div>
+              <Button size="sm" variant="outline" onClick={openEdit}>
+                <FiEdit2 className="h-4 w-4 mr-1" /> Edit
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* FiGlobe list */}
-      <div className="grid gap-4">
-        {stores.map(store => (
-          <Card key={store.id} className="overflow-hidden">
-            {store.banner && (
-              <div className="h-24 w-full overflow-hidden bg-slate-100">
-                <img
-                  src={store.banner}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
-              </div>
-            )}
-            <CardContent className="p-5">
-              <div className="flex items-start gap-4">
-                {store.logo ? (
-                  <img
-                    src={store.logo}
-                    alt=""
-                    className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 -mt-8 relative z-10 bg-white"
-                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                    <StoreIcon className="h-6 w-6 text-slate-400" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-slate-900 text-base">{store.name}</h3>
-                    {store.isApproved
-                      ? <Badge variant="success">Approved</Badge>
-                      : <Badge variant="warning">Pending Approval</Badge>
-                    }
-                    {store.isBlocked && <Badge variant="destructive">Blocked</Badge>}
-                  </div>
-                  <p className="text-sm text-slate-500 mt-1 line-clamp-2">
-                    {store.description || 'No description added yet.'}
-                  </p>
-                  <div className="flex items-center gap-5 mt-2.5 text-xs text-slate-400">
-                    {store.contactEmail && (
-                      <span className="flex items-center gap-1">
-                        <FiMail className="h-3 w-3" />{store.contactEmail}
-                      </span>
-                    )}
-                    {store.whatsapp && (
-                      <span className="flex items-center gap-1">
-                        <FiPhone className="h-3 w-3" />+{store.whatsapp}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => openEdit(store)}>
-                  <FiEdit2 className="h-4 w-4" /> Edit
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       {/* Create / Edit Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={open => {
-          if (!open && stores.length === 0) return // block closing when no stores exist
-          setDialogOpen(open)
-        }}
-      >
+      <Dialog open={dialogOpen} onOpenChange={open => { if (!open && !store) return; setDialogOpen(open) }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingStore ? 'Edit Store' : 'Create New Store'}</DialogTitle>
+            <DialogTitle>{store ? 'Edit Store' : 'Create New Store'}</DialogTitle>
             <DialogDescription>
-              {editingStore
+              {store
                 ? 'Update your store profile and contact information.'
                 : 'Fill in your store details. Your store will be reviewed by admin before going live.'}
             </DialogDescription>
@@ -214,83 +197,51 @@ export function SellerStorePage() {
 
           <form onSubmit={handleSave} className="space-y-4 mt-2">
             <div>
-              <Label htmlFor="sname">FiGlobe Name *</Label>
-              <Input
-                id="sname"
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. TechZone PK"
-                className="mt-1"
-                required
-              />
+              <Label htmlFor="sname">Store Name *</Label>
+              <Input id="sname" value={form.store_name}
+                onChange={e => setForm(f => ({ ...f, store_name: e.target.value }))}
+                placeholder="e.g. TechZone PK" className="mt-1" required />
             </div>
             <div>
-              <Label htmlFor="sdesc">FiGlobe Description</Label>
-              <Textarea
-                id="sdesc"
-                value={form.description}
+              <Label htmlFor="sdesc">Description</Label>
+              <Textarea id="sdesc" value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Tell buyers what your store sells..."
-                className="mt-1"
-                rows={3}
-              />
+                placeholder="Tell buyers what your store sells..." className="mt-1" rows={3} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="slogo">Logo URL</Label>
-                <Input
-                  id="slogo"
-                  value={form.logo}
-                  onChange={e => setForm(f => ({ ...f, logo: e.target.value }))}
-                  placeholder="https://..."
-                  className="mt-1"
-                />
+                <Input id="slogo" value={form.logo_url}
+                  onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))}
+                  placeholder="https://..." className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="sbanner">Banner URL</Label>
-                <Input
-                  id="sbanner"
-                  value={form.banner}
-                  onChange={e => setForm(f => ({ ...f, banner: e.target.value }))}
-                  placeholder="https://..."
-                  className="mt-1"
-                />
+                <Input id="sbanner" value={form.banner_url}
+                  onChange={e => setForm(f => ({ ...f, banner_url: e.target.value }))}
+                  placeholder="https://..." className="mt-1" />
               </div>
             </div>
             <div>
               <Label htmlFor="semail">Contact Email</Label>
-              <Input
-                id="semail"
-                type="email"
-                value={form.contactEmail}
-                onChange={e => setForm(f => ({ ...f, contactEmail: e.target.value }))}
-                placeholder="store@example.com"
-                className="mt-1"
-              />
+              <Input id="semail" type="email" value={form.contact_email}
+                onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
+                placeholder="store@example.com" className="mt-1" />
             </div>
             <div>
-              <Label htmlFor="swa">WhatsApp Number *</Label>
-              <Input
-                id="swa"
-                value={form.whatsapp}
-                onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
-                placeholder="923001234567 (with country code, no +)"
-                className="mt-1"
-                required
-              />
-              <p className="text-xs text-slate-400 mt-1">
-                Buyers will contact you on this number for orders and payments.
-              </p>
+              <Label htmlFor="sphone">Contact Phone / WhatsApp *</Label>
+              <Input id="sphone" value={form.contact_phone}
+                onChange={e => setForm(f => ({ ...f, contact_phone: e.target.value }))}
+                placeholder="923001234567" className="mt-1" required />
+              <p className="text-xs text-slate-400 mt-1">Buyers will use this number to contact you.</p>
             </div>
             <DialogFooter>
-              {(editingStore || stores.length > 0) && (
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
+              {store && (
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               )}
-              <Button type="submit">
-                <FiSave className="h-4 w-4" />
-                {editingStore ? 'Save Changes' : 'Create Store'}
+              <Button type="submit" disabled={saving}>
+                <FiSave className="h-4 w-4 mr-1" />
+                {saving ? 'Saving...' : store ? 'Save Changes' : 'Create Store'}
               </Button>
             </DialogFooter>
           </form>

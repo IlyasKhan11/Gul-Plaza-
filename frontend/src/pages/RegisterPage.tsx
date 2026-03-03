@@ -13,6 +13,7 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,12 +21,17 @@ export function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return }
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      setError('Password must contain uppercase, lowercase, and a number')
+      return
+    }
+    if (phone.length < 10) { setError('Phone number must be at least 10 digits'); return }
     setLoading(true)
-    const result = await register(name, email, password, 'buyer')
+    const result = await register(name, email, password, 'buyer', phone)
     setLoading(false)
     if (result.success) {
-      navigate('/')
+      navigate('/login')
     } else {
       setError(result.message)
     }
@@ -63,8 +69,12 @@ export function RegisterPage() {
                 <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="mt-1" required />
               </div>
               <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="03001234567" className="mt-1" required />
+              </div>
+              <div>
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" className="mt-1" required />
+                <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 chars, upper+lower+number" className="mt-1" required />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Creating account...' : 'Create Buyer Account'}

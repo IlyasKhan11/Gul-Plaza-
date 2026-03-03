@@ -31,6 +31,8 @@ export interface Store {
   banner: string
   contactEmail: string
   whatsapp: string
+  easypaisa?: string
+  isVerified?: boolean
   rating: number
   reviewCount: number
   productCount: number
@@ -94,6 +96,9 @@ export interface Order {
   total: number
   status: OrderStatus
   paymentMethod: 'whatsapp' | 'easypaisa' | 'jazzcash' | 'cod'
+  transactionId?: string
+  paymentVerified?: boolean
+  trackingNumber?: string
   createdAt: string
   updatedAt: string
 }

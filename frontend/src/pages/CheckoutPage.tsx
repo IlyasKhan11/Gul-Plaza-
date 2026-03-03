@@ -1,170 +1,91 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FiMessageCircle, FiCheckCircle, FiShoppingBag, FiMapPin, FiPhone, FiUser, FiCreditCard } from 'react-icons/fi'
+import {
+  FiCheckCircle, FiShoppingBag,
+  FiCreditCard, FiAlertCircle, FiLoader,
+} from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { useCart } from '@/context/CartContext'
-import { useAuth } from '@/context/AuthContext'
-import { mockStores, mockOrders, mockTransactions } from '@/data/mockData'
-import { formatPrice, generateId } from '@/lib/utils'
-import { cn } from '@/lib/utils'
-import type { Order } from '@/types'
+import { orderService, type CheckoutPaymentMethod, type CreatedOrder } from '@/services/orderService'
+import { formatPrice, cn } from '@/lib/utils'
 
-type PaymentMethod = 'whatsapp' | 'easypaisa' | 'jazzcash'
+type Stage = 'form' | 'success'
 
-const PAYMENT_OPTIONS: { id: PaymentMethod; label: string; icon: string; desc: string; account?: string }[] = [
+const PAYMENT_OPTIONS: {
+  id: CheckoutPaymentMethod
+  label: string
+  desc: string
+}[] = [
   {
-    id: 'whatsapp',
-    label: 'WhatsApp',
-    icon: '💬',
-    desc: 'Contact the seller directly on WhatsApp to confirm order and arrange payment.',
+    id: 'COD',
+    label: 'Cash on Delivery',
+    desc: 'Pay in cash when your order arrives. The seller will confirm before shipping.',
   },
   {
-    id: 'easypaisa',
-    label: 'EasyPaisa',
-    icon: '🟢',
-    desc: 'Send payment via EasyPaisa.',
-    account: '0300-0000000',
-  },
-  {
-    id: 'jazzcash',
-    label: 'JazzCash',
-    icon: '🔴',
-    desc: 'Send payment via JazzCash.',
-    account: '0321-0000000',
+    id: 'BANK_TRANSFER',
+    label: 'Bank Transfer',
+    desc: "Transfer the amount to the seller's bank account. Admin will verify your payment.",
   },
 ]
 
 export function CheckoutPage() {
   const { items, total, clearCart } = useCart()
-  const { user } = useAuth()
-  const [placed, setPlaced] = useState(false)
-  const [placedOrderIds, setPlacedOrderIds] = useState<string[]>([])
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('whatsapp')
 
-  const [form, setForm] = useState({
-    name: user?.name ?? '',
-    phone: user?.phone ?? '',
-    address: user?.address ?? '',
-  })
+  const [stage, setStage] = useState<Stage>('form')
+  const [placedOrder, setPlacedOrder] = useState<CreatedOrder | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('COD')
+  const [placing, setPlacing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const shipping = total >= 2000 ? 0 : 200
   const grandTotal = total + shipping
 
-  const sellers = [...new Set(items.map(i => i.product.sellerId))]
-  const sellerItems = sellers.map(sellerId => ({
-    store: mockStores.find(s => s.sellerId === sellerId),
-    products: items.filter(i => i.product.sellerId === sellerId),
-  }))
-
-  function placeOrder() {
-    if (!form.name || !form.phone || !form.address || !user) return
-
-    const today = new Date().toISOString().split('T')[0]
-    const newOrderIds: string[] = []
-
-    // Create one order per seller
-    sellerItems.forEach(({ store, products }) => {
-      if (!store) return
-      const orderId = generateId()
-      const orderTotal = products.reduce((s, i) => s + i.product.price * i.quantity, 0)
-      const COMMISSION_RATE = 0.05
-
-      const newOrder: Order = {
-        id: orderId,
-        buyerId: user.id,
-        buyerName: form.name,
-        buyerPhone: form.phone,
-        buyerAddress: form.address,
-        sellerId: store.sellerId,
-        storeName: store.name,
-        items: products.map(i => ({ product: i.product, quantity: i.quantity, price: i.product.price })),
-        total: orderTotal,
-        status: 'pending',
-        paymentMethod,
-        createdAt: today,
-        updatedAt: today,
-      }
-      mockOrders.push(newOrder)
-      newOrderIds.push(orderId)
-
-      // Create a pending transaction
-      mockTransactions.push({
-        id: generateId(),
-        orderId,
-        sellerId: store.sellerId,
-        storeName: store.name,
-        amount: orderTotal,
-        commission: Math.round(orderTotal * COMMISSION_RATE),
-        sellerShare: Math.round(orderTotal * (1 - COMMISSION_RATE)),
-        status: 'pending',
-        createdAt: today,
-      })
-    })
-
-    setPlacedOrderIds(newOrderIds)
-    setPlaced(true)
-    clearCart()
+  async function placeOrder() {
+    if (items.length === 0) return
+    setPlacing(true)
+    setError(null)
+    try {
+      const order = await orderService.checkout(items, paymentMethod)
+      setPlacedOrder(order)
+      clearCart()
+      setStage('success')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to place order. Please try again.')
+    } finally {
+      setPlacing(false)
+    }
   }
 
-  if (placed) {
-    const selectedPayment = PAYMENT_OPTIONS.find(p => p.id === paymentMethod)!
+  // ── Empty cart ──────────────────────────────────────────────────────────────
+  if (items.length === 0 && stage === 'form') {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 text-center">
+        <FiShoppingBag className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+        <p className="text-xl font-semibold text-slate-700 mb-2">Your cart is empty</p>
+        <p className="text-slate-500 mb-6">Add some products before checking out</p>
+        <Button asChild><Link to="/products">Browse Products</Link></Button>
+      </div>
+    )
+  }
 
+  // ── Success screen ──────────────────────────────────────────────────────────
+  if (stage === 'success' && placedOrder) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 border-4 border-green-200">
           <FiCheckCircle className="h-10 w-10 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Order Placed Successfully!</h2>
-        <p className="text-slate-500 mb-1 text-sm">
-          {placedOrderIds.length > 1 ? `${placedOrderIds.length} orders created` : 'Order ID'}{': '}
-          {placedOrderIds.map(id => (
-            <span key={id} className="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded mx-0.5">#{id}</span>
-          ))}
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Order Placed!</h2>
+        <p className="font-mono text-sm font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded inline-block mb-4">
+          Order #{placedOrder.id}
         </p>
-
-        <p className="text-slate-500 mt-3 mb-6 text-sm">
-          {paymentMethod === 'whatsapp'
-            ? 'Contact the seller on WhatsApp to confirm your order and arrange delivery.'
-            : `Transfer the payment via ${selectedPayment.label} and share the screenshot with the seller on WhatsApp.`}
+        <p className="text-slate-500 mb-8 text-sm">
+          {paymentMethod === 'COD'
+            ? 'Your order has been placed. The seller will confirm and arrange delivery. Pay in cash when it arrives.'
+            : 'Your order is awaiting payment verification. Please transfer the amount and contact the seller with proof of payment.'}
         </p>
-
-        {/* Online payment instructions */}
-        {paymentMethod !== 'whatsapp' && (
-          <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl text-left text-sm space-y-2">
-            <p className="font-semibold text-slate-800">{selectedPayment.label} Payment Details</p>
-            <p className="text-slate-600">Account: <span className="font-mono font-bold">{selectedPayment.account}</span></p>
-            <p className="text-slate-600">Amount: <span className="font-bold text-blue-700">{formatPrice(grandTotal)}</span></p>
-            <p className="text-xs text-slate-400 mt-1">After sending payment, contact the seller on WhatsApp with your order ID and payment screenshot.</p>
-          </div>
-        )}
-
-        {/* WhatsApp buttons */}
-        <div className="space-y-3 mb-8">
-          {sellerItems.map(({ store, products }) => {
-            if (!store) return null
-            const orderTotal = products.reduce((s, i) => s + i.product.price * i.quantity, 0)
-            const itemsText = products.map(i => `${i.product.name} x${i.quantity} (${formatPrice(i.product.price * i.quantity)})`).join(', ')
-            const msg = encodeURIComponent(
-              `Hi! I placed an order on GUL PLAZA.\n\nItems: ${itemsText}\nTotal: ${formatPrice(orderTotal)}\nPayment: ${selectedPayment.label}\nName: ${form.name}\nPhone: ${form.phone}\nAddress: ${form.address}`
-            )
-            return (
-              <Button
-                key={store.id}
-                size="lg"
-                className="w-full bg-green-600 hover:bg-green-700 text-white gap-2"
-                onClick={() => window.open(`https://wa.me/${store.whatsapp}?text=${msg}`, '_blank')}
-              >
-                <FiMessageCircle className="h-5 w-5" />
-                Contact {store.name} on WhatsApp
-              </Button>
-            )
-          })}
-        </div>
-
         <div className="flex gap-3">
           <Button variant="outline" className="flex-1" asChild>
             <Link to="/buyer/orders">View My Orders</Link>
@@ -177,84 +98,17 @@ export function CheckoutPage() {
     )
   }
 
-  if (items.length === 0) {
-    return (
-      <div className="max-w-lg mx-auto px-4 py-20 text-center">
-        <FiShoppingBag className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-        <p className="text-xl font-semibold text-slate-700 mb-2">Your cart is empty</p>
-        <p className="text-slate-500 mb-6">Add some products before checking out</p>
-        <Button asChild><Link to="/products">Browse Products</Link></Button>
-      </div>
-    )
-  }
-
+  // ── Checkout form ───────────────────────────────────────────────────────────
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900">Checkout</h1>
-        <p className="text-slate-500 mt-1">Complete your order details below</p>
+        <p className="text-slate-500 mt-1">Select your payment method and place your order</p>
       </div>
 
       <div className="grid lg:grid-cols-5 gap-6">
-        {/* Left: Forms */}
-        <div className="lg:col-span-3 space-y-5">
-          {/* Delivery FiInfo */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
-                  <FiMapPin className="h-4 w-4 text-blue-600" />
-                </div>
-                Delivery Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="name">
-                  <span className="flex items-center gap-1.5">
-                    <FiUser className="h-3.5 w-3.5" /> Full Name <span className="text-red-500">*</span>
-                  </span>
-                </Label>
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Enter your full name"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">
-                  <span className="flex items-center gap-1.5">
-                    <FiPhone className="h-3.5 w-3.5" /> FiPhone Number <span className="text-red-500">*</span>
-                  </span>
-                </Label>
-                <Input
-                  id="phone"
-                  value={form.phone}
-                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                  placeholder="+92 3XX XXXXXXX"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="address">
-                  <span className="flex items-center gap-1.5">
-                    <FiMapPin className="h-3.5 w-3.5" /> Delivery Address <span className="text-red-500">*</span>
-                  </span>
-                </Label>
-                <Input
-                  id="address"
-                  value={form.address}
-                  onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                  placeholder="House #, Street, Area, City"
-                  required
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Payment Method */}
+        {/* Left: Payment Method */}
+        <div className="lg:col-span-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -277,20 +131,9 @@ export function CheckoutPage() {
                       : 'border-slate-200 hover:border-slate-300 bg-white'
                   )}
                 >
-                  <div className={cn(
-                    'w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 mt-0.5',
-                    paymentMethod === option.id ? 'bg-blue-100' : 'bg-slate-100'
-                  )}>
-                    {option.icon}
-                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-slate-900">{option.label}</p>
                     <p className="text-sm text-slate-500 mt-0.5">{option.desc}</p>
-                    {option.account && paymentMethod === option.id && (
-                      <p className="text-sm font-mono font-bold text-blue-700 mt-1">
-                        Account: {option.account}
-                      </p>
-                    )}
                   </div>
                   <div className={cn(
                     'w-4 h-4 rounded-full border-2 shrink-0 mt-1 flex items-center justify-center',
@@ -300,6 +143,16 @@ export function CheckoutPage() {
                   </div>
                 </button>
               ))}
+
+              {paymentMethod === 'BANK_TRANSFER' && (
+                <div className="flex items-start gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                  <FiAlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <span>
+                    After placing your order, you'll receive bank account details from the seller.
+                    Admin will verify your payment before the order is processed.
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -320,11 +173,15 @@ export function CheckoutPage() {
                   {items.map(({ product, quantity }) => (
                     <div key={product.id} className="flex gap-3">
                       <div className="relative shrink-0">
-                        <img
-                          src={product.images[0]}
-                          alt={product.name}
-                          className="w-14 h-14 rounded-lg object-cover bg-slate-100 border border-slate-200"
-                        />
+                        {product.images[0] ? (
+                          <img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className="w-14 h-14 rounded-lg object-cover bg-slate-100 border border-slate-200"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-slate-100 border border-slate-200" />
+                        )}
                         <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
                           {quantity}
                         </span>
@@ -333,7 +190,9 @@ export function CheckoutPage() {
                         <p className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug">{product.name}</p>
                         <p className="text-xs text-blue-600 mt-0.5">{product.storeName}</p>
                       </div>
-                      <span className="text-sm font-bold text-slate-900 shrink-0">{formatPrice(product.price * quantity)}</span>
+                      <span className="text-sm font-bold text-slate-900 shrink-0">
+                        {formatPrice(product.price * quantity)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -348,7 +207,7 @@ export function CheckoutPage() {
                   <div className="flex justify-between text-sm text-slate-600">
                     <span>Shipping</span>
                     <span className={shipping === 0 ? 'text-green-600 font-medium' : 'text-slate-700'}>
-                      {shipping === 0 ? '🎉 Free' : formatPrice(shipping)}
+                      {shipping === 0 ? 'Free' : formatPrice(shipping)}
                     </span>
                   </div>
                 </div>
@@ -358,12 +217,26 @@ export function CheckoutPage() {
                   <span className="text-xl font-bold text-blue-700">{formatPrice(grandTotal)}</span>
                 </div>
 
+                {error && (
+                  <div className="flex items-start gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <FiAlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
                 <Button
                   className="w-full h-12 text-base font-semibold"
                   onClick={placeOrder}
-                  disabled={!form.name || !form.phone || !form.address}
+                  disabled={placing || items.length === 0}
                 >
-                  Place Order
+                  {placing ? (
+                    <span className="flex items-center gap-2">
+                      <FiLoader className="h-4 w-4 animate-spin" />
+                      Placing Order…
+                    </span>
+                  ) : (
+                    'Place Order'
+                  )}
                 </Button>
 
                 <p className="text-xs text-center text-slate-400">

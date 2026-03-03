@@ -1,70 +1,147 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { FiRefreshCw } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import { OrderStatusBadge } from '@/components/common/OrderStatusBadge'
-import { mockOrders } from '@/data/mockData'
+import { adminService, type ApiOrder } from '@/services/adminService'
 import { formatPrice, formatDate } from '@/lib/utils'
-import type { OrderStatus } from '@/types'
+
+const STATUS_OPTIONS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
 
 export function AdminOrdersPage() {
-  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [orders, setOrders] = useState<ApiOrder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalOrders, setTotalOrders] = useState(0)
 
-  const orders = filterStatus === 'all' ? mockOrders : mockOrders.filter(o => o.status === filterStatus)
+  const fetchOrders = useCallback(async (p: number, status: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await adminService.getOrders({
+        page: p,
+        limit: 15,
+        status: status === 'all' ? undefined : status,
+      })
+      setOrders(data.orders)
+      setTotalPages(data.pagination.total_pages)
+      setTotalOrders(data.pagination.total_orders)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load orders')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchOrders(1, 'all') }, [fetchOrders])
+
+  function handleStatusChange(status: string) {
+    setFilterStatus(status)
+    setPage(1)
+    fetchOrders(1, status)
+  }
+
+  function changePage(newPage: number) {
+    setPage(newPage)
+    fetchOrders(newPage, filterStatus)
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">All Orders</h1>
-          <p className="text-slate-500 text-sm mt-1">{mockOrders.length} total orders across all sellers</p>
+          <p className="text-slate-500 text-sm mt-1">{totalOrders} total orders across all sellers</p>
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Filter" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Orders</SelectItem>
-            {(['pending', 'processing', 'shipped', 'delivered', 'cancelled'] as OrderStatus[]).map(s => (
-              <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={filterStatus} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Orders</SelectItem>
+              {STATUS_OPTIONS.map(s => (
+                <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button size="sm" variant="outline" onClick={() => fetchOrders(page, filterStatus)} disabled={loading}>
+            <FiRefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <Button size="sm" variant="outline" onClick={() => fetchOrders(page, filterStatus)}>
+            <FiRefreshCw className="h-3.5 w-3.5 mr-1" /> Retry
+          </Button>
+        </div>
+      )}
 
       <Card>
         <CardHeader><CardTitle className="text-base">Order List</CardTitle></CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="text-left pb-3 text-slate-500 font-medium">Order ID</th>
-                  <th className="text-left pb-3 text-slate-500 font-medium">Buyer</th>
-                  <th className="text-left pb-3 text-slate-500 font-medium">FiGlobe</th>
-                  <th className="text-left pb-3 text-slate-500 font-medium">Items</th>
-                  <th className="text-left pb-3 text-slate-500 font-medium">Total</th>
-                  <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
-                  <th className="text-left pb-3 text-slate-500 font-medium">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {orders.map(order => (
-                  <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 font-mono text-xs text-slate-400">#{order.id}</td>
-                    <td className="py-3">
-                      <p className="font-medium text-slate-800">{order.buyerName}</p>
-                      <p className="text-xs text-slate-500">{order.buyerPhone}</p>
-                    </td>
-                    <td className="py-3 text-slate-600">{order.storeName}</td>
-                    <td className="py-3 text-slate-600">{order.items.length} item(s)</td>
-                    <td className="py-3 font-bold text-slate-900">{formatPrice(order.total)}</td>
-                    <td className="py-3"><OrderStatusBadge status={order.status} /></td>
-                    <td className="py-3 text-slate-400 text-xs">{formatDate(order.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : orders.length === 0 ? (
+            <p className="text-center text-slate-400 py-12 text-sm">No orders found</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left pb-3 text-slate-500 font-medium">Order ID</th>
+                      <th className="text-left pb-3 text-slate-500 font-medium">Buyer</th>
+                      <th className="text-left pb-3 text-slate-500 font-medium">Store</th>
+                      <th className="text-left pb-3 text-slate-500 font-medium">Items</th>
+                      <th className="text-left pb-3 text-slate-500 font-medium">Total</th>
+                      <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
+                      <th className="text-left pb-3 text-slate-500 font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {orders.map(order => (
+                      <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 font-mono text-xs text-slate-400">#{order.id}</td>
+                        <td className="py-3">
+                          <p className="font-medium text-slate-800">{order.buyer_name}</p>
+                          <p className="text-xs text-slate-500">{order.buyer_phone ?? '—'}</p>
+                        </td>
+                        <td className="py-3 text-slate-600 text-xs">{order.store_name ?? 'Unknown store'}</td>
+                        <td className="py-3 text-slate-600">{order.item_count} item(s)</td>
+                        <td className="py-3 font-bold text-slate-900">{formatPrice(parseFloat(order.total_amount))}</td>
+                        <td className="py-3"><OrderStatusBadge status={order.status as never} /></td>
+                        <td className="py-3 text-slate-400 text-xs">{formatDate(order.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                  <p className="text-xs text-slate-500">Page {page} of {totalPages}</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => changePage(page - 1)}>
+                      Previous
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => changePage(page + 1)}>
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
