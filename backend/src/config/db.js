@@ -230,56 +230,25 @@ const initializeDatabase = async () => {
       RETURNS TRIGGER AS $$
       BEGIN
         NEW.updated_at = CURRENT_TIMESTAMP;
-        RETURN NEW;
       END;
       $$ language 'plpgsql'
     `);
 
-    // Create triggers for updated_at columns
-    await query(`
-      CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
-    `);
+    // Array of tables that need to updated_at trigger
+    const tablesWithTimestamps = [
+      'users', 'stores', 'categories', 'products',
+      'orders', 'user_profiles', 'user_blocks', 'payments', 'cart'
+    ];
 
-    await query(`
-      CREATE TRIGGER update_stores_updated_at BEFORE UPDATE ON stores
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
-    `);
-
-    await query(`
-      CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON categories
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
-    `);
-
-    await query(`
-      CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
-    `);
-
-    await query(`
-      CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
-    `);
-
-    await query(`
-      CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
-    `);
-
-    await query(`
-      CREATE TRIGGER update_user_blocks_updated_at BEFORE UPDATE ON user_blocks
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
-    `);
-
-    await query(`
-      CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
-    `);
-
-    await query(`
-      CREATE TRIGGER update_cart_updated_at BEFORE UPDATE ON cart
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
-    `);
+    // Safely drop and recreate triggers for each table
+    for (const tableName of tablesWithTimestamps) {
+      await query(`DROP TRIGGER IF EXISTS update_${tableName}_updated_at ON ${tableName}`);
+      await query(`
+        CREATE TRIGGER update_${tableName}_updated_at
+          BEFORE UPDATE ON ${tableName}
+          FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+      `);
+    }
 
     console.log('Database tables initialized successfully');
   } catch (error) {
