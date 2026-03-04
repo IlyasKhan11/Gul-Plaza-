@@ -1,5 +1,6 @@
 const OrderService = require('../services/orderService');
 const { query } = require('../config/db');
+const whatsappService = require('../services/whatsappService');
 const {
   isValidStatusTransition,
   getStatusAfterPaymentSelection,
@@ -13,13 +14,151 @@ const createOrder = async (req, res) => {
   try {
     console.log('Order controller: createOrder called');
     const userId = req.user.userId;
+    const { 
+      items, 
+      shipping_address, 
+      shipping_city, 
+      shipping_country, 
+      shipping_postal_code, 
+      shipping_phone 
+    } = req.body;
     
-    // Simple test response
-    res.status(201).json({
-      success: true,
-      message: 'Order creation test successful',
-      data: { userId, orderId: 'test-order-123' }
-    });
+    // Validate required shipping information
+    if (!shipping_address || !shipping_city || !shipping_country || !shipping_postal_code || !shipping_phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'All shipping information is required'
+      });
+    }
+    
+    // Get cart items for the user
+    const cartQuery = `
+      SELECT c.product_id, c.quantity, p.price, p.title, p.stock, p.is_active, p.store_id, s.owner_id as seller_id
+      FROM cart c
+      JOIN products p ON c.product_id = p.id
+      JOIN stores s ON p.store_id = s.id
+      WHERE c.user_id = $1 AND p.is_active = true
+    `;
+    
+    const cartResult = await query(cartQuery, [userId]);
+    
+    if (cartResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cart is empty or products are not available'
+      });
+    }
+    
+    // Check stock availability
+    for (const item of cartResult.rows) {
+      if (item.stock < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for product: ${item.title}`
+        });
+      }
+    }
+    
+    // Calculate total amount
+    const totalAmount = cartResult.rows.reduce((sum, item) => {
+      return sum + (parseFloat(item.price) * item.quantity);
+    }, 0);
+    
+    // Start transaction
+    const client = await require('../config/db').pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Create order with shipping information
+      const createOrderQuery = `
+        INSERT INTO orders (
+          buyer_id, user_id, total_amount, payment_status, 
+          shipping_address, shipping_city, shipping_country, 
+          shipping_postal_code, shipping_phone
+        ) VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7, $8)
+        RETURNING id, status, total_amount, payment_status, created_at, updated_at
+      `;
+      
+      const newOrderResult = await client.query(createOrderQuery, [
+        userId, userId, totalAmount,
+        shipping_address, shipping_city, shipping_country, 
+        shipping_postal_code, shipping_phone
+      ]);
+      
+      const newOrder = newOrderResult.rows[0];
+      
+      // Create order items and update product stock
+      for (const item of cartResult.rows) {
+        // Create order item
+        await client.query(
+          'INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase) VALUES ($1, $2, $3, $4)',
+          [newOrder.id, item.product_id, item.quantity, item.price]
+        );
+        
+        // Update product stock
+        await client.query(
+          'UPDATE products SET stock = stock - $1 WHERE id = $2',
+          [item.quantity, item.product_id]
+        );
+        
+        // Create notification for seller
+        await client.query(
+          `INSERT INTO order_notifications (order_id, seller_id, notification_type, message) 
+           VALUES ($1, $2, 'new_order', $3)`,
+          [newOrder.id, item.seller_id, `New order #${newOrder.id} received for product: ${item.title}`]
+        );
+
+        // Send WhatsApp notification to seller
+        try {
+          const sellerQuery = `SELECT name, phone FROM users WHERE id = $1`;
+          const sellerResult = await client.query(sellerQuery, [item.seller_id]);
+          
+          if (sellerResult.rows.length > 0) {
+            const seller = sellerResult.rows[0];
+            const orderData = { 
+              id: newOrder.id, 
+              total_amount: totalAmount, 
+              payment_method: 'pending',
+              buyer_name: req.user.name 
+            };
+            
+            const items = [{ title: item.title, quantity: item.quantity }];
+            const whatsappResult = await whatsappService.sendNewOrderToSeller(orderData, seller, items);
+            
+            if (whatsappResult.success) {
+              // Update notification to mark WhatsApp as sent
+              await client.query(
+                `UPDATE order_notifications SET whatsapp_sent = true, whatsapp_message_id = $1 
+                 WHERE order_id = $2 AND seller_id = $3 AND notification_type = 'new_order'`,
+                [whatsappResult.messageId, newOrder.id, item.seller_id]
+              );
+            }
+          }
+        } catch (whatsappError) {
+          console.error('WhatsApp notification failed:', whatsappError);
+          // Don't fail the transaction if WhatsApp fails
+        }
+      }
+      
+      // Clear cart after successful order creation
+      await client.query('DELETE FROM cart WHERE user_id = $1', [userId]);
+      
+      await client.query('COMMIT');
+      
+      res.status(201).json({
+        success: true,
+        message: 'Order created successfully. Please select a payment method.',
+        data: newOrder
+      });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    
   } catch (error) {
     console.error('Error creating order:', error);
     res.status(500).json({

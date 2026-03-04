@@ -17,7 +17,8 @@ const ORDER_STATUSES = {
 
 const PAYMENT_METHODS = {
   COD: 'COD',
-  BANK_TRANSFER: 'BANK_TRANSFER'
+  EASYPaisa: 'EASYPaisa',
+  DIRECT_SELLER: 'DIRECT_SELLER'
 };
 
 const PAYMENT_STATUSES = {
@@ -82,8 +83,13 @@ const isValidStatusTransition = (currentStatus, newStatus, paymentMethod = null)
       return false;
     }
     
-    // If transitioning to AWAITING_VERIFICATION, payment method should be BANK_TRANSFER
-    if (newStatus === ORDER_STATUSES.AWAITING_VERIFICATION && paymentMethod !== PAYMENT_METHODS.BANK_TRANSFER) {
+    // If transitioning to AWAITING_VERIFICATION, payment method should be EASYPaisa
+    if (newStatus === ORDER_STATUSES.AWAITING_VERIFICATION && paymentMethod !== PAYMENT_METHODS.EASYPaisa) {
+      return false;
+    }
+    
+    // If transitioning to AWAITING_VERIFICATION, payment method should be DIRECT_SELLER
+    if (newStatus === ORDER_STATUSES.AWAITING_VERIFICATION && paymentMethod !== PAYMENT_METHODS.DIRECT_SELLER) {
       return false;
     }
   }
@@ -100,7 +106,9 @@ const getStatusAfterPaymentSelection = (paymentMethod) => {
   switch (paymentMethod?.toUpperCase()) {
     case PAYMENT_METHODS.COD:
       return ORDER_STATUSES.CONFIRMED;
-    case PAYMENT_METHODS.BANK_TRANSFER:
+    case PAYMENT_METHODS.EASYPaisa:
+      return ORDER_STATUSES.AWAITING_VERIFICATION;
+    case PAYMENT_METHODS.DIRECT_SELLER:
       return ORDER_STATUSES.AWAITING_VERIFICATION;
     default:
       throw new Error(`Invalid payment method: ${paymentMethod}`);
@@ -199,7 +207,8 @@ const VALIDATION_ERRORS = {
     `Order with status ${status} cannot be shipped. Only PAID or CONFIRMED orders can be shipped.`,
   PAYMENT_METHOD_REQUIRED: 'Payment method is required for PENDING orders',
   ORDER_OWNERSHIP_REQUIRED: 'Order must belong to the user',
-  ADMIN_ACCESS_REQUIRED: 'Admin access required for this operation'
+  ADMIN_ACCESS_REQUIRED: 'Admin access required for this operation',
+  SELLER_ACCESS_REQUIRED: 'Seller access required for this operation'
 };
 
 module.exports = {

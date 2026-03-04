@@ -1,13 +1,63 @@
 const Joi = require('joi');
 
-// Create order validation schema (no body needed for cart checkout)
-const createOrderSchema = Joi.object({}).unknown(false).messages({
+// Create order validation schema (with shipping information)
+const createOrderSchema = Joi.object({
+  shipping_address: Joi.string()
+    .required()
+    .trim()
+    .max(500)
+    .messages({
+      'string.empty': 'Shipping address is required',
+      'any.required': 'Shipping address is required',
+      'string.max': 'Shipping address cannot exceed 500 characters'
+    }),
+  
+  shipping_city: Joi.string()
+    .required()
+    .trim()
+    .max(100)
+    .messages({
+      'string.empty': 'Shipping city is required',
+      'any.required': 'Shipping city is required',
+      'string.max': 'Shipping city cannot exceed 100 characters'
+    }),
+  
+  shipping_country: Joi.string()
+    .required()
+    .trim()
+    .max(100)
+    .messages({
+      'string.empty': 'Shipping country is required',
+      'any.required': 'Shipping country is required',
+      'string.max': 'Shipping country cannot exceed 100 characters'
+    }),
+  
+  shipping_postal_code: Joi.string()
+    .required()
+    .trim()
+    .max(20)
+    .messages({
+      'string.empty': 'Shipping postal code is required',
+      'any.required': 'Shipping postal code is required',
+      'string.max': 'Shipping postal code cannot exceed 20 characters'
+    }),
+  
+  shipping_phone: Joi.string()
+    .required()
+    .trim()
+    .max(20)
+    .messages({
+      'string.empty': 'Shipping phone is required',
+      'any.required': 'Shipping phone is required',
+      'string.max': 'Shipping phone cannot exceed 20 characters'
+    })
+}).unknown(false).messages({
   'object.unknown': 'No additional fields allowed in order creation'
 });
 
 // Order ID validation schema
 const orderIdSchema = Joi.object({
-  orderId: Joi.number()
+  id: Joi.number()
     .integer()
     .positive()
     .required()
@@ -99,10 +149,10 @@ const orderQuerySchema = Joi.object({
 // Payment method selection validation schema
 const selectPaymentMethodSchema = Joi.object({
   payment_method: Joi.string()
-    .valid('COD', 'BANK_TRANSFER')
+    .valid('COD', 'EASYPaisa', 'DIRECT_SELLER')
     .required()
     .messages({
-      'any.only': 'Payment method must be either COD or BANK_TRANSFER',
+      'any.only': 'Payment method must be either COD, EASYPaisa, or DIRECT_SELLER',
       'any.required': 'Payment method is required'
     })
 });
