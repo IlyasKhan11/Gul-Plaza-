@@ -14,6 +14,7 @@ const createOrder = async (req, res) => {
   try {
     console.log('Order controller: createOrder called');
     const userId = req.user.userId;
+    console.log('Order creation for userId:', userId);
     const { 
       items, 
       shipping_address, 
@@ -41,6 +42,7 @@ const createOrder = async (req, res) => {
     `;
     
     const cartResult = await query(cartQuery, [userId]);
+    console.log('Cart query result for userId', userId, ':', cartResult.rows);
     
     if (cartResult.rows.length === 0) {
       return res.status(400).json({
@@ -331,7 +333,20 @@ const selectPaymentMethod = async (req, res) => {
   try {
     const orderId = parseInt(req.params.id);
     const buyerId = req.user.userId;
-    const { payment_method } = req.body;
+    const { payment_method, transaction_id } = req.body;
+    let screenshotUrl = null;
+    // If screenshot is uploaded, save file and get URL
+    if (req.file) {
+      // Save file to /uploads/payments or similar
+      const fs = require('fs');
+      const path = require('path');
+      const uploadDir = path.join(__dirname, '../../uploads/payments');
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      const filename = `order_${orderId}_${Date.now()}_${req.file.originalname}`;
+      const filePath = path.join(uploadDir, filename);
+      fs.writeFileSync(filePath, req.file.buffer);
+      screenshotUrl = `/uploads/payments/${filename}`;
+    }
 
     // Validate payment method
     if (!payment_method) {
@@ -399,20 +414,24 @@ const selectPaymentMethod = async (req, res) => {
     try {
       await client.query('BEGIN');
       
-      // Update order with payment method and new status
+      // Update order with payment method, transaction_id, screenshot, and new status
       const updateQuery = `
         UPDATE orders 
         SET payment_method = $1, 
             status = $2, 
             payment_status = 'pending',
+            transaction_id = $3,
+            payment_screenshot = $4,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $3
-        RETURNING id, status, payment_method, payment_status, total_amount, created_at, updated_at
+        WHERE id = $5
+        RETURNING id, status, payment_method, payment_status, transaction_id, payment_screenshot, total_amount, created_at, updated_at
       `;
-      
+    
       const updatedOrderResult = await client.query(updateQuery, [
         formatStatus(payment_method),
         nextStatus,
+        transaction_id || null,
+        screenshotUrl,
         orderId
       ]);
       

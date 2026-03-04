@@ -85,6 +85,8 @@ router.post('/test', (req, res) => {
  */
 router.post(
   '/',
+  authenticateToken,
+  requireBuyer,
   (req, res, next) => {
     console.log('Route hit: POST /api/cart');
     next();

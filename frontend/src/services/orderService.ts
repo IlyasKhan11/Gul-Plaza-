@@ -6,7 +6,7 @@ interface ApiResp<T> {
   data: T
 }
 
-export type CheckoutPaymentMethod = 'COD' | 'BANK_TRANSFER'
+export type CheckoutPaymentMethod = 'COD' | 'EASYPaisa'
 
 export interface CreatedOrder {
   id: number
@@ -22,27 +22,15 @@ export const orderService = {
    * Returns the created order ID.
    */
   async checkout(
-    cartItems: CartItem[],
-    paymentMethod: CheckoutPaymentMethod
+    _items: { productId: number; quantity: number }[],
+    paymentMethod: CheckoutPaymentMethod,
+    extra?: { transactionId?: string; screenshot?: File }
   ): Promise<CreatedOrder> {
-    // 1. Clear server cart first to avoid stale items
-    await api.delete('/cart').catch(() => {})
-
-    // 2. Add each local cart item to the server cart
-    for (const item of cartItems) {
-      const productId = Number(item.product.id)
-      if (!productId || isNaN(productId)) {
-        throw new Error(`Invalid product ID: ${item.product.id}`)
-      }
-      await api.post('/cart', {
-        product_id: productId,
-        quantity: item.quantity,
-      })
-    }
-
-    // 3. Create order from server cart, send shipping info from user context
+    // Get shipping info from user context/localStorage
     let shipping_address = ''
     let shipping_city = ''
+    let shipping_country = ''
+    let shipping_postal_code = ''
     let shipping_phone = ''
     try {
       const userStr = localStorage.getItem('gul_plaza_user')
@@ -50,21 +38,41 @@ export const orderService = {
         const user = JSON.parse(userStr)
         shipping_address = user.address || ''
         shipping_city = user.city || ''
+        shipping_country = user.country || ''
+        shipping_postal_code = user.postal_code || ''
         shipping_phone = user.phone || ''
       }
     } catch {}
+    // Only send shipping fields; backend uses cart for items
     const orderRes = await api.post<ApiResp<CreatedOrder>>('/orders', {
       shipping_address,
       shipping_city,
+      shipping_country,
+      shipping_postal_code,
       shipping_phone,
     })
     const order = orderRes.data
-
-    // 4. Select payment method
-    await api.post(`/orders/${order.id}/select-payment`, {
+    // Prepare payment payload
+    const paymentPayload: any = {
       payment_method: paymentMethod,
-    })
-
+    }
+    if (extra?.transactionId) paymentPayload.transaction_id = extra.transactionId
+    if (extra?.screenshot) {
+      // Use FormData for file upload
+      const formData = new FormData()
+      formData.append('payment_method', paymentMethod)
+      formData.append('transaction_id', extra.transactionId || '')
+      formData.append('screenshot', extra.screenshot)
+      await api.post(`/orders/${order.id}/select-payment`, formData)
+    } else {
+      await api.post(`/orders/${order.id}/select-payment`, paymentPayload)
+    }
     return order
   },
-}
+
+  async syncCart(cartItems: { productId: number; quantity: number }[]): Promise<void> {
+    await api.post('/cart', {
+      items: cartItems
+    })
+  },
+  }

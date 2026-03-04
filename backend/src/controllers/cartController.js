@@ -4,12 +4,21 @@ const CartService = require('../services/cartService');
 const addToCart = async (req, res) => {
   try {
     console.log('Cart controller: addToCart called');
-    
-    // Simple test response
+    const userId = req.user.userId;
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No cart items provided',
+      });
+    }
+    for (const item of items) {
+      if (!item.productId || !item.quantity) continue;
+      await CartService.addToCart(userId, item.productId, item.quantity);
+    }
     res.status(200).json({
       success: true,
-      message: 'Cart addition test successful',
-      data: null
+      message: 'Cart synced successfully',
     });
   } catch (error) {
     console.error('Error adding to cart:', error);

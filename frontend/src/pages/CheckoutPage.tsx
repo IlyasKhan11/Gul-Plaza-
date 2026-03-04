@@ -24,7 +24,7 @@ const PAYMENT_OPTIONS: {
     desc: 'Pay in cash when your order arrives. The seller will confirm before shipping.',
   },
   {
-    id: 'BANK_TRANSFER',
+    id: 'EASYPaisa',
     label: 'Easypaisa / Bank Transfer',
     desc: "Transfer via Easypaisa or bank. Admin will verify your payment and notify the seller.",
   },
@@ -38,21 +38,58 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('COD')
   const [placing, setPlacing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // For Easypaisa/Bank Transfer
+  const [transactionId, setTransactionId] = useState('')
+  const [screenshot, setScreenshot] = useState<File | null>(null)
 
   const shipping = total >= 2000 ? 0 : 200
   const grandTotal = total + shipping
 
   async function placeOrder() {
-    if (items.length === 0) return
+    if (items.length === 0) {
+      setError('Your cart is empty. Please add products before placing an order.')
+      return
+    }
+    // Check for stock issues before syncing cart
+  const outOfStock = items.find(item => item.product && typeof item.product.stock === 'number' && item.quantity > item.product.stock)
+    if (outOfStock) {
+      setError(`Insufficient stock for product: ${outOfStock.product.name}. Available: ${outOfStock.product.stock}`)
+      return
+    }
     setPlacing(true)
     setError(null)
     try {
-      const order = await orderService.checkout(items, paymentMethod)
+      // Sync frontend cart to backend
+      const cartPayload = items.map(item => ({
+        productId: Number(item.product.id),
+        quantity: item.quantity
+      }))
+      await orderService.syncCart(cartPayload)
+      // Prepare extra payment info
+      let extra: any = {}
+      if (paymentMethod === 'BANK_TRANSFER') {
+        extra.transactionId = transactionId
+        if (screenshot) {
+          // You may need to handle file upload separately in your backend
+          extra.screenshot = screenshot
+        }
+      }
+      // Place order (backend will use synced cart)
+      const order = await orderService.checkout(cartPayload, paymentMethod, extra)
       setPlacedOrder(order)
       clearCart()
       setStage('success')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to place order. Please try again.')
+      console.error('Checkout error:', err)
+      let errorMsg = 'Checkout failed. Please try again.';
+      if (err && typeof err === 'object') {
+        if ('response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
+          errorMsg = String(err.response.data.message);
+        } else if ('message' in err && typeof err.message === 'string') {
+          errorMsg = err.message;
+        }
+      }
+      setError(errorMsg);
     } finally {
       setPlacing(false)
     }
@@ -145,13 +182,32 @@ export function CheckoutPage() {
               ))}
 
               {paymentMethod === 'BANK_TRANSFER' && (
-                <div className="flex items-start gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
-                  <FiAlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                  <span>
-                    After placing your order, contact the seller for their Easypaisa number or bank account details.
-                    Admin will verify your payment before the order is processed.
-                  </span>
-                </div>
+                <>
+                  <div className="flex items-start gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                    <FiAlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    <span>
+                      After placing your order, contact the seller for their Easypaisa number or bank account details.<br />
+                      Enter your Transaction ID and (optionally) upload a screenshot below.
+                    </span>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Transaction ID</label>
+                    <input
+                      type="text"
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-base"
+                      value={transactionId}
+                      onChange={e => setTransactionId(e.target.value)}
+                      placeholder="Enter Transaction ID"
+                    />
+                    <label className="block text-sm font-medium text-slate-700 mb-1 mt-3">Screenshot (optional)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-base"
+                      onChange={e => setScreenshot(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -171,29 +227,31 @@ export function CheckoutPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {items.map(({ product, quantity }) => (
-                    <div key={product.id} className="flex gap-3">
-                      <div className="relative shrink-0">
-                        {product.images[0] ? (
-                          <img
-                            src={product.images[0]}
-                            alt={product.name}
-                            className="w-14 h-14 rounded-lg object-cover bg-slate-100 border border-slate-200"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-lg bg-slate-100 border border-slate-200" />
-                        )}
-                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
-                          {quantity}
+                    product && product.id ? (
+                      <div key={product.id} className="flex gap-3">
+                        <div className="relative shrink-0">
+                          {product.images?.[0] ? (
+                            <img
+                              src={product.images[0]}
+                              alt={product.name}
+                              className="w-14 h-14 rounded-lg object-cover bg-slate-100 border border-slate-200"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-slate-100 border border-slate-200" />
+                          )}
+                          <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
+                            {quantity}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug">{product.name}</p>
+                          <p className="text-xs text-blue-600 mt-0.5">{product.storeName}</p>
+                        </div>
+                        <span className="text-sm font-bold text-slate-900 shrink-0">
+                          {formatPrice(Number(product.price) * quantity)}
                         </span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug">{product.name}</p>
-                        <p className="text-xs text-blue-600 mt-0.5">{product.storeName}</p>
-                      </div>
-                      <span className="text-sm font-bold text-slate-900 shrink-0">
-                        {formatPrice(product.price * quantity)}
-                      </span>
-                    </div>
+                    ) : null
                   ))}
                 </div>
 

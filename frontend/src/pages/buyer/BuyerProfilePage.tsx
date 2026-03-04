@@ -21,7 +21,14 @@ const emptyStoreForm = { name: '', description: '', logo: '', banner: '', contac
 
 export function BuyerProfilePage() {
   const { user } = useAuth()
-  const [form, setForm] = useState({ name: user?.name ?? '', phone: user?.phone && !user?.phone.includes('*') ? user.phone : '', address: user?.address ?? '' })
+  const [form, setForm] = useState({
+    name: user?.name ?? '',
+    phone: user?.phone && !user?.phone.includes('*') ? user.phone : '',
+    address: user?.address ?? '',
+    city: user?.city ?? '',
+    country: user?.country ?? '',
+    postal_code: user?.postal_code ?? ''
+  })
   const [editOpen, setEditOpen] = useState(false)
   const [successOpen, setSuccessOpen] = useState(false)
 
@@ -152,11 +159,36 @@ export function BuyerProfilePage() {
               <Label htmlFor="paddress">Delivery Address</Label>
               <Input id="paddress" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="House #, Street, City" className="mt-1" />
             </div>
+            <div>
+              <Label htmlFor="pcity">City</Label>
+              <Input id="pcity" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="City" className="mt-1" />
+            </div>
+            <div>
+              <Label htmlFor="pcountry">Country</Label>
+              <Input id="pcountry" value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} placeholder="Country" className="mt-1" />
+            </div>
+            <div>
+              <Label htmlFor="ppostal">Postal Code</Label>
+              <Input id="ppostal" value={form.postal_code} onChange={e => setForm(f => ({ ...f, postal_code: e.target.value }))} placeholder="Postal Code" className="mt-1" />
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
               <Button type="submit">Save Changes</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Message Dialog */}
+      <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
+        <DialogContent className="max-w-sm text-center">
+          <DialogHeader>
+            <DialogTitle>Profile Updated</DialogTitle>
+            <DialogDescription>Your profile has been updated successfully.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setSuccessOpen(false)}>OK</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -295,22 +327,6 @@ export function BuyerProfilePage() {
           </div>
           <DialogFooter className="justify-center">
             <Button onClick={() => setAppliedOpen(false)}>Got it</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Profile Update Success Dialog */}
-      <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
-        <DialogContent className="max-w-sm">
-          <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
-              <FiCheckCircle className="h-7 w-7 text-green-600" />
-            </div>
-            <DialogTitle>Profile updated!</DialogTitle>
-            <p className="text-sm text-slate-500">Your profile information has been saved successfully.</p>
-          </div>
-          <DialogFooter className="justify-center">
-            <Button onClick={() => setSuccessOpen(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

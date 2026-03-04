@@ -7,6 +7,9 @@ export interface User {
   role: UserRole
   phone?: string
   address?: string
+  city?: string
+  country?: string
+  postal_code?: string
   avatar?: string
   isBlocked: boolean
   createdAt: string
@@ -47,19 +50,20 @@ export interface Product {
   storeName?: string
   sellerId?: string
   name?: string
-  title?: string // <-- Add this
+  title?: string
   description?: string
   price: number | string
   originalPrice?: number
   category?: string
   categoryId?: string
   images?: string[]
-  primary_image?: string | null // <-- Add this
+  primary_image?: string | null
   stock?: number
   rating?: number
   reviewCount?: number
   isFeatured?: boolean
   createdAt?: string
+  store_description?: string // <-- Add this for backend compatibility
 }
 
 export interface Review {

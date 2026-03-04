@@ -128,8 +128,14 @@ const updateBuyerProfile = async (req, res) => {
       [userId]
     );
 
-    let profileResult;
 
+    // Update users table for name, phone, address, city, country, postal_code
+    await query(
+      `UPDATE users SET name = COALESCE($1, name), phone = COALESCE($2, phone), address = COALESCE($3, address), city = COALESCE($4, city), country = COALESCE($5, country), postal_code = COALESCE($6, postal_code), updated_at = CURRENT_TIMESTAMP WHERE id = $7`,
+      [first_name, phone, address, city, country, postal_code, userId]
+    );
+
+    let profileResult;
     if (existingProfile.rows.length > 0) {
       // Update existing profile
       profileResult = await query(

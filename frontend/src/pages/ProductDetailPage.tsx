@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { FiShoppingCart, FiMessageCircle, FiChevronLeft, FiPackage, FiShield, FiTruck, FiZap, FiFlag } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import { StarRating } from '@/components/common/StarRating'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/api'
-import { mockProducts, mockReviews, mockStores } from '@/data/mockData'
+import type { Product } from '@/types'
 import { formatPrice, formatDate } from '@/lib/utils'
 
 const REPORT_REASONS = [
@@ -23,7 +23,18 @@ const REPORT_REASONS = [
   { value: 'other', label: 'Other' },
 ]
 
+function Label({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <span className={`text-sm font-medium text-slate-700 ${className ?? ''}`}>{children}</span>
+}
+
 export function ProductDetailPage() {
+  // Payment UI state
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [transactionId, setTransactionId] = useState('')
+  const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
+  const [paymentSuccess, setPaymentSuccess] = useState(false)
   const { id } = useParams()
   const navigate = useNavigate()
   const { addItem } = useCart()
@@ -40,47 +51,35 @@ export function ProductDetailPage() {
   const [reportError, setReportError] = useState<string | null>(null)
   const [reportSuccess, setReportSuccess] = useState(false)
 
-  const product = mockProducts.find(p => p.id === id)
-  if (!product) return (
-    <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-      <p className="text-xl text-slate-400">Product not found</p>
-      <Button className="mt-4" asChild><Link to="/products">Back to Products</Link></Button>
-    </div>
-  )
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const store = mockStores.find(s => s.id === product.storeId)
-  const reviews = mockReviews.filter(r => r.productId === product.id)
-  const discount = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : 0
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    api.get<{ data: Product }>(`/products/${id}`)
+      .then(res => {
+        setProduct(res.data)
+        setError(null)
+      })
+      .catch(err => {
+        setError(err.message)
+        setProduct(null)
+      })
+      .finally(() => setLoading(false))
+  }, [id])
 
-  const whatsappMsg = encodeURIComponent(`Hi! I'm interested in "${product.name}" (Price: ${formatPrice(product.price)}). Can you give me more details?`)
-  const whatsappUrl = store ? `https://wa.me/${store.whatsapp}?text=${whatsappMsg}` : '#'
-
-  function handleAddToCart() {
-    if (!product) return
-    for (let i = 0; i < qty; i++) addItem(product)
-    navigate('/cart')
-  }
-
-  function handleBuyNow() {
-    if (!product) return
-    for (let i = 0; i < qty; i++) addItem(product)
-    navigate('/checkout')
-  }
-
-  function openReport() {
-    setReportReason('')
-    setReportDesc('')
-    setReportError(null)
-    setReportSuccess(false)
-    setReportOpen(true)
-  }
-
-  async function handleReportSubmit(e: React.FormEvent) {
+  const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!reportReason) { setReportError('Please select a reason'); return }
-    if (reportDesc && reportDesc.length < 10) { setReportError('Description must be at least 10 characters'); return }
+    if (!reportReason) { 
+      setReportError('Please select a reason'); 
+      return 
+    }
+    if (reportDesc && reportDesc.length < 10) { 
+      setReportError('Description must be at least 10 characters'); 
+      return 
+    }
     setReportSubmitting(true)
     setReportError(null)
     try {
@@ -90,12 +89,59 @@ export function ProductDetailPage() {
         ...(reportDesc ? { description: reportDesc } : {}),
       })
       setReportSuccess(true)
-    } catch (err) {
-      setReportError(err instanceof Error ? err.message : 'Failed to submit report')
+    } catch (err: any) {
+      setReportError(err.message || 'Failed to submit report')
     } finally {
       setReportSubmitting(false)
     }
   }
+
+  const handleAddToCart = () => {
+    if (!product) return
+    for (let i = 0; i < qty; i++) addItem(product)
+    navigate('/cart')
+  }
+
+  const handleBuyNow = () => {
+    if (!product) return
+    for (let i = 0; i < qty; i++) addItem(product)
+    navigate('/checkout')
+  }
+
+  const openReport = () => {
+    setReportReason('')
+    setReportDesc('')
+    setReportError(null)
+    setReportSuccess(false)
+    setReportOpen(true)
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+        <p className="text-xl text-slate-400">Loading product...</p>
+      </div>
+    )
+  }
+
+  if (error || !product) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+        <p className="text-xl text-slate-400">Product not found</p>
+        <Button className="mt-4" asChild>
+          <Link to="/products">Back to Products</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  // Use product fields directly from API response
+  const discount = product.originalPrice && Number(product.originalPrice) > 0
+    ? Math.round(((Number(product.originalPrice) - Number(product.price)) / Number(product.originalPrice)) * 100)
+    : 0
+
+  const whatsappMsg = encodeURIComponent(`Hi! I'm interested in "${product.title}" (Price: ${formatPrice(Number(product.price))}). Can you give me more details?`)
+  const whatsappUrl = '#'
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -114,15 +160,21 @@ export function ProductDetailPage() {
         {/* Images */}
         <div className="space-y-3">
           <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50 border border-slate-200">
-            <img src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
+            <img 
+              src={product.images?.[selectedImage] ?? product.primary_image ?? ''} 
+              alt={product.name} 
+              className="w-full h-full object-cover" 
+            />
           </div>
-          {product.images.length > 1 && (
+          {product.images && product.images.length > 1 && (
             <div className="flex gap-2">
               {product.images.map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedImage(idx)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${selectedImage === idx ? 'border-blue-500' : 'border-slate-200 hover:border-slate-400'}`}
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                    selectedImage === idx ? 'border-blue-500' : 'border-slate-200 hover:border-slate-400'
+                  }`}
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" />
                 </button>
@@ -133,24 +185,20 @@ export function ProductDetailPage() {
 
         {/* Details */}
         <div className="space-y-5">
-          <div>
-            <Link to={`/stores/${product.storeId}`} className="text-sm text-blue-600 hover:underline font-medium">
-              {product.storeName}
-            </Link>
-            <h1 className="text-2xl font-bold text-slate-900 mt-1">{product.name}</h1>
-            <div className="flex items-center gap-3 mt-2">
-              <StarRating rating={product.rating} reviewCount={product.reviewCount} size="md" />
-              <Badge variant={product.stock > 0 ? 'success' : 'destructive'}>
-                {product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
-              </Badge>
-            </div>
+          <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
+
+          <div className="flex items-center gap-3 mt-2">
+            <StarRating rating={product.rating} reviewCount={product.reviewCount} size="md" />
+            <Badge variant={product.stock > 0 ? 'success' : 'destructive'}>
+              {product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
+            </Badge>
           </div>
 
           <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-bold text-slate-900">{formatPrice(product.price)}</span>
+            <span className="text-3xl font-bold text-slate-900">{formatPrice(Number(product.price))}</span>
             {product.originalPrice && (
               <>
-                <span className="text-xl text-slate-400 line-through">{formatPrice(product.originalPrice)}</span>
+                <span className="text-xl text-slate-400 line-through">{formatPrice(Number(product.originalPrice))}</span>
                 <Badge className="bg-red-500 border-0 text-white">-{discount}%</Badge>
               </>
             )}
@@ -167,9 +215,19 @@ export function ProductDetailPage() {
           <div className="flex items-center gap-3">
             <Label className="font-medium text-slate-700">Quantity:</Label>
             <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden">
-              <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-4 py-2 hover:bg-red-50 hover:text-red-600 text-slate-700 font-bold transition-colors">−</button>
+              <button 
+                onClick={() => setQty(q => Math.max(1, q - 1))} 
+                className="px-4 py-2 hover:bg-red-50 hover:text-red-600 text-slate-700 font-bold transition-colors"
+              >
+                −
+              </button>
               <span className="px-5 py-2 text-sm font-bold text-slate-900 border-x-2 border-slate-200">{qty}</span>
-              <button onClick={() => setQty(q => Math.min(product.stock, q + 1))} className="px-4 py-2 hover:bg-green-50 hover:text-green-600 text-slate-700 font-bold transition-colors">+</button>
+              <button 
+                onClick={() => setQty(q => Math.min(product.stock ?? 1, q + 1))} 
+                className="px-4 py-2 hover:bg-green-50 hover:text-green-600 text-slate-700 font-bold transition-colors"
+              >
+                +
+              </button>
             </div>
           </div>
 
@@ -181,7 +239,13 @@ export function ProductDetailPage() {
                   <FiShoppingCart className="h-5 w-5" />
                   Add to Cart
                 </Button>
-                <Button size="lg" variant="default" className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleBuyNow} disabled={product.stock === 0}>
+                <Button 
+                  size="lg" 
+                  variant="default" 
+                  className="flex-1 bg-green-600 hover:bg-green-700" 
+                  onClick={handleBuyNow} 
+                  disabled={product.stock === 0}
+                >
                   <FiZap className="h-5 w-5" />
                   Buy Now
                 </Button>
@@ -195,6 +259,117 @@ export function ProductDetailPage() {
                 <FiMessageCircle className="h-5 w-5" />
                 WhatsApp Seller
               </Button>
+
+              {/* Payment Method Section - Card Style */}
+              <div className="mt-8">
+                <h3 className="font-semibold text-lg text-slate-900 mb-4">Payment Method</h3>
+                <div className="flex flex-col gap-4">
+                  <label
+                    className={`border rounded-xl p-4 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-blue-500 bg-white shadow' : 'border-slate-200 bg-slate-50'}`}
+                    onClick={() => setPaymentMethod('cod')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-semibold text-lg text-slate-900">Cash on Delivery</span>
+                        <div className="text-slate-500 text-sm mt-1">Pay in cash when your order arrives. The seller will confirm before shipping.</div>
+                      </div>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={paymentMethod === 'cod'}
+                        onChange={() => setPaymentMethod('cod')}
+                        className="h-5 w-5 accent-blue-500"
+                      />
+                    </div>
+                  </label>
+                  <label
+                    className={`border rounded-xl p-4 cursor-pointer transition-colors ${paymentMethod === 'easypaisa' ? 'border-blue-500 bg-white shadow' : 'border-slate-200 bg-slate-50'}`}
+                    onClick={() => setPaymentMethod('easypaisa')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-semibold text-lg text-slate-900">Easypaisa / Bank Transfer</span>
+                        <div className="text-slate-500 text-sm mt-1">Transfer via Easypaisa or bank. Admin will verify your payment and notify the seller.</div>
+                      </div>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="easypaisa"
+                        checked={paymentMethod === 'easypaisa'}
+                        onChange={() => setPaymentMethod('easypaisa')}
+                        className="h-5 w-5 accent-blue-500"
+                      />
+                    </div>
+                  </label>
+                </div>
+                {/* Show fields only for Easypaisa/Bank Transfer */}
+                {paymentMethod === 'easypaisa' && (
+                  <div className="space-y-3 border border-blue-100 rounded-xl p-4 bg-blue-50 mt-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700">Transaction ID *</label>
+                      <input
+                        type="text"
+                        value={transactionId}
+                        onChange={e => setTransactionId(e.target.value)}
+                        className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                        placeholder="Enter EasyPaisa or bank transaction ID"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700">Payment Screenshot *</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => {
+                          if (e.target.files && e.target.files[0]) {
+                            setPaymentScreenshot(e.target.files[0])
+                          } else {
+                            setPaymentScreenshot(null)
+                          }
+                        }}
+                        className="mt-1 w-full"
+                        required
+                        key={paymentSuccess ? Math.random() : 'file'}
+                      />
+                      {paymentScreenshot && (
+                        <div className="mt-2 text-xs text-slate-600">Selected file: {paymentScreenshot.name}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {paymentError && (
+                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 mt-2">{paymentError}</p>
+                )}
+                {paymentSuccess && (
+                  <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded px-3 py-2 mt-2">Payment details submitted!</p>
+                )}
+                <Button
+                  size="lg"
+                  className="mt-4 w-full"
+                  disabled={paymentSubmitting || !paymentMethod || (paymentMethod === 'easypaisa' && (!transactionId || !paymentScreenshot))}
+                  onClick={() => {
+                    setPaymentError(null)
+                    setPaymentSuccess(false)
+                    setPaymentSubmitting(true)
+                    setTimeout(() => {
+                      if (!paymentMethod) {
+                        setPaymentError('Please select a payment method.')
+                      } else if (paymentMethod === 'easypaisa' && (!transactionId || !paymentScreenshot)) {
+                        setPaymentError('Please provide transaction ID and screenshot.')
+                      } else {
+                        setPaymentSuccess(true)
+                        setTransactionId('')
+                        setPaymentScreenshot(null)
+                      }
+                      setPaymentSubmitting(false)
+                    }, 1200)
+                  }}
+                >
+                  {paymentSubmitting ? 'Submitting...' : 'Submit Payment Details'}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
@@ -248,60 +423,31 @@ export function ProductDetailPage() {
           </div>
 
           {/* Store Card */}
-          {store && (
-            <div className="border border-slate-200 rounded-xl p-4 flex items-start gap-3 bg-slate-50/50 shadow-sm">
-              <img src={store.logo} alt={store.name} className="w-12 h-12 rounded-lg border border-slate-200 object-cover" />
-              <div className="flex-1">
-                <Link to={`/stores/${store.id}`} className="font-semibold text-slate-900 hover:text-blue-600 text-sm">
-                  {store.name}
-                </Link>
-                <StarRating rating={store.rating} reviewCount={store.reviewCount} className="mt-1" />
-                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{store.description}</p>
-              </div>
-              <Button size="sm" variant="outline" asChild>
-                <Link to={`/stores/${store.id}`}>Visit</Link>
-              </Button>
+          <div className="border border-slate-200 rounded-xl p-4 flex items-start gap-3 bg-slate-50/50 shadow-sm">
+            <div className="w-12 h-12 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-400">
+              <span className="text-lg font-bold">{product.storeName?.charAt(0) ?? '?'}</span>
             </div>
-          )}
+            <div className="flex-1">
+              <Link to={`/stores/${product.storeId}`} className="font-semibold text-slate-900 hover:text-blue-600 text-sm">
+                {product.storeName}
+              </Link>
+              <p className="text-xs text-slate-500 mt-1 line-clamp-2">{product.store_description}</p>
+            </div>
+            <Button size="sm" variant="outline" asChild>
+              <Link to={`/stores/${product.storeId}`}>Visit</Link>
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Reviews */}
+      {/* Reviews section */}
       <div className="mt-12">
         <h2 className="text-xl font-bold text-slate-900 mb-6">Customer Reviews</h2>
-        {reviews.length === 0 ? (
-          <p className="text-slate-400 text-sm">No reviews yet. Be the first to review!</p>
-        ) : (
-          <div className="space-y-4">
-            {reviews.map(review => (
-              <div key={review.id} className="bg-white rounded-xl border border-slate-200 p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={review.avatar} />
-                    <AvatarFallback>{review.userName[0]}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-sm text-slate-900">{review.userName}</p>
-                    <p className="text-xs text-slate-400">{formatDate(review.createdAt)}</p>
-                  </div>
-                </div>
-                <StarRating rating={review.rating} size="sm" className="mb-2" />
-                <p className="text-sm text-slate-700">{review.comment}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        {!isAuthenticated && (
-          <div className="mt-6 p-4 bg-blue-50 rounded-xl text-center">
-            <p className="text-sm text-slate-700">
-              <Link to="/login" className="text-blue-600 font-medium hover:underline">Login</Link> to write a review
-            </p>
-          </div>
-        )}
+        <p className="text-slate-400 text-sm">No reviews yet. Be the first to review!</p>
       </div>
 
       {/* Report Dialog */}
-      <Dialog open={reportOpen} onOpenChange={open => { if (!open) setReportOpen(false) }}>
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Report Product</DialogTitle>
@@ -358,8 +504,4 @@ export function ProductDetailPage() {
       </Dialog>
     </div>
   )
-}
-
-function Label({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <span className={`text-sm font-medium text-slate-700 ${className ?? ''}`}>{children}</span>
 }

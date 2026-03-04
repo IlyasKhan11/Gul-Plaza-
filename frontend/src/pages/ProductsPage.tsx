@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ProductCard } from '@/components/common/ProductCard'
-import { mockCategories } from '@/data/mockData'
+// import { mockCategories } from '@/data/mockData'
+import type { Category } from '@/types'
 import { useEffect } from 'react'
 import { api } from '@/lib/api'
 import type { Product } from '@/types'
@@ -23,10 +24,20 @@ export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [catLoading, setCatLoading] = useState(false)
+  const [catError, setCatError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
-    api.get<{ data: { products: any[] } }>('/products?page=1&limit=40')
+    let query = '/products?page=1&limit=40';
+    if (selectedCategory && selectedCategory !== 'all') {
+      const cat = categories.find(c => c.slug === selectedCategory);
+      if (cat) {
+        query += `&category_id=${cat.id}`;
+      }
+    }
+    api.get<{ data: { products: any[] } }>(query)
       .then(res => {
         // Map backend fields to frontend Product type
         const mapped = res.data.products.map(p => ({
@@ -47,6 +58,21 @@ export function ProductsPage() {
         setProducts([])
       })
       .finally(() => setLoading(false))
+  }, [selectedCategory, categories])
+
+  // Fetch categories from backend
+  useEffect(() => {
+    setCatLoading(true)
+    api.get<{ success: boolean; data: Category[] }>('/categories')
+      .then(res => {
+        setCategories(res.data)
+        setCatError(null)
+      })
+      .catch(err => {
+        setCatError(err.message)
+        setCategories([])
+      })
+      .finally(() => setCatLoading(false))
   }, [])
 
   // If 'See All' is clicked, selectedCategory will be 'all'. Show all products, not filtered by category.
@@ -54,10 +80,7 @@ export function ProductsPage() {
     let result = [...products]
     if (search) result = result.filter(p => (p.name ?? p.title ?? '').toLowerCase().includes(search.toLowerCase()) || (p.description ?? '').toLowerCase().includes(search.toLowerCase()))
     // Only filter by category if selectedCategory is not 'all'
-    if (selectedCategory && selectedCategory !== 'all') {
-      const cat = mockCategories.find(c => c.slug === selectedCategory)
-      if (cat) result = result.filter(p => p.categoryId === cat.id)
-    }
+    // No need to filter by category here, backend already does it
     result = result.filter(p => Number(p.price) >= priceRange[0] && Number(p.price) <= priceRange[1])
     if (sortBy === 'price-asc') result.sort((a, b) => Number(a.price) - Number(b.price))
     else if (sortBy === 'price-desc') result.sort((a, b) => Number(b.price) - Number(a.price))
@@ -84,13 +107,16 @@ export function ProductsPage() {
                 >
                   All Categories
                 </button>
-                {mockCategories.map(cat => (
+                {catLoading && <div className="text-xs text-slate-400">Loading categories...</div>}
+                {catError && <div className="text-xs text-red-500">{catError}</div>}
+                {categories.map(cat => (
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.slug)}
                     className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors flex items-center gap-2 ${selectedCategory === cat.slug ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
                   >
-                    <span>{cat.icon}</span>
+                    {/* If your backend returns an icon field, show it. Otherwise, remove this span or use a default icon. */}
+                    {cat.icon && <span>{cat.icon}</span>}
                     <span>{cat.name}</span>
                   </button>
                 ))}

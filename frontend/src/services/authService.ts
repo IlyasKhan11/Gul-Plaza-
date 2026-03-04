@@ -35,6 +35,9 @@ function toUser(u: BackendUser): User {
     role: u.role,
     phone: u.phone ?? undefined,
     address: (u as any).address ?? undefined,
+    city: (u as any).city ?? undefined,
+    country: (u as any).country ?? undefined,
+    postal_code: (u as any).postal_code ?? undefined,
     isBlocked: false,
     createdAt: u.created_at,
   }
