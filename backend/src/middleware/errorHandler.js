@@ -1,6 +1,5 @@
 const { logError, logSecurity } = require('../config/logger');
 
-// Custom error classes for different types of errors
 class AppError extends Error {
   constructor(message, statusCode, isOperational = true) {
     super(message);
@@ -159,7 +158,19 @@ const handleNotNullViolation = (err) => {
   return new ValidationError(message);
 };
 
-const handleJSONSyntaxError = () => {
+const handleJSONSyntaxError = (err) => {
+  const message = err?.message || 'Invalid JSON format in request body.';
+  console.error('🚨 JSON Parsing Error:', {
+    error: message,
+    hint: 'Check if request body contains valid JSON format',
+    commonCauses: [
+      'Missing closing braces/brackets',
+      'Trailing commas in JSON objects',
+      'Unescaped special characters',
+      'Empty request body',
+      'Invalid data types'
+    ]
+  });
   return new ValidationError('Invalid JSON format in request body.');
 };
 

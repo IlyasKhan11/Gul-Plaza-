@@ -109,10 +109,12 @@ const getAllProducts = async (req, res) => {
         p.id, p.title, p.description, p.price, p.stock, p.is_active, 
         p.created_at, p.updated_at,
         s.name as store_name, s.owner_id,
+        u.name as seller_name, u.phone as seller_whatsapp, u.email as seller_email,
         c.name as category_name, c.slug as category_slug,
         (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY id ASC LIMIT 1) as primary_image
       FROM products p
       LEFT JOIN stores s ON p.store_id = s.id
+      LEFT JOIN users u ON s.owner_id = u.id
       LEFT JOIN categories c ON p.category_id = c.id
       ${whereClause}
       ORDER BY p.${sortColumn} ${sortDirection}

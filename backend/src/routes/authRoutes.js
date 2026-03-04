@@ -9,6 +9,7 @@ const {
 } = require('../controllers/authController');
 const { authenticateToken, logout } = require('../middleware/authMiddleware');
 const { requireAnyRole } = require('../middleware/roleMiddleware');
+const { validateJSON } = require('../middleware/jsonValidationMiddleware');
 
 const router = express.Router();
 
@@ -57,7 +58,7 @@ router.get('/', (req, res) => {
  * @desc    Register a new user (buyer, seller, or admin)
  * @access  Public
  */
-router.post('/register', registerLimiter, registerValidation, registerUser);
+router.post('/register', registerLimiter, validateJSON, registerValidation, registerUser);
 
 /**
  * @route   POST /api/auth/login

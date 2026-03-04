@@ -99,6 +99,24 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method VARCHAR(50),
     currency VARCHAR(10) DEFAULT 'USD',
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    
+    -- Shipping Information
+    shipping_address TEXT NOT NULL,
+    shipping_city VARCHAR(100) NOT NULL,
+    shipping_country VARCHAR(100) NOT NULL,
+    shipping_postal_code VARCHAR(20) NOT NULL,
+    shipping_phone VARCHAR(20) NOT NULL,
+    
+    -- Tracking Information
+    courier_name VARCHAR(100),
+    tracking_number VARCHAR(100),
+    shipped_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    delivered_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    
+    -- Seller Confirmation
+    seller_confirmed_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    seller_notes TEXT,
+    
     created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -227,7 +245,10 @@ CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_method ON orders(payment_method);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_tracking_number ON orders(tracking_number);
+CREATE INDEX IF NOT EXISTS idx_orders_seller_confirmed_at ON orders(seller_confirmed_at);
 
 -- Order items indexes
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
@@ -253,6 +274,20 @@ CREATE INDEX IF NOT EXISTS idx_product_reports_product_id ON product_reports(pro
 CREATE INDEX IF NOT EXISTS idx_product_reports_reporter_id ON product_reports(reporter_id);
 CREATE INDEX IF NOT EXISTS idx_product_reports_status ON product_reports(status);
 CREATE INDEX IF NOT EXISTS idx_product_reports_created_at ON product_reports(created_at);
+
+-- Order notifications indexes
+CREATE INDEX IF NOT EXISTS idx_order_notifications_order_id ON order_notifications(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_notifications_seller_id ON order_notifications(seller_id);
+CREATE INDEX IF NOT EXISTS idx_order_notifications_type ON order_notifications(notification_type);
+CREATE INDEX IF NOT EXISTS idx_order_notifications_is_read ON order_notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_order_notifications_created_at ON order_notifications(created_at);
+
+-- Transaction slips indexes
+CREATE INDEX IF NOT EXISTS idx_transaction_slips_order_id ON transaction_slips(order_id);
+CREATE INDEX IF NOT EXISTS idx_transaction_slips_buyer_id ON transaction_slips(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_transaction_slips_seller_id ON transaction_slips(seller_id);
+CREATE INDEX IF NOT EXISTS idx_transaction_slips_status ON transaction_slips(status);
+CREATE INDEX IF NOT EXISTS idx_transaction_slips_created_at ON transaction_slips(created_at);
 
 -- ===============================
 -- TRIGGERS FOR UPDATED_AT COLUMNS
@@ -298,11 +333,52 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_cart_updated_at BEFORE UPDATE ON cart
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_order_notifications_updated_at BEFORE UPDATE ON order_notifications
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_transaction_slips_updated_at BEFORE UPDATE ON transaction_slips
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ===============================
+-- TRANSACTION SLIPS TABLE
+-- ===============================
+CREATE TABLE IF NOT EXISTS transaction_slips (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    buyer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    slip_image_url TEXT NOT NULL,
+    transaction_id VARCHAR(100),
+    notes TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    approved_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    approved_by BIGINT REFERENCES users(id),
+    rejection_reason TEXT,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===============================
+-- ORDER NOTIFICATIONS TABLE
+-- ===============================
+CREATE TABLE IF NOT EXISTS order_notifications (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    notification_type VARCHAR(50) NOT NULL CHECK (notification_type IN ('new_order', 'order_confirmed', 'order_shipped', 'order_delivered', 'order_cancelled')),
+    message TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT false,
+    whatsapp_sent BOOLEAN NOT NULL DEFAULT false,
+    whatsapp_message_id VARCHAR(100),
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ===============================
 -- COMPLETION MESSAGE
 -- ===============================
 -- Schema created successfully!
--- Tables: 12
--- Indexes: 29
--- Triggers: 10
+-- Tables: 14
+-- Indexes: 39
+-- Triggers: 12
 -- Extensions: 1 (pgcrypto)
