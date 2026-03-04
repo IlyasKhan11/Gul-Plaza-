@@ -59,10 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     role: UserRole,
-    phone = '0000000000'
+    phone = '0000000000',
+    address = '',
+    city = ''
   ) {
     try {
-      await authService.register(name, email, password, phone, role)
+      await authService.register(name, email, password, phone, role, address, city)
       return { success: true, message: 'Account created. Please log in.' }
     } catch (err) {
       return {

@@ -8,7 +8,7 @@ const createSecureUserResponse = (user) => {
     publicId: generatePublicId(user.id), // Hash or UUID instead of raw ID
     name: user.name,
     email: user.email,
-    phone: user.phone ? maskPhone(user.phone) : null, // Mask sensitive data
+    phone: user.phone || null, // Return full phone number
     role: user.role,
     is_verified: user.is_verified,
     created_at: user.created_at,

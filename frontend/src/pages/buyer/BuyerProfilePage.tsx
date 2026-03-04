@@ -21,7 +21,7 @@ const emptyStoreForm = { name: '', description: '', logo: '', banner: '', contac
 
 export function BuyerProfilePage() {
   const { user } = useAuth()
-  const [form, setForm] = useState({ name: user?.name ?? '', phone: user?.phone ?? '', address: user?.address ?? '' })
+  const [form, setForm] = useState({ name: user?.name ?? '', phone: user?.phone && !user?.phone.includes('*') ? user.phone : '', address: user?.address ?? '' })
   const [editOpen, setEditOpen] = useState(false)
   const [successOpen, setSuccessOpen] = useState(false)
 
@@ -34,11 +34,24 @@ export function BuyerProfilePage() {
   )
   const [appliedOpen, setAppliedOpen] = useState(false)
 
-  function handleSave(e: React.FormEvent) {
+  const { setUser } = useAuth() as any
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (user) Object.assign(user, form)
-    setEditOpen(false)
-    setSuccessOpen(true)
+    try {
+      // Only send real phone number, not masked
+      const payload = { ...form, phone: form.phone }
+      if (!payload.phone || payload.phone.includes('*')) {
+        alert('Please enter your real phone number.');
+        return;
+      }
+      const updated = await import('@/services/authService').then(m => m.authService.updateUserProfile(payload))
+      setUser(updated.user)
+      localStorage.setItem('gul_plaza_user', JSON.stringify(updated.user))
+      setEditOpen(false)
+      setSuccessOpen(true)
+    } catch (err) {
+      console.error('Failed to update profile:', err)
+    }
   }
 
   function handleStoreSubmit(e: React.FormEvent) {

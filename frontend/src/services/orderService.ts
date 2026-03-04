@@ -40,8 +40,24 @@ export const orderService = {
       })
     }
 
-    // 3. Create order from server cart (no body needed)
-    const orderRes = await api.post<ApiResp<CreatedOrder>>('/orders')
+    // 3. Create order from server cart, send shipping info from user context
+    let shipping_address = ''
+    let shipping_city = ''
+    let shipping_phone = ''
+    try {
+      const userStr = localStorage.getItem('gul_plaza_user')
+      if (userStr) {
+        const user = JSON.parse(userStr)
+        shipping_address = user.address || ''
+        shipping_city = user.city || ''
+        shipping_phone = user.phone || ''
+      }
+    } catch {}
+    const orderRes = await api.post<ApiResp<CreatedOrder>>('/orders', {
+      shipping_address,
+      shipping_city,
+      shipping_phone,
+    })
     const order = orderRes.data
 
     // 4. Select payment method

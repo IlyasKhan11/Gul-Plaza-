@@ -114,8 +114,8 @@ const updateBuyerProfile = async (req, res) => {
     } = req.body;
 
     // Check if user exists
-    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
-    if (userResult.rows.length === 0) {
+    const userIdResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
+    if (userIdResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -187,23 +187,36 @@ const updateBuyerProfile = async (req, res) => {
 
     const updatedProfile = profileResult.rows[0];
 
-    res.status(200).json({
-      success: true,
-      message: 'Buyer profile updated successfully',
-      data: {
-        first_name: updatedProfile.first_name,
-        last_name: updatedProfile.last_name,
-        phone: updatedProfile.phone,
-        address: updatedProfile.address,
-        city: updatedProfile.city,
-        country: updatedProfile.country,
-        postal_code: updatedProfile.postal_code,
-        avatar_url: updatedProfile.avatar_url,
-        bio: updatedProfile.bio,
-        preferences: updatedProfile.preferences || {},
-        updated_at: updatedProfile.updated_at,
-      },
-    });
+      // Get user basic info from users table
+      const userInfoResult = await query(
+        'SELECT id, name, email, role, phone, address, created_at, updated_at FROM users WHERE id = $1',
+        [userId]
+      );
+      const user = userInfoResult.rows[0];
+
+      // Compose user object for frontend
+      res.status(200).json({
+        success: true,
+        message: 'Buyer profile updated successfully',
+        data: {
+          user: {
+            publicId: user.id, // frontend expects publicId
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            phone: user.phone,
+            address: user.address,
+            city: updatedProfile.city,
+            country: updatedProfile.country,
+            postal_code: updatedProfile.postal_code,
+            avatar_url: updatedProfile.avatar_url,
+            bio: updatedProfile.bio,
+            preferences: updatedProfile.preferences || {},
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+          }
+        }
+      });
   } catch (error) {
     console.error('Error updating buyer profile:', error);
     res.status(500).json({

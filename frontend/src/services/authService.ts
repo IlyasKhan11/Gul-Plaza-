@@ -34,6 +34,7 @@ function toUser(u: BackendUser): User {
     email: u.email,
     role: u.role,
     phone: u.phone ?? undefined,
+    address: (u as any).address ?? undefined,
     isBlocked: false,
     createdAt: u.created_at,
   }
@@ -50,7 +51,9 @@ export const authService = {
     email: string,
     password: string,
     phone: string,
-    role: UserRole = 'buyer'
+    role: UserRole = 'buyer',
+    address: string = '',
+    city: string = ''
   ): Promise<{ user: User }> {
     const res = await api.post<RegisterResponse>('/auth/register', {
       name,
@@ -58,6 +61,8 @@ export const authService = {
       password,
       phone,
       role,
+      address,
+      city,
     })
     return { user: toUser(res.data.user) }
   },
@@ -69,4 +74,8 @@ export const authService = {
       // Ignore errors — always clear local state regardless
     }
   },
+    async updateUserProfile(profile: { name?: string; phone?: string; address?: string; city?: string }): Promise<{ user: User }> {
+      const res = await api.put<RegisterResponse>('/users/profile', profile)
+      return { user: toUser(res.data.user) }
+    },
 }

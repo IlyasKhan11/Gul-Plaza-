@@ -72,7 +72,8 @@ const createSecureUserResponse = (user) => {
     publicId: generatePublicId(user.id), // Use public ID instead of internal ID
     name: user.name,
     email: user.email,
-    phone: user.phone ? maskPhone(user.phone) : null, // Mask sensitive data
+    phone: user.phone || null, // Return full phone number
+    address: user.address || null,
     role: user.role,
     is_verified: user.is_verified,
     created_at: user.created_at,
@@ -103,7 +104,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-    const { name, email, password, phone, role = 'buyer' } = req.body;
+  const { name, email, password, phone, address, role = 'buyer' } = req.body;
 
     // Check if user already exists
     const existingUser = await query(
@@ -124,10 +125,10 @@ const registerUser = async (req, res) => {
 
     // Insert new user into database
     const newUser = await query(
-      `INSERT INTO users (name, email, password, phone, role, is_verified) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
-       RETURNING id, name, email, phone, role, is_verified, created_at`,
-      [name, email, passwordHash, phone, role, false]
+      `INSERT INTO users (name, email, password, phone, address, role, is_verified) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+       RETURNING id, name, email, phone, address, role, is_verified, created_at`,
+      [name, email, passwordHash, phone, address, role, false]
     );
 
     const user = newUser.rows[0];
@@ -179,7 +180,7 @@ const loginUser = async (req, res) => {
 
     // Find user by email
     const userResult = await query(
-      'SELECT id, name, email, password, role, is_verified FROM users WHERE email = $1',
+      'SELECT id, name, email, password, role, is_verified, phone, address FROM users WHERE email = $1',
       [email]
     );
 
