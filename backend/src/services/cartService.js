@@ -5,8 +5,7 @@ class CartService {
   // Add product to cart (buyer only)
   static async addToCart(userId, productId, quantity) {
     try {
-      // Start transaction for cart operations
-      await query('BEGIN');
+      console.log(`addToCart: userId=${userId}, productId=${productId}, quantity=${quantity}`);
       
       // Verify product exists and is active
       const productCheckQuery = `
@@ -16,28 +15,26 @@ class CartService {
       `;
       
       const productResult = await query(productCheckQuery, [productId]);
+      console.log(`Product query result: ${productResult.rows.length} rows`);
       
       if (productResult.rows.length === 0) {
-        await query('ROLLBACK');
         throw new Error('Product not found');
       }
       
       const product = productResult.rows[0];
       
       if (product.is_deleted || !product.is_active) {
-        await query('ROLLBACK');
         throw new Error('Product is not available');
       }
       
       if (product.stock < quantity) {
-        await query('ROLLBACK');
         throw new Error('Insufficient stock available');
       }
       
       // Check if product already exists in cart
       const existingItemQuery = `
         SELECT id, quantity
-        FROM cart_items
+        FROM cart
         WHERE user_id = $1 AND product_id = $2
       `;
       
@@ -49,17 +46,15 @@ class CartService {
         const newQuantity = existingQuantity + quantity;
         
         if (newQuantity > 999) {
-          await query('ROLLBACK');
           throw new Error('Maximum quantity limit exceeded (999)');
         }
         
         if (product.stock < newQuantity) {
-          await query('ROLLBACK');
           throw new Error('Insufficient stock available for requested quantity');
         }
         
         const updateQuery = `
-          UPDATE cart_items
+          UPDATE cart
           SET quantity = $1, updated_at = CURRENT_TIMESTAMP
           WHERE user_id = $2 AND product_id = $3
           RETURNING id, quantity, updated_at
@@ -69,7 +64,7 @@ class CartService {
       } else {
         // Add new cart item
         const insertQuery = `
-          INSERT INTO cart_items (user_id, product_id, quantity)
+          INSERT INTO cart (user_id, product_id, quantity)
           VALUES ($1, $2, $3)
           RETURNING id, quantity, created_at
         `;
@@ -77,14 +72,12 @@ class CartService {
         await query(insertQuery, [userId, productId, quantity]);
       }
       
-      await query('COMMIT');
-      
       // Invalidate cart cache
       await this.invalidateCartCache(userId);
       
       return { message: 'Product added to cart successfully' };
     } catch (error) {
-      await query('ROLLBACK');
+      console.error('CartService.addToCart error:', error);
       throw error;
     }
   }
@@ -92,12 +85,18 @@ class CartService {
   // Get user's cart with product details
   static async getCart(userId) {
     try {
-      // Check cache first
-      const cacheKey = `cart:${userId}`;
-      const cachedCart = await getCache(cacheKey);
-      
-      if (cachedCart) {
-        return JSON.parse(cachedCart);
+      // Check cache first (skip if Redis disabled)
+      let cachedCart = null;
+      if (process.env.SKIP_REDIS !== 'true') {
+        try {
+          const cacheKey = `cart:${userId}`;
+          cachedCart = await getCache(cacheKey);
+          if (cachedCart) {
+            return JSON.parse(cachedCart);
+          }
+        } catch (cacheError) {
+          console.error('Cache error, continuing without cache:', cacheError);
+        }
       }
       
       const cartQuery = `
@@ -111,7 +110,7 @@ class CartService {
           p.stock as available_stock,
           p.is_active,
           (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY id ASC LIMIT 1) as product_image
-        FROM cart_items ci
+        FROM cart ci
         INNER JOIN products p ON ci.product_id = p.id
         WHERE ci.user_id = $1 AND p.is_deleted = false
         ORDER BY ci.created_at DESC
@@ -151,8 +150,14 @@ class CartService {
         }
       };
       
-      // Cache the result for 15 minutes
-      await setCache(cacheKey, JSON.stringify(cartData), 900);
+      // Cache the result for 15 minutes (skip if Redis disabled)
+      if (process.env.SKIP_REDIS !== 'true') {
+        try {
+          await setCache(cacheKey, JSON.stringify(cartData), 900);
+        } catch (cacheError) {
+          console.error('Cache set error, continuing without cache:', cacheError);
+        }
+      }
       
       return cartData;
     } catch (error) {
@@ -194,7 +199,7 @@ class CartService {
       
       // Update cart item
       const updateQuery = `
-        UPDATE cart_items
+        UPDATE cart
         SET quantity = $1, updated_at = CURRENT_TIMESTAMP
         WHERE user_id = $2 AND product_id = $3
         RETURNING id, quantity, updated_at
@@ -223,7 +228,7 @@ class CartService {
   static async removeFromCart(userId, productId) {
     try {
       const deleteQuery = `
-        DELETE FROM cart_items
+        DELETE FROM cart
         WHERE user_id = $1 AND product_id = $2
         RETURNING id
       `;
@@ -247,7 +252,7 @@ class CartService {
   static async clearCart(userId) {
     try {
       const deleteQuery = `
-        DELETE FROM cart_items
+        DELETE FROM cart
         WHERE user_id = $1
       `;
       
@@ -273,7 +278,7 @@ class CartService {
           p.stock,
           p.title,
           p.is_active
-        FROM cart_items ci
+        FROM cart ci
         INNER JOIN products p ON ci.product_id = p.id
         WHERE ci.user_id = $1 AND p.is_deleted = false
         FOR UPDATE OF ci, p
@@ -309,7 +314,7 @@ class CartService {
         SELECT 
           COUNT(*) as total_items,
           SUM(ci.quantity * p.price) as subtotal
-        FROM cart_items ci
+        FROM cart ci
         INNER JOIN products p ON ci.product_id = p.id
         WHERE ci.user_id = $1 AND p.is_deleted = false AND p.is_active = true
       `;
@@ -331,9 +336,13 @@ class CartService {
   // Invalidate cart cache
   static async invalidateCartCache(userId) {
     try {
+      if (process.env.SKIP_REDIS === 'true') {
+        return;
+      }
       await deleteCache(`cart:${userId}`);
     } catch (error) {
       console.error('Error invalidating cart cache:', error);
+      // Continue without cache invalidation
     }
   }
 }

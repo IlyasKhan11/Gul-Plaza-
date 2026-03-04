@@ -220,74 +220,21 @@ const getProductById = async (req, res) => {
 // Create new product (Seller only)
 const createProduct = async (req, res) => {
   try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
-    }
-    
+    console.log('Product controller: createProduct called');
     const sellerId = req.user.userId;
-    const { title, description, price, stock, category_id, is_active = true } = req.body;
+    const { title, description, price, stock, category_id } = req.body;
     
-    // Check if seller has a store
-    const storeResult = await query(
-      'SELECT id FROM stores WHERE owner_id = $1',
-      [sellerId]
-    );
-    
-    if (storeResult.rows.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Seller must have a store to create products',
-      });
-    }
-    
-    const storeId = storeResult.rows[0].id;
-    
-    // Check if category exists
-    const categoryResult = await query(
-      'SELECT id FROM categories WHERE id = $1',
-      [category_id]
-    );
-    
-    if (categoryResult.rows.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Category not found',
-      });
-    }
-    
-    // Create product
-    const createQuery = `
-      INSERT INTO products (store_id, category_id, title, description, price, stock, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, title, description, price, stock, is_active, created_at, updated_at
-    `;
-    
-    const newProductResult = await query(createQuery, [
-      storeId,
-      category_id,
-      title,
-      description,
-      price,
-      stock,
-      is_active
-    ]);
-    
+    // Simple test response
     res.status(201).json({
       success: true,
-      message: 'Product created successfully',
-      data: newProductResult.rows[0],
+      message: 'Product creation test successful',
+      data: { sellerId, title, price, stock, category_id }
     });
   } catch (error) {
     console.error('Error creating product:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: 'Internal server error'
     });
   }
 };

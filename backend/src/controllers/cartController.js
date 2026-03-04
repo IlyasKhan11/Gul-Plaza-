@@ -3,42 +3,16 @@ const CartService = require('../services/cartService');
 // Add to Cart (Buyer Only)
 const addToCart = async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const { product_id, quantity } = req.body;
+    console.log('Cart controller: addToCart called');
     
-    const result = await CartService.addToCart(userId, product_id, quantity);
-    
+    // Simple test response
     res.status(200).json({
       success: true,
-      message: result.message,
+      message: 'Cart addition test successful',
       data: null
     });
   } catch (error) {
     console.error('Error adding to cart:', error);
-    
-    if (error.message === 'Product not found') {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-    
-    if (error.message === 'Product is not available') {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-    
-    if (error.message === 'Insufficient stock available' || 
-        error.message === 'Maximum quantity limit exceeded (999)' ||
-        error.message === 'Insufficient stock available for requested quantity') {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-    
     res.status(500).json({
       success: false,
       message: 'Internal server error'

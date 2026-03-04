@@ -178,6 +178,24 @@ CREATE TABLE IF NOT EXISTS user_blocks (
 );
 
 -- ===============================
+-- PRODUCT REPORTS TABLE
+-- ===============================
+CREATE TABLE IF NOT EXISTS product_reports (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    reporter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reason VARCHAR(100) NOT NULL CHECK (reason IN ('inappropriate_content', 'fake_product', 'misleading_description', 'spam', 'copyright_violation', 'other')),
+    description TEXT NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'under_review', 'resolved', 'dismissed')),
+    admin_notes TEXT,
+    reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_id, reporter_id) -- One report per user per product
+);
+
+-- ===============================
 -- INDEXES FOR PERFORMANCE
 -- ===============================
 
@@ -230,6 +248,12 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_blocks_user_id ON user_blocks(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_blocks_active ON user_blocks(is_active);
 
+-- Product reports indexes
+CREATE INDEX IF NOT EXISTS idx_product_reports_product_id ON product_reports(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_reports_reporter_id ON product_reports(reporter_id);
+CREATE INDEX IF NOT EXISTS idx_product_reports_status ON product_reports(status);
+CREATE INDEX IF NOT EXISTS idx_product_reports_created_at ON product_reports(created_at);
+
 -- ===============================
 -- TRIGGERS FOR UPDATED_AT COLUMNS
 -- ===============================
@@ -265,6 +289,9 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_blocks_updated_at BEFORE UPDATE ON user_blocks
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_product_reports_updated_at BEFORE UPDATE ON product_reports
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -275,7 +302,7 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 -- COMPLETION MESSAGE
 -- ===============================
 -- Schema created successfully!
--- Tables: 11
--- Indexes: 25
--- Triggers: 9
+-- Tables: 12
+-- Indexes: 29
+-- Triggers: 10
 -- Extensions: 1 (pgcrypto)

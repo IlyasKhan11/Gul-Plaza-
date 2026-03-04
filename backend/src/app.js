@@ -13,6 +13,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const cartRoutes = require('./routes/cartRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 // Import middleware
 const { combinedLogger } = require('./middleware/loggingMiddleware');
@@ -198,6 +199,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api', reportRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

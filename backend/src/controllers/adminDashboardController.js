@@ -35,14 +35,24 @@ const getDashboardSummary = async (req, res) => {
     const lowStockResult = await query('SELECT COUNT(*) as count FROM products WHERE stock < 5 AND is_deleted = false');
     const low_stock_products_count = parseInt(lowStockResult.rows[0].count);
 
+    // Get total stores
+    const totalStoresResult = await query('SELECT COUNT(*) as count FROM stores');
+    const total_stores = parseInt(totalStoresResult.rows[0].count);
+
+    // Get pending reports count
+    const pendingReportsResult = await query('SELECT COUNT(*) as count FROM product_reports WHERE status = $1', ['pending']);
+    const pending_reports = parseInt(pendingReportsResult.rows[0].count);
+
     res.status(200).json({
       success: true,
       data: {
         total_users,
         total_products,
         total_orders,
+        total_stores,
         total_revenue,
         pending_orders,
+        pending_reports,
         low_stock_products_count,
       },
     });

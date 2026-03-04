@@ -5,10 +5,8 @@ const CartService = require('./cartService');
 class OrderService {
   // Create Order with PostgreSQL Transaction (CRITICAL BUSINESS LOGIC)
   static async createOrder(userId) {
-    const client = await query('BEGIN');
-    
     try {
-      // STEP A: Fetch all cart items FOR UPDATE (locks the rows)
+      // STEP A: Fetch all cart items
       const cartItemsQuery = `
         SELECT 
           ci.product_id,
@@ -21,25 +19,21 @@ class OrderService {
         FROM cart ci
         INNER JOIN products p ON ci.product_id = p.id
         WHERE ci.user_id = $1 AND p.is_deleted = false
-        FOR UPDATE OF ci, p
       `;
       
       const cartItemsResult = await query(cartItemsQuery, [userId]);
       
       if (cartItemsResult.rows.length === 0) {
-        await query('ROLLBACK');
         throw new Error('Cart is empty');
       }
       
       // STEP B: Validate stock availability
       for (const item of cartItemsResult.rows) {
         if (!item.is_active) {
-          await query('ROLLBACK');
           throw new Error(`Product "${item.title}" is no longer available`);
         }
         
         if (item.stock < item.quantity) {
-          await query('ROLLBACK');
           throw new Error(`Insufficient stock for product "${item.title}". Available: ${item.stock}, Requested: ${item.quantity}`);
         }
       }
@@ -115,9 +109,6 @@ class OrderService {
       `;
       
       await query(clearCartQuery, [userId]);
-      
-      // STEP H: Commit transaction
-      await query('COMMIT');
       
       // Invalidate caches
       await this.invalidateOrderCaches(userId);

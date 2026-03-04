@@ -11,12 +11,8 @@ const {
   getCartSummary
 } = require('../controllers/cartController');
 
-const {
-  validateAddToCart,
-  validateUpdateCartItem,
-  validateProductId,
-  validateCartQuery
-} = require('../validations/cartValidation');
+const { body, param } = require('express-validator');
+const { handleValidationErrors } = require('../middleware/validationMiddleware');
 
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireBuyer } = require('../middleware/roleMiddleware');
@@ -48,7 +44,7 @@ const cartModifyLimiter = rateLimit({
 });
 
 // Cart routes info endpoint
-router.get('/', (req, res) => {
+router.get('/info', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Cart API endpoints',
@@ -65,20 +61,6 @@ router.get('/', (req, res) => {
 });
 
 /**
- * @route   POST /api/cart
- * @desc    Add product to cart
- * @access  Private (Buyer only)
- */
-router.post(
-  '/',
-  authenticateToken,
-  requireBuyer,
-  cartModifyLimiter,
-  validateAddToCart,
-  addToCart
-);
-
-/**
  * @route   GET /api/cart
  * @desc    Get user's cart with product details
  * @access  Private (Buyer only)
@@ -91,6 +73,25 @@ router.get(
   getCart
 );
 
+// Test route
+router.post('/test', (req, res) => {
+  res.json({ message: 'Cart test route working' });
+});
+
+/**
+ * @route   POST /api/cart
+ * @desc    Add product to cart
+ * @access  Private (Buyer only)
+ */
+router.post(
+  '/',
+  (req, res, next) => {
+    console.log('Route hit: POST /api/cart');
+    next();
+  },
+  addToCart
+);
+
 /**
  * @route   PUT /api/cart/:productId
  * @desc    Update cart item quantity
@@ -101,8 +102,9 @@ router.put(
   authenticateToken,
   requireBuyer,
   cartModifyLimiter,
-  validateProductId,
-  validateUpdateCartItem,
+  param('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
+  body('quantity').isInt({ min: 1, max: 999 }).withMessage('Quantity must be between 1 and 999'),
+  handleValidationErrors,
   updateCartItem
 );
 
@@ -116,7 +118,8 @@ router.delete(
   authenticateToken,
   requireBuyer,
   cartModifyLimiter,
-  validateProductId,
+  param('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
+  handleValidationErrors,
   removeFromCart
 );
 

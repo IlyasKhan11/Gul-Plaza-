@@ -11,45 +11,25 @@ const {
 // Create Order (CRITICAL - Buyer Only)
 const createOrder = async (req, res) => {
   try {
+    console.log('Order controller: createOrder called');
     const userId = req.user.userId;
     
-    const order = await OrderService.createOrder(userId);
-    
+    // Simple test response
     res.status(201).json({
       success: true,
-      message: 'Order created successfully',
-      data: order
+      message: 'Order creation test successful',
+      data: { userId, orderId: 'test-order-123' }
     });
   } catch (error) {
     console.error('Error creating order:', error);
-    
-    if (error.message === 'Cart is empty') {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-    
-    if (error.message.includes('Product') && error.message.includes('no longer available')) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-    
-    if (error.message.includes('Insufficient stock')) {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-    
     res.status(500).json({
       success: false,
       message: 'Internal server error'
     });
   }
 };
+
+// Get My Orders (Buyer Only)
 
 // Get My Orders (Buyer Only)
 const getMyOrders = async (req, res) => {

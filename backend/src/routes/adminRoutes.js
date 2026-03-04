@@ -15,6 +15,12 @@ const {
   dashboardSummaryValidation,
   salesReportValidation,
 } = require('../controllers/adminDashboardController');
+const {
+  getAllReports,
+  getReportStatistics,
+  getProductReports,
+  updateReportStatus,
+} = require('../controllers/reportController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireAdmin } = require('../middleware/roleMiddleware');
 
@@ -58,6 +64,10 @@ router.get('/', (req, res) => {
       'GET /api/admin/dashboard/sales-report': 'Get sales report with date range',
       'GET /api/admin/dashboard/top-products': 'Get top 5 products by sales',
       'GET /api/admin/products/low-stock': 'Get low stock products alert',
+      'GET /api/admin/reports': 'Get all product reports',
+      'GET /api/admin/reports/statistics': 'Get report statistics',
+      'GET /api/admin/reports/product/:productId': 'Get reports for specific product',
+      'PUT /api/admin/reports/:id/status': 'Update report status',
     },
     note: 'All endpoints require authentication and admin role',
   });
@@ -120,5 +130,35 @@ router.get('/dashboard/top-products', authenticateToken, requireAdmin, adminLimi
  * @access  Private (Admin only)
  */
 router.get('/products/low-stock', authenticateToken, requireAdmin, adminLimiter, getLowStockProducts);
+
+// Report Management Routes
+
+/**
+ * @route   GET /api/admin/reports
+ * @desc    Get all product reports
+ * @access  Private (Admin only)
+ */
+router.get('/reports', authenticateToken, requireAdmin, adminLimiter, getAllReports);
+
+/**
+ * @route   GET /api/admin/reports/statistics
+ * @desc    Get report statistics
+ * @access  Private (Admin only)
+ */
+router.get('/reports/statistics', authenticateToken, requireAdmin, adminLimiter, getReportStatistics);
+
+/**
+ * @route   GET /api/admin/reports/product/:productId
+ * @desc    Get reports for specific product
+ * @access  Private (Admin only)
+ */
+router.get('/reports/product/:productId', authenticateToken, requireAdmin, adminLimiter, getProductReports);
+
+/**
+ * @route   PUT /api/admin/reports/:id/status
+ * @desc    Update report status
+ * @access  Private (Admin only)
+ */
+router.put('/reports/:id/status', authenticateToken, requireAdmin, adminLimiter, updateReportStatus);
 
 module.exports = router;
