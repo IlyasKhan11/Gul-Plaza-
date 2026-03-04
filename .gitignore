@@ -14,9 +14,29 @@ dist/
 !.env.example
 
 # Logs
+logs/
 *.log
 npm-debug.log*
+
+# Debug files
+debug-*.js
+debug-*.html
+*.tmp
+*.bak
 
 # Editor
 .vscode/
 .idea/
+
+# Build
+build/
+.cache/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Dependencies
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
