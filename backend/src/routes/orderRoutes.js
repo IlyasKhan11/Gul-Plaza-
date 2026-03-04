@@ -53,27 +53,6 @@ const orderActionLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Order routes info endpoint
-router.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Order API endpoints',
-    endpoints: {
-      'POST /api/orders': 'Create order from cart (buyer only)',
-      'GET /api/orders': 'Get user orders (buyer only)',
-      'GET /api/orders/:orderId': 'Get order by ID (buyer only - own orders)',
-      'POST /api/orders/:id/select-payment': 'Select payment method for order (buyer only)',
-      'GET /api/admin/orders': 'Get all orders (admin only)',
-      'GET /api/admin/orders/:orderId': 'Get any order by ID (admin only)',
-      'PUT /api/admin/orders/:orderId/status': 'Update order status (admin only)',
-      'PATCH /api/admin/orders/:id/verify': 'Verify payment for bank transfer orders (admin only)',
-      'PATCH /api/admin/orders/:id/ship': 'Ship paid or confirmed orders (admin only)',
-      'GET /api/admin/orders/statistics': 'Get order statistics (admin only)',
-    },
-    note: 'Order creation uses PostgreSQL transactions with row locking to prevent race conditions',
-  });
-});
-
 // BUYER ROUTES
 
 /**

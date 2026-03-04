@@ -91,6 +91,10 @@ export function SellerProductsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!editProduct && !form.category_id) {
+      alert('Please select a category')
+      return
+    }
     setSaving(true)
     try {
       if (editProduct) {

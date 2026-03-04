@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { sellerService, type BuyerOrder } from '@/services/sellerService'
 import { formatPrice, formatDate } from '@/lib/utils'
 
@@ -19,15 +18,6 @@ function statusVariant(status: string): 'default' | 'success' | 'warning' | 'des
   }
 }
 
-function paymentVariant(status: string): 'success' | 'warning' | 'destructive' | 'outline' {
-  switch (status) {
-    case 'paid': return 'success'
-    case 'pending': return 'warning'
-    case 'failed': return 'destructive'
-    default: return 'outline'
-  }
-}
-
 export function BuyerOrdersPage() {
   const [orders, setOrders] = useState<BuyerOrder[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,8 +25,6 @@ export function BuyerOrdersPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
-  const [cancelId, setCancelId] = useState<number | null>(null)
-  const [cancelling, setCancelling] = useState(false)
 
   const fetchOrders = useCallback(async (p: number) => {
     setLoading(true)
@@ -60,20 +48,6 @@ export function BuyerOrdersPage() {
   function changePage(newPage: number) {
     setPage(newPage)
     fetchOrders(newPage)
-  }
-
-  async function confirmCancel() {
-    if (!cancelId) return
-    setCancelling(true)
-    try {
-      await sellerService.cancelOrder(cancelId)
-      setOrders(prev => prev.map(o => o.id === cancelId ? { ...o, status: 'cancelled' } : o))
-      setCancelId(null)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to cancel order')
-    } finally {
-      setCancelling(false)
-    }
   }
 
   return (
@@ -117,9 +91,6 @@ export function BuyerOrdersPage() {
                         <Badge variant={statusVariant(order.status)} className="capitalize">
                           {order.status}
                         </Badge>
-                        <Badge variant={paymentVariant(order.payment_status)} className="capitalize text-xs">
-                          {order.payment_status === 'paid' ? '✓ Paid' : order.payment_status}
-                        </Badge>
                       </div>
                       <p className="text-sm text-slate-500 mt-1">{formatDate(order.created_at)}</p>
                     </div>
@@ -129,21 +100,6 @@ export function BuyerOrdersPage() {
                     </div>
                   </div>
                 </CardHeader>
-
-                <CardContent>
-                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
-                    {order.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-500 hover:text-red-600 hover:border-red-300 text-xs"
-                        onClick={() => setCancelId(order.id)}
-                      >
-                        Cancel Order
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
               </Card>
             ))}
           </div>
@@ -159,22 +115,6 @@ export function BuyerOrdersPage() {
           )}
         </>
       )}
-
-      {/* Cancel Confirmation */}
-      <Dialog open={!!cancelId} onOpenChange={() => setCancelId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Order</DialogTitle>
-            <DialogDescription>Are you sure you want to cancel this order? This cannot be undone.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelId(null)}>Keep Order</Button>
-            <Button variant="destructive" onClick={confirmCancel} disabled={cancelling}>
-              {cancelling ? 'Cancelling...' : 'Cancel Order'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -25,8 +25,8 @@ const PAYMENT_OPTIONS: {
   },
   {
     id: 'BANK_TRANSFER',
-    label: 'Bank Transfer',
-    desc: "Transfer the amount to the seller's bank account. Admin will verify your payment.",
+    label: 'Easypaisa / Bank Transfer',
+    desc: "Transfer via Easypaisa or bank. Admin will verify your payment and notify the seller.",
   },
 ]
 
@@ -84,7 +84,7 @@ export function CheckoutPage() {
         <p className="text-slate-500 mb-8 text-sm">
           {paymentMethod === 'COD'
             ? 'Your order has been placed. The seller will confirm and arrange delivery. Pay in cash when it arrives.'
-            : 'Your order is awaiting payment verification. Please transfer the amount and contact the seller with proof of payment.'}
+            : 'Your order is awaiting payment verification. Contact the seller via their store page to get their Easypaisa number or bank details, then share proof of payment.'}
         </p>
         <div className="flex gap-3">
           <Button variant="outline" className="flex-1" asChild>
@@ -148,7 +148,7 @@ export function CheckoutPage() {
                 <div className="flex items-start gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
                   <FiAlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                   <span>
-                    After placing your order, you'll receive bank account details from the seller.
+                    After placing your order, contact the seller for their Easypaisa number or bank account details.
                     Admin will verify your payment before the order is processed.
                   </span>
                 </div>

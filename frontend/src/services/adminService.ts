@@ -9,41 +9,60 @@ interface ApiResp<T> {
 // ─── Types matching backend output ────────────────────────────────────────────
 export interface ApiUser {
   id: number
-  name: string
+  username: string
   email: string
   role: string
   phone: string | null
   created_at: string
   has_store: boolean
   store_name: string | null
-  is_blocked: boolean
+  is_blocked?: boolean
 }
 
 export interface ApiOrder {
   id: number
   status: string
   total_amount: string
-  payment_status: string
   created_at: string
-  buyer_name: string
-  buyer_phone: string | null
-  store_name: string | null
+  customer_name: string
+  customer_email: string
+  currency: string | null
   item_count: string
 }
 
 export interface ApiSeller {
   id: number
-  name: string
+  username: string
   email: string
   phone: string | null
   created_at: string
-  is_blocked: boolean
-  store_id: number | null
+  is_blocked?: boolean
+  has_store: boolean
   store_name: string | null
+}
+
+export interface ApiCategory {
+  id: number
+  name: string
+  slug: string
+  parent_id: number | null
+  parent_name: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ApiReport {
+  id: number
+  product_id: number
+  product_title: string
+  store_name: string | null
+  reporter_name: string
+  reporter_email: string
+  reason: string
   description: string | null
-  logo_url: string | null
-  is_approved: boolean
-  product_count: string
+  status: 'pending' | 'under_review' | 'resolved' | 'dismissed'
+  admin_notes: string | null
+  created_at: string
 }
 
 export interface ApiProduct {
@@ -61,27 +80,11 @@ export interface ApiProduct {
 
 export interface DashboardStats {
   total_users: number
-  total_sellers: number
+  total_products: number
   total_orders: number
-  total_gmv: number
-  platform_revenue: number
-  recent_orders: Array<{
-    id: number
-    status: string
-    total_amount: string
-    created_at: string
-    buyer_name: string
-    store_name: string | null
-  }>
-  recent_sellers: Array<{
-    id: number
-    seller_name: string
-    store_id: number | null
-    name: string | null
-    logo_url: string
-    is_approved: boolean
-    product_count: string
-  }>
+  total_revenue: number
+  pending_orders: number
+  low_stock_products_count: number
 }
 
 interface Pagination {
@@ -95,7 +98,7 @@ interface Pagination {
 export const adminService = {
   // Dashboard
   async getStats(): Promise<DashboardStats> {
-    const res = await api.get<ApiResp<DashboardStats>>('/admin/stats')
+    const res = await api.get<ApiResp<DashboardStats>>('/admin/dashboard/summary')
     return res.data
   },
 
@@ -136,7 +139,7 @@ export const adminService = {
     if (params?.limit) qs.set('limit', String(params.limit))
     if (params?.status) qs.set('status', params.status)
     const res = await api.get<ApiResp<{ orders: ApiOrder[]; pagination: Pagination & { total_orders: number } }>>(
-      `/admin/orders?${qs.toString()}`
+      `/orders/admin/orders?${qs.toString()}`
     )
     return res.data
   },
@@ -145,7 +148,7 @@ export const adminService = {
     await api.put(`/orders/admin/orders/${orderId}/status`, { status })
   },
 
-  // Sellers
+  // Sellers — uses GET /admin/users?role=seller, maps to ApiSeller shape
   async getSellers(params?: {
     page?: number
     search?: string
@@ -153,17 +156,67 @@ export const adminService = {
     const qs = new URLSearchParams()
     if (params?.page) qs.set('page', String(params.page))
     if (params?.search) qs.set('search', params.search)
-    const res = await api.get<ApiResp<{ sellers: ApiSeller[]; pagination: Pagination & { total_sellers: number } }>>(
-      `/admin/sellers?${qs.toString()}`
+    qs.set('role', 'seller')
+    const res = await api.get<ApiResp<{ users: ApiUser[]; pagination: Pagination & { total_users: number } }>>(
+      `/admin/users?${qs.toString()}`
+    )
+    const sellers: ApiSeller[] = res.data.users.map(u => ({
+      id: u.id,
+      username: u.username,
+      email: u.email,
+      phone: u.phone,
+      created_at: u.created_at,
+      is_blocked: u.is_blocked,
+      has_store: u.has_store,
+      store_name: u.store_name,
+    }))
+    return {
+      sellers,
+      pagination: {
+        ...res.data.pagination,
+        total_sellers: res.data.pagination.total_users,
+      },
+    }
+  },
+
+  // Categories
+  async getCategories(): Promise<ApiCategory[]> {
+    const res = await api.get<ApiResp<ApiCategory[]>>('/categories')
+    return res.data
+  },
+
+  async createCategory(data: { name: string; slug: string; parent_id?: number }): Promise<ApiCategory> {
+    const res = await api.post<ApiResp<ApiCategory>>('/categories', data)
+    return res.data
+  },
+
+  async updateCategory(id: number, data: { name?: string; slug?: string; parent_id?: number | null }): Promise<ApiCategory> {
+    const res = await api.put<ApiResp<ApiCategory>>(`/categories/${id}`, data)
+    return res.data
+  },
+
+  async deleteCategory(id: number): Promise<void> {
+    await api.delete(`/categories/${id}`)
+  },
+
+  // Reports
+  async getReports(params?: {
+    page?: number
+    status?: string
+    limit?: number
+  }): Promise<{ reports: ApiReport[]; pagination: Pagination & { total_reports: number } }> {
+    const qs = new URLSearchParams()
+    if (params?.page) qs.set('page', String(params.page))
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.status) qs.set('status', params.status)
+    const res = await api.get<ApiResp<{ reports: ApiReport[]; pagination: Pagination & { total_reports: number } }>>(
+      `/admin/reports?${qs.toString()}`
     )
     return res.data
   },
 
-  async approveStore(storeId: number): Promise<{ is_approved: boolean }> {
-    const res = await api.patch<ApiResp<{ store_id: number; is_approved: boolean }>>(
-      `/admin/sellers/${storeId}/approve`, {}
-    )
-    return res.data
+  async updateReportStatus(id: number, status: string, admin_notes?: string): Promise<void> {
+    await api.put(`/admin/reports/${id}/status`, { status, admin_notes })
   },
 
   // Products (public endpoint, no admin prefix)

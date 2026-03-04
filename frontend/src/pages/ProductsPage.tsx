@@ -7,7 +7,10 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ProductCard } from '@/components/common/ProductCard'
-import { mockProducts, mockCategories } from '@/data/mockData'
+import { mockCategories } from '@/data/mockData'
+import { useEffect } from 'react'
+import { api } from '@/lib/api'
+import type { Product } from '@/types'
 import { formatPrice } from '@/lib/utils'
 
 export function ProductsPage() {
@@ -17,21 +20,51 @@ export function ProductsPage() {
   const [priceRange, setPriceRange] = useState([0, 150000])
   const [sortBy, setSortBy] = useState('featured')
   const [showFilters, setShowFilters] = useState(false)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    setLoading(true)
+    api.get<{ data: { products: any[] } }>('/products?page=1&limit=40')
+      .then(res => {
+        // Map backend fields to frontend Product type
+        const mapped = res.data.products.map(p => ({
+          ...p,
+          name: p.title ?? '',
+          images: p.images && p.images.length > 0 ? p.images : p.primary_image ? [p.primary_image] : [],
+          price: Number(p.price),
+          categoryId: p.category_id ?? p.categoryId,
+          description: p.description ?? '',
+          rating: Number(p.rating ?? 0),
+          createdAt: p.createdAt ?? p.created_at ?? '',
+        }))
+        setProducts(mapped)
+        setError(null)
+      })
+      .catch(err => {
+        setError(err.message)
+        setProducts([])
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  // If 'See All' is clicked, selectedCategory will be 'all'. Show all products, not filtered by category.
   const filtered = useMemo(() => {
-    let result = [...mockProducts]
-    if (search) result = result.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase()))
+    let result = [...products]
+    if (search) result = result.filter(p => (p.name ?? p.title ?? '').toLowerCase().includes(search.toLowerCase()) || (p.description ?? '').toLowerCase().includes(search.toLowerCase()))
+    // Only filter by category if selectedCategory is not 'all'
     if (selectedCategory && selectedCategory !== 'all') {
       const cat = mockCategories.find(c => c.slug === selectedCategory)
       if (cat) result = result.filter(p => p.categoryId === cat.id)
     }
-    result = result.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1])
-    if (sortBy === 'price-asc') result.sort((a, b) => a.price - b.price)
-    else if (sortBy === 'price-desc') result.sort((a, b) => b.price - a.price)
-    else if (sortBy === 'rating') result.sort((a, b) => b.rating - a.rating)
-    else if (sortBy === 'newest') result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    result = result.filter(p => Number(p.price) >= priceRange[0] && Number(p.price) <= priceRange[1])
+    if (sortBy === 'price-asc') result.sort((a, b) => Number(a.price) - Number(b.price))
+    else if (sortBy === 'price-desc') result.sort((a, b) => Number(b.price) - Number(a.price))
+    else if (sortBy === 'rating') result.sort((a, b) => (Number(b.rating ?? 0)) - (Number(a.rating ?? 0)))
+    else if (sortBy === 'newest') result.sort((a, b) => new Date(b.createdAt ?? '').getTime() - new Date(a.createdAt ?? '').getTime())
     return result
-  }, [search, selectedCategory, priceRange, sortBy])
+  }, [products, search, selectedCategory, priceRange, sortBy])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">

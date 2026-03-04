@@ -31,6 +31,7 @@ import { AdminTransactionsPage } from '@/pages/admin/AdminTransactionsPage'
 import { AdminWithdrawalsPage } from '@/pages/admin/AdminWithdrawalsPage'
 import { AdminCommissionsPage } from '@/pages/admin/AdminCommissionsPage'
 import { AdminReportsPage } from '@/pages/admin/AdminReportsPage'
+import { AdminCategoriesPage } from '@/pages/admin/AdminCategoriesPage'
 
 export default function App() {
   return (
@@ -88,6 +89,7 @@ export default function App() {
           <Route path="admin/withdrawals" element={<AdminWithdrawalsPage />} />
           <Route path="admin/commissions" element={<AdminCommissionsPage />} />
           <Route path="admin/reports" element={<AdminReportsPage />} />
+          <Route path="admin/categories" element={<AdminCategoriesPage />} />
         </Route>
 
         {/* Fallback */}

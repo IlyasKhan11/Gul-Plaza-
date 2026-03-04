@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull origin dev)",
+      "Bash(git fetch origin dev)"
+    ]
+  }
+}

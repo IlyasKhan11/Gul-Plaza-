@@ -81,9 +81,18 @@ const getAllProducts = async (req, res) => {
       paramIndex++;
     }
 
+
+    // Always exclude deleted products
+    conditions.push(`p.is_deleted = false`);
+
     if (is_active !== 'all') {
+      // Accept both boolean and string values for is_active
+      let activeValue = is_active;
+      if (typeof activeValue === 'string') {
+        activeValue = activeValue === 'true' || activeValue === true;
+      }
       conditions.push(`p.is_active = $${paramIndex}`);
-      params.push(is_active === 'true');
+      params.push(activeValue);
       paramIndex++;
     }
 
@@ -220,21 +229,47 @@ const getProductById = async (req, res) => {
 // Create new product (Seller only)
 const createProduct = async (req, res) => {
   try {
-    console.log('Product controller: createProduct called');
     const sellerId = req.user.userId;
-    const { title, description, price, stock, category_id } = req.body;
-    
-    // Simple test response
+    const { title, description, price, stock, category_id, is_active = true } = req.body;
+
+    // Get seller's store
+    const storeResult = await query(
+      'SELECT id FROM stores WHERE owner_id = $1 LIMIT 1',
+      [sellerId]
+    );
+
+    if (storeResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must create a store before adding products',
+      });
+    }
+
+    const storeId = storeResult.rows[0].id;
+
+    // Verify category exists
+    const categoryResult = await query('SELECT id FROM categories WHERE id = $1', [category_id]);
+    if (categoryResult.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Category not found' });
+    }
+
+    const insertResult = await query(
+      `INSERT INTO products (store_id, category_id, title, description, price, stock, is_active, seller_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, title, description, price, stock, is_active, created_at, updated_at`,
+      [storeId, category_id, title, description, price, stock, is_active, sellerId]
+    );
+
     res.status(201).json({
       success: true,
-      message: 'Product creation test successful',
-      data: { sellerId, title, price, stock, category_id }
+      message: 'Product created successfully',
+      data: insertResult.rows[0],
     });
   } catch (error) {
     console.error('Error creating product:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
     });
   }
 };

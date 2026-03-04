@@ -40,7 +40,7 @@ const adminCategoryLimiter = rateLimit({
 });
 
 // Category routes info endpoint
-router.get('/', (req, res) => {
+router.get('/info', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Category API endpoints',

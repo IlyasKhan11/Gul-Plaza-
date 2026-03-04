@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { FiGrid, FiUsers, FiGlobe, FiPackage, FiShoppingBag, FiCreditCard, FiShield, FiPercent, FiBriefcase, FiBarChart2, FiLogOut } from 'react-icons/fi'
+import { FiGrid, FiUsers, FiGlobe, FiPackage, FiShoppingBag, FiCreditCard, FiShield, FiPercent, FiBriefcase, FiBarChart2, FiLogOut, FiTag } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 
@@ -13,6 +13,7 @@ const navItems = [
   { to: '/admin/withdrawals', icon: FiBriefcase, label: 'Withdrawals' },
   { to: '/admin/commissions', icon: FiPercent, label: 'Commissions' },
   { to: '/admin/reports', icon: FiBarChart2, label: 'Reports' },
+  { to: '/admin/categories', icon: FiTag, label: 'Categories' },
 ]
 
 export function AdminSidebar({ onLinkClick }: { onLinkClick?: () => void }) {

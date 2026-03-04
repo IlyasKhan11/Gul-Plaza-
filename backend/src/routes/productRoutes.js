@@ -70,6 +70,13 @@ router.get('/info', (req, res) => {
 router.get('/', getAllProducts);
 
 /**
+ * @route   GET /api/products/seller/my-products
+ * @desc    Get seller's products
+ * @access  Private (Seller only)
+ */
+router.get('/seller/my-products', authenticateToken, requireSeller, sellerProductLimiter, getSellerProducts);
+
+/**
  * @route   GET /api/products/:id
  * @desc    Get product by ID with images
  * @access  Public
@@ -96,12 +103,5 @@ router.put('/:id', authenticateToken, requireSeller, sellerProductLimiter, produ
  * @access  Private (Seller only)
  */
 router.delete('/:id', authenticateToken, requireSeller, sellerProductLimiter, productIdValidation, handleValidationErrors, deleteProduct);
-
-/**
- * @route   GET /api/products/seller/my-products
- * @desc    Get seller's products
- * @access  Private (Seller only)
- */
-router.get('/seller/my-products', authenticateToken, requireSeller, sellerProductLimiter, getSellerProducts);
 
 module.exports = router;

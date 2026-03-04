@@ -1,201 +1,276 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts'
+import { useState, useEffect, useCallback } from 'react'
+import { FiRefreshCw, FiFlag, FiEdit2 } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { FiTrendingUp, FiShoppingBag, FiUsers, FiGlobe } from 'react-icons/fi'
-import { mockOrders, mockUsers, mockStores, mockAdminSalesData, mockTransactions, mockCategories } from '@/data/mockData'
-import { formatPrice } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { adminService, type ApiReport } from '@/services/adminService'
+import { formatDate } from '@/lib/utils'
 
-const PIE_COLORS = ['#f59e0b', '#3b82f6', '#2563eb', '#22c55e', '#ef4444']
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending',
+  under_review: 'Under Review',
+  resolved: 'Resolved',
+  dismissed: 'Dismissed',
+}
+
+const REASON_LABELS: Record<string, string> = {
+  inappropriate_content: 'Inappropriate Content',
+  fake_product: 'Fake Product',
+  misleading_description: 'Misleading Description',
+  spam: 'Spam',
+  copyright_violation: 'Copyright Violation',
+  other: 'Other',
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    under_review: 'bg-blue-100 text-blue-700 border-blue-200',
+    resolved: 'bg-green-100 text-green-700 border-green-200',
+    dismissed: 'bg-slate-100 text-slate-600 border-slate-200',
+  }
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${colors[status] ?? colors.pending}`}>
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  )
+}
 
 export function AdminReportsPage() {
-  // Order status breakdown
-  const statusCounts = [
-    { name: 'Pending', value: mockOrders.filter(o => o.status === 'pending').length },
-    { name: 'Processing', value: mockOrders.filter(o => o.status === 'processing').length },
-    { name: 'Shipped', value: mockOrders.filter(o => o.status === 'shipped').length },
-    { name: 'Delivered', value: mockOrders.filter(o => o.status === 'delivered').length },
-    { name: 'Cancelled', value: mockOrders.filter(o => o.status === 'cancelled').length },
-  ].filter(s => s.value > 0)
+  const [reports, setReports] = useState<ApiReport[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalReports, setTotalReports] = useState(0)
 
-  // Top sellers by GMV
-  const topSellers = mockStores.map(store => ({
-    name: store.name,
-    gmv: mockTransactions.filter(t => t.sellerId === store.sellerId).reduce((s, t) => s + t.amount, 0),
-    orders: mockOrders.filter(o => o.sellerId === store.sellerId).length,
-  })).sort((a, b) => b.gmv - a.gmv).slice(0, 5)
+  const [actionReport, setActionReport] = useState<ApiReport | null>(null)
+  const [newStatus, setNewStatus] = useState('')
+  const [adminNotes, setAdminNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  // Category breakdown
-  const categoryStats = mockCategories.map(cat => ({
-    name: cat.name,
-    orders: mockOrders.filter(o => o.items.some(i => i.product.categoryId === cat.id)).length,
-  })).filter(c => c.orders > 0).sort((a, b) => b.orders - a.orders)
+  const fetchReports = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const params: { page: number; limit: number; status?: string } = { page, limit: 20 }
+      if (statusFilter !== 'all') params.status = statusFilter
+      const data = await adminService.getReports(params)
+      setReports(data.reports)
+      setTotalPages(data.pagination.total_pages)
+      setTotalReports(data.pagination.total_reports)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load reports')
+    } finally {
+      setLoading(false)
+    }
+  }, [page, statusFilter])
 
-  // FiUser growth (mock by month)
-  const userGrowth = mockAdminSalesData.map((d, i) => ({
-    month: d.month,
-    users: 20 + i * 8,
-    sellers: 2 + i,
-  }))
+  useEffect(() => { fetchReports() }, [fetchReports])
 
-  const totalGMV = mockOrders.reduce((s, o) => s + o.total, 0)
-  const totalCommission = mockTransactions.reduce((s, t) => s + t.commission, 0)
-  const conversionRate = mockOrders.length > 0 ? ((mockOrders.filter(o => o.status === 'delivered').length / mockOrders.length) * 100).toFixed(1) : '0'
+  function openAction(report: ApiReport) {
+    setActionReport(report)
+    setNewStatus(report.status)
+    setAdminNotes(report.admin_notes ?? '')
+    setActionError(null)
+  }
+
+  async function handleSaveAction() {
+    if (!actionReport) return
+    setSaving(true)
+    setActionError(null)
+    try {
+      await adminService.updateReportStatus(actionReport.id, newStatus, adminNotes || undefined)
+      setReports(prev => prev.map(r =>
+        r.id === actionReport.id ? { ...r, status: newStatus as ApiReport['status'], admin_notes: adminNotes || null } : r
+      ))
+      setActionReport(null)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to update report')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Platform Reports</h1>
-        <p className="text-slate-500 text-sm mt-1">Overview of platform performance and analytics</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Product Reports</h1>
+          <p className="text-slate-500 text-sm mt-1">{totalReports} reports total</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1) }}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Reports</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="under_review">Under Review</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="dismissed">Dismissed</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={fetchReports}>
+            <FiRefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total GMV', value: formatPrice(totalGMV), icon: FiTrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: 'Platform Revenue', value: formatPrice(totalCommission), icon: FiTrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Total Orders', value: mockOrders.length, icon: FiShoppingBag, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-          { label: 'Delivery Rate', value: `${conversionRate}%`, icon: FiUsers, color: 'text-amber-600', bg: 'bg-amber-50' },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
-          <Card key={label}>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-500 font-medium">{label}</p>
-                  <p className="text-xl font-bold text-slate-900 mt-1">{value}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center`}>
-                  <Icon className={`h-5 w-5 ${color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <Button size="sm" variant="outline" onClick={fetchReports}>
+            <FiRefreshCw className="h-3.5 w-3.5 mr-1" /> Retry
+          </Button>
+        </div>
+      )}
 
-      {/* Revenue & Orders Charts */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FiTrendingUp className="h-4 w-4 text-blue-600" /> Monthly Revenue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={mockAdminSalesData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v) => [`Rs. ${Number(v).toLocaleString()}`, 'Revenue']} />
-                <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Order Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={statusCounts} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                  {statusCounts.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* FiUser Growth */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FiUsers className="h-4 w-4 text-purple-600" /> FiUser & Seller Growth
+          <CardTitle className="text-base flex items-center gap-2">
+            <FiFlag className="h-4 w-4 text-red-500" />
+            Reports
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={userGrowth}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="users" name="Buyers" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="sellers" name="Sellers" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : reports.length === 0 ? (
+            <div className="text-center py-16">
+              <FiFlag className="h-12 w-12 text-slate-200 mx-auto mb-3" />
+              <p className="text-slate-400 text-sm">No reports found</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left pb-3 text-slate-500 font-medium">Product</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Reporter</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Reason</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Description</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Date</th>
+                    <th className="text-right pb-3 text-slate-500 font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {reports.map(report => (
+                    <tr key={report.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3">
+                        <p className="font-medium text-slate-800 truncate max-w-[160px]">{report.product_title}</p>
+                        {report.store_name && (
+                          <p className="text-xs text-slate-400 truncate max-w-[160px]">{report.store_name}</p>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <p className="text-slate-700 text-xs">{report.reporter_name}</p>
+                        <p className="text-slate-400 text-xs">{report.reporter_email}</p>
+                      </td>
+                      <td className="py-3 text-slate-600 text-xs whitespace-nowrap">
+                        {REASON_LABELS[report.reason] ?? report.reason}
+                      </td>
+                      <td className="py-3 text-slate-500 text-xs max-w-[180px]">
+                        <span className="line-clamp-2">{report.description ?? '—'}</span>
+                      </td>
+                      <td className="py-3">
+                        <StatusBadge status={report.status} />
+                      </td>
+                      <td className="py-3 text-slate-400 text-xs whitespace-nowrap">{formatDate(report.created_at)}</td>
+                      <td className="py-3">
+                        <div className="flex justify-end">
+                          <Button size="sm" variant="outline" onClick={() => openAction(report)}>
+                            <FiEdit2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+              <p className="text-xs text-slate-500">Page {page} of {totalPages}</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  Previous
+                </Button>
+                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* Top Sellers */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FiGlobe className="h-4 w-4 text-amber-600" /> Top Sellers by GMV
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {topSellers.length === 0 ? (
-              <p className="text-slate-400 text-sm py-6 text-center">No data yet</p>
-            ) : (
-              <div className="space-y-3">
-                {topSellers.map((s, i) => (
-                  <div key={s.name} className="flex items-center gap-3">
-                    <span className="w-6 text-xs font-bold text-slate-400 text-center">#{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">{s.name}</p>
-                      <p className="text-xs text-slate-500">{s.orders} orders</p>
-                    </div>
-                    <span className="text-sm font-bold text-slate-900">{formatPrice(s.gmv)}</span>
-                  </div>
-                ))}
+      {/* Update Status Dialog */}
+      <Dialog open={!!actionReport} onOpenChange={open => { if (!open) setActionReport(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Report Status</DialogTitle>
+            <DialogDescription>
+              Change the status and optionally add admin notes for this report.
+            </DialogDescription>
+          </DialogHeader>
+          {actionReport && (
+            <div className="space-y-4 mt-2">
+              <div className="bg-slate-50 rounded-lg p-3 text-sm space-y-1">
+                <p><span className="font-medium text-slate-700">Product:</span> <span className="text-slate-600">{actionReport.product_title}</span></p>
+                <p><span className="font-medium text-slate-700">Reason:</span> <span className="text-slate-600">{REASON_LABELS[actionReport.reason] ?? actionReport.reason}</span></p>
+                {actionReport.description && (
+                  <p><span className="font-medium text-slate-700">Description:</span> <span className="text-slate-600">{actionReport.description}</span></p>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Orders by Category */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FiShoppingBag className="h-4 w-4 text-indigo-600" /> Orders by Category
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {categoryStats.length === 0 ? (
-              <p className="text-slate-400 text-sm py-6 text-center">No data yet</p>
-            ) : (
-              <div className="space-y-3">
-                {categoryStats.map((c, i) => {
-                  const max = categoryStats[0].orders
-                  return (
-                    <div key={c.name} className="space-y-1">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-700 font-medium">{c.name}</span>
-                        <span className="text-slate-500">{c.orders} orders</span>
-                      </div>
-                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-blue-500"
-                          style={{ width: `${(c.orders / max) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
+              <div>
+                <Label htmlFor="rstatus">Status</Label>
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="under_review">Under Review</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                    <SelectItem value="dismissed">Dismissed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              <div>
+                <Label htmlFor="rnotes">Admin Notes (optional)</Label>
+                <textarea
+                  id="rnotes"
+                  value={adminNotes}
+                  onChange={e => setAdminNotes(e.target.value)}
+                  placeholder="Add internal notes about this report..."
+                  rows={3}
+                  className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                />
+              </div>
+              {actionError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{actionError}</p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActionReport(null)}>Cancel</Button>
+            <Button onClick={handleSaveAction} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

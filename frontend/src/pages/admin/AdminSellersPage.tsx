@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FiSearch, FiRefreshCw, FiCheckCircle, FiXCircle, FiShield } from 'react-icons/fi'
+import { FiSearch, FiRefreshCw, FiShield } from 'react-icons/fi'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { adminService, type ApiSeller } from '@/services/adminService'
+import { formatDate } from '@/lib/utils'
 
 export function AdminSellersPage() {
   const [sellers, setSellers] = useState<ApiSeller[]>([])
@@ -39,23 +40,8 @@ export function AdminSellersPage() {
     fetchSellers(1, search)
   }
 
-  async function toggleApprove(seller: ApiSeller) {
-    if (!seller.store_id) return
-    setActionLoading(seller.store_id)
-    try {
-      const result = await adminService.approveStore(seller.store_id)
-      setSellers(prev =>
-        prev.map(s => s.store_id === seller.store_id ? { ...s, is_approved: result.is_approved } : s)
-      )
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Action failed')
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
   async function toggleBlock(seller: ApiSeller) {
-    setActionLoading(seller.id * -1)
+    setActionLoading(seller.id)
     try {
       if (seller.is_blocked) {
         await adminService.unblockUser(seller.id)
@@ -120,56 +106,24 @@ export function AdminSellersPage() {
               <Card key={seller.id} className={seller.is_blocked ? 'opacity-60' : ''}>
                 <CardContent className="p-5">
                   <div className="flex flex-wrap items-start gap-4">
-                    {seller.logo_url ? (
-                      <img src={seller.logo_url} alt={seller.store_name ?? ''} className="w-14 h-14 rounded-xl object-cover bg-slate-100" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-400">
-                        {seller.name[0]?.toUpperCase()}
-                      </div>
-                    )}
+                    <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-400 shrink-0">
+                      {seller.username[0]?.toUpperCase()}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-slate-900">{seller.store_name ?? seller.name}</h3>
-                        {seller.store_id && (
-                          <Badge variant={seller.is_approved ? 'success' : 'warning'}>
-                            {seller.is_approved ? 'Approved' : 'Pending'}
-                          </Badge>
-                        )}
+                        <h3 className="font-bold text-slate-900">{seller.store_name ?? seller.username}</h3>
+                        {seller.has_store && <Badge variant="success">Has Store</Badge>}
                         {seller.is_blocked && <Badge variant="destructive">Blocked</Badge>}
                       </div>
-                      <p className="text-sm text-slate-500 mt-1">{seller.name} · {seller.email}</p>
+                      <p className="text-sm text-slate-500 mt-1">{seller.username} · {seller.email}</p>
                       {seller.phone && <p className="text-xs text-slate-400">{seller.phone}</p>}
-                      {seller.description && (
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">{seller.description}</p>
-                      )}
-                      <p className="text-xs text-slate-500 mt-1">{seller.product_count} products</p>
+                      <p className="text-xs text-slate-500 mt-1">Joined {formatDate(seller.created_at)}</p>
                     </div>
                     <div className="flex flex-col gap-2">
-                      {seller.store_id && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={actionLoading === seller.store_id}
-                          className={
-                            seller.is_approved
-                              ? 'text-amber-600 border-amber-300 hover:bg-amber-50'
-                              : 'text-green-600 border-green-300 hover:bg-green-50'
-                          }
-                          onClick={() => toggleApprove(seller)}
-                        >
-                          {actionLoading === seller.store_id ? (
-                            <span className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          ) : seller.is_approved ? (
-                            <><FiXCircle className="h-4 w-4 mr-1" /> Revoke</>
-                          ) : (
-                            <><FiCheckCircle className="h-4 w-4 mr-1" /> Approve</>
-                          )}
-                        </Button>
-                      )}
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={actionLoading === seller.id * -1}
+                        disabled={actionLoading === seller.id}
                         className={
                           seller.is_blocked
                             ? 'text-green-600 border-green-300 hover:bg-green-50'
@@ -177,7 +131,7 @@ export function AdminSellersPage() {
                         }
                         onClick={() => toggleBlock(seller)}
                       >
-                        {actionLoading === seller.id * -1 ? (
+                        {actionLoading === seller.id ? (
                           <span className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <><FiShield className="h-4 w-4 mr-1" />{seller.is_blocked ? 'Unblock' : 'Block'}</>

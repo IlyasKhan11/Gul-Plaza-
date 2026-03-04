@@ -43,21 +43,23 @@ export interface Store {
 
 export interface Product {
   id: string
-  storeId: string
-  storeName: string
-  sellerId: string
-  name: string
-  description: string
-  price: number
+  storeId?: string
+  storeName?: string
+  sellerId?: string
+  name?: string
+  title?: string // <-- Add this
+  description?: string
+  price: number | string
   originalPrice?: number
-  category: string
-  categoryId: string
-  images: string[]
-  stock: number
-  rating: number
-  reviewCount: number
-  isFeatured: boolean
-  createdAt: string
+  category?: string
+  categoryId?: string
+  images?: string[]
+  primary_image?: string | null // <-- Add this
+  stock?: number
+  rating?: number
+  reviewCount?: number
+  isFeatured?: boolean
+  createdAt?: string
 }
 
 export interface Review {

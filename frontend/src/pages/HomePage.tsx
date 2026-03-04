@@ -3,10 +3,31 @@ import { FiArrowRight, FiShield, FiTruck, FiHeadphones, FiStar } from 'react-ico
 import { Button } from '@/components/ui/button'
 import { ProductCard } from '@/components/common/ProductCard'
 import { StoreCard } from '@/components/common/StoreCard'
-import { mockProducts, mockCategories, mockStores } from '@/data/mockData'
+import { mockCategories, mockStores } from '@/data/mockData'
+import { useEffect, useState } from 'react'
+import { api } from '@/lib/api'
+import type { Product } from '@/types'
 
 export function HomePage() {
-  const featuredProducts = mockProducts.filter(p => p.isFeatured)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    api.get<{ data: { products: Product[] } }>('/products?page=1&limit=40')
+      .then(res => {
+        setProducts(res.data.products)
+        setError(null)
+      })
+      .catch(err => {
+        setError(err.message)
+        setProducts([])
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const featuredProducts = products.filter(p => p.isFeatured)
 
   return (
     <div className="space-y-0">
@@ -44,10 +65,10 @@ export function HomePage() {
               {featuredProducts.slice(0, 4).map(p => (
                 <Link key={p.id} to={`/products/${p.id}`} className="group">
                   <div className="bg-white/10 backdrop-blur rounded-xl overflow-hidden hover:bg-white/20 transition-colors">
-                    <img src={p.images[0]} alt={p.name} className="w-full h-32 object-cover" />
+                    <img src={p.images?.[0] || p.primary_image || ''} alt={p.name || p.title} className="w-full h-32 object-cover" />
                     <div className="p-2">
-                      <p className="text-xs font-medium text-white truncate">{p.name}</p>
-                      <p className="text-blue-200 text-xs">Rs. {p.price.toLocaleString()}</p>
+                      <p className="text-xs font-medium text-white truncate">{p.name || p.title}</p>
+                      <p className="text-blue-200 text-xs">Rs. {Number(p.price).toLocaleString()}</p>
                     </div>
                   </div>
                 </Link>
@@ -119,7 +140,17 @@ export function HomePage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {featuredProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={{
+                ...product,
+                name: product.title,
+                images:
+                  product.images && product.images.length > 0
+                    ? product.images
+                    : product.primary_image
+                    ? [product.primary_image]
+                    : [],
+                price: Number(product.price),
+              }} />
             ))}
           </div>
         </div>
@@ -165,8 +196,18 @@ export function HomePage() {
             </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {mockProducts.slice(4).map(product => (
-              <ProductCard key={product.id} product={product} />
+            {products.slice(4).map(product => (
+              <ProductCard key={product.id} product={{
+                ...product,
+                name: product.title,
+                images:
+                  product.images && product.images.length > 0
+                    ? product.images
+                    : product.primary_image
+                    ? [product.primary_image]
+                    : [],
+                price: Number(product.price),
+              }} />
             ))}
           </div>
         </div>

@@ -56,8 +56,9 @@ export interface BuyerOrder {
   id: number
   status: string
   total_amount: string
-  payment_status: string
+  currency: string | null
   created_at: string
+  updated_at: string
   item_count: string
 }
 
@@ -139,21 +140,17 @@ export const sellerService = {
     await api.delete(`/products/${productId}`)
   },
 
-  // Orders
-  async getOrders(params?: { page?: number; status?: string; limit?: number }) {
-    const qs = new URLSearchParams()
-    if (params?.page) qs.set('page', String(params.page))
-    if (params?.limit) qs.set('limit', String(params.limit))
-    if (params?.status) qs.set('status', params.status)
-    const res = await api.get<ApiResp<{
-      orders: SellerOrder[]
-      pagination: Pagination & { total_orders: number }
-    }>>(`/orders/seller/my-orders?${qs}`)
-    return res.data
+  // Orders (seller)
+  // When backend adds the endpoint, replace above
+  async getOrders(_params?: { page?: number; status?: string; limit?: number }): Promise<{
+    orders: SellerOrder[]
+    pagination: Pagination & { total_orders: number }
+  }> {
+    throw new Error('Seller orders endpoint is not yet available. Please ask the backend developer to add GET /api/orders/seller/my-orders.')
   },
 
-  async updateOrderStatus(orderId: number, status: string): Promise<void> {
-    await api.patch(`/orders/${orderId}/seller-status`, { status })
+  async updateOrderStatus(_orderId: number, _status: string): Promise<void> {
+    throw new Error('Seller order status update is not yet available in the backend.')
   },
 
   // Buyer orders
@@ -165,12 +162,12 @@ export const sellerService = {
     const res = await api.get<ApiResp<{
       orders: BuyerOrder[]
       pagination: Pagination & { total_orders: number }
-    }>>(`/orders/buyer/my-orders?${qs}`)
+    }>>(`/orders?${qs}`)
     return res.data
   },
 
-  async cancelOrder(orderId: number): Promise<void> {
-    await api.patch(`/orders/${orderId}/cancel`, {})
+  async cancelOrder(_orderId: number): Promise<void> {
+    throw new Error('Order cancellation is not yet available in the backend.')
   },
 
   // Categories (public)

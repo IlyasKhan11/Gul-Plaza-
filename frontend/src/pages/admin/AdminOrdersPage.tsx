@@ -100,8 +100,7 @@ export function AdminOrdersPage() {
                   <thead>
                     <tr className="border-b border-slate-200">
                       <th className="text-left pb-3 text-slate-500 font-medium">Order ID</th>
-                      <th className="text-left pb-3 text-slate-500 font-medium">Buyer</th>
-                      <th className="text-left pb-3 text-slate-500 font-medium">Store</th>
+                      <th className="text-left pb-3 text-slate-500 font-medium">Customer</th>
                       <th className="text-left pb-3 text-slate-500 font-medium">Items</th>
                       <th className="text-left pb-3 text-slate-500 font-medium">Total</th>
                       <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
@@ -113,10 +112,9 @@ export function AdminOrdersPage() {
                       <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="py-3 font-mono text-xs text-slate-400">#{order.id}</td>
                         <td className="py-3">
-                          <p className="font-medium text-slate-800">{order.buyer_name}</p>
-                          <p className="text-xs text-slate-500">{order.buyer_phone ?? '—'}</p>
+                          <p className="font-medium text-slate-800">{order.customer_name}</p>
+                          <p className="text-xs text-slate-500">{order.customer_email}</p>
                         </td>
-                        <td className="py-3 text-slate-600 text-xs">{order.store_name ?? 'Unknown store'}</td>
                         <td className="py-3 text-slate-600">{order.item_count} item(s)</td>
                         <td className="py-3 font-bold text-slate-900">{formatPrice(parseFloat(order.total_amount))}</td>
                         <td className="py-3"><OrderStatusBadge status={order.status as never} /></td>

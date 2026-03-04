@@ -68,6 +68,22 @@ const initializeDatabase = async () => {
       )
     `);
 
+    // Add missing columns to stores table (ALTER is safe with IF NOT EXISTS)
+    await query(`ALTER TABLE stores ALTER COLUMN description DROP NOT NULL`).catch(() => {});
+    await query(`ALTER TABLE stores ALTER COLUMN logo_url DROP NOT NULL`).catch(() => {});
+    await query(`ALTER TABLE stores ALTER COLUMN banner_url DROP NOT NULL`).catch(() => {});
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS contact_email TEXT`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(20)`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS address TEXT`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS country VARCHAR(100)`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20)`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS business_license VARCHAR(100)`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS tax_id VARCHAR(50)`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS store_settings JSONB`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`);
+    await query(`ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_approved BOOLEAN NOT NULL DEFAULT false`);
+
     // Create categories table if it doesn't exist (based on ERD and SQL shown)
     await query(`
       CREATE TABLE IF NOT EXISTS categories (
@@ -195,6 +211,37 @@ const initializeDatabase = async () => {
       )
     `);
 
+    // Create product_reports table
+    await query(`
+      CREATE TABLE IF NOT EXISTS product_reports (
+        id BIGSERIAL PRIMARY KEY,
+        product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        reporter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        reason VARCHAR(100) NOT NULL CHECK (reason IN (
+          'inappropriate_content','fake_product','misleading_description',
+          'spam','copyright_violation','other'
+        )),
+        description TEXT,
+        status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN (
+          'pending','under_review','resolved','dismissed'
+        )),
+        admin_notes TEXT,
+        created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(product_id, reporter_id)
+      )
+    `);
+
+    // Add missing columns to orders table
+    await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE RESTRICT`);
+    await query(`UPDATE orders SET user_id = buyer_id WHERE user_id IS NULL`).catch(() => {});
+    await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'PKR'`);
+    await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)`);
+
+    // Add missing columns to products table
+    await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT false`);
+    await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS seller_id BIGINT REFERENCES users(id) ON DELETE RESTRICT`).catch(() => {});
+
     // Create indexes for better performance
     await query('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
     await query('CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)');
@@ -223,6 +270,9 @@ const initializeDatabase = async () => {
     await query('CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_user_blocks_user_id ON user_blocks(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_user_blocks_active ON user_blocks(is_active)');
+    await query('CREATE INDEX IF NOT EXISTS idx_product_reports_product_id ON product_reports(product_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_product_reports_reporter_id ON product_reports(reporter_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_product_reports_status ON product_reports(status)');
 
     // Create updated_at trigger function
     await query(`
@@ -230,6 +280,7 @@ const initializeDatabase = async () => {
       RETURNS TRIGGER AS $$
       BEGIN
         NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
       END;
       $$ language 'plpgsql'
     `);
@@ -237,7 +288,7 @@ const initializeDatabase = async () => {
     // Array of tables that need to updated_at trigger
     const tablesWithTimestamps = [
       'users', 'stores', 'categories', 'products',
-      'orders', 'user_profiles', 'user_blocks', 'payments', 'cart'
+      'orders', 'user_profiles', 'user_blocks', 'payments', 'cart', 'product_reports'
     ];
 
     // Safely drop and recreate triggers for each table

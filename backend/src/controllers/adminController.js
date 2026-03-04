@@ -34,29 +34,31 @@ const getAllUsers = async (req, res) => {
     }
 
     if (search) {
-      conditions.push(`(u.username ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`);
+      conditions.push(`(u.name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`);
       params.push(`%${search}%`);
       paramIndex++;
     }
 
-    // Validate sort column
-    const allowedSortColumns = ['id', 'username', 'email', 'role', 'created_at', 'updated_at'];
-    const sortColumn = allowedSortColumns.includes(sortBy) ? sortBy : 'created_at';
+    // Validate sort column (users table uses 'name', not 'username')
+    const allowedSortColumns = ['id', 'name', 'email', 'role', 'created_at', 'updated_at'];
+    const sortColumn = allowedSortColumns.includes(sortBy) && sortBy !== 'username' ? sortBy : 'created_at';
     const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     // Build the main query
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const usersQuery = `
-      SELECT 
-        u.id, u.username, u.email, u.role, u.created_at, u.updated_at,
-        up.first_name, up.last_name, up.phone,
+      SELECT
+        u.id, u.name as username, u.email, u.role,
+        COALESCE(up.phone, u.phone) as phone,
+        u.created_at, u.updated_at,
         CASE WHEN s.id IS NOT NULL THEN true ELSE false END as has_store,
         s.name as store_name,
-        CASE WHEN u.updated_at > u.created_at THEN 'active' ELSE 'inactive' END as status
+        CASE WHEN ub.id IS NOT NULL THEN true ELSE false END as is_blocked
       FROM users u
       LEFT JOIN user_profiles up ON u.id = up.user_id
       LEFT JOIN stores s ON u.id = s.owner_id
+      LEFT JOIN user_blocks ub ON u.id = ub.user_id AND ub.is_active = true
       ${whereClause}
       ORDER BY u.${sortColumn} ${sortDirection}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
