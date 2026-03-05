@@ -24,27 +24,43 @@ export const orderService = {
   async checkout(
     _items: { productId: number; quantity: number }[],
     paymentMethod: CheckoutPaymentMethod,
-    extra?: { transactionId?: string; screenshot?: File }
+    extra?: { 
+      transactionId?: string; 
+      screenshot?: File;
+      shipping_address?: string;
+      shipping_city?: string;
+      shipping_country?: string;
+      shipping_postal_code?: string;
+      shipping_phone?: string;
+      shipping_full_name?: string;
+    }
   ): Promise<CreatedOrder> {
-    // Get shipping info from user context/localStorage
-    let shipping_address = ''
-    let shipping_city = ''
-    let shipping_country = ''
-    let shipping_postal_code = ''
-    let shipping_phone = ''
-    try {
-      const userStr = localStorage.getItem('gul_plaza_user')
-      if (userStr) {
-        const user = JSON.parse(userStr)
-        shipping_address = user.address || ''
-        shipping_city = user.city || ''
-        shipping_country = user.country || ''
-        shipping_postal_code = user.postal_code || ''
-        shipping_phone = user.phone || ''
-      }
-    } catch {}
+    // Use shipping info from extra parameter or fallback to localStorage
+    let shipping_address = extra?.shipping_address || '';
+    let shipping_city = extra?.shipping_city || '';
+    let shipping_country = extra?.shipping_country || '';
+    let shipping_postal_code = extra?.shipping_postal_code || '';
+    let shipping_phone = extra?.shipping_phone || '';
+    
+    // Fallback to localStorage if not provided
+    if (!shipping_address || !shipping_city || !shipping_country) {
+      try {
+        const userStr = localStorage.getItem('gul_plaza_user')
+        if (userStr) {
+          const user = JSON.parse(userStr)
+          shipping_address = shipping_address || user.address || ''
+          shipping_city = shipping_city || user.city || ''
+          shipping_country = shipping_country || user.country || ''
+          shipping_postal_code = shipping_postal_code || user.postal_code || ''
+          shipping_phone = shipping_phone || user.phone || ''
+        }
+      } catch {}
+    }
+    
     // Only send shipping fields; backend uses cart for items
-    const orderRes = await api.post<ApiResp<CreatedOrder>>('/orders', {
+    const orderRes = await api.post<ApiResp<CreatedOrder>>('/api/orders', {
+      items: _items,
+      paymentMethod: paymentMethod,
       shipping_address,
       shipping_city,
       shipping_country,
@@ -63,15 +79,15 @@ export const orderService = {
       formData.append('payment_method', paymentMethod)
       formData.append('transaction_id', extra.transactionId || '')
       formData.append('screenshot', extra.screenshot)
-      await api.post(`/orders/${order.id}/select-payment`, formData)
+      await api.post(`/api/orders/${order.id}/select-payment`, formData)
     } else {
-      await api.post(`/orders/${order.id}/select-payment`, paymentPayload)
+      await api.post(`/api/orders/${order.id}/select-payment`, paymentPayload)
     }
     return order
   },
 
   async syncCart(cartItems: { productId: number; quantity: number }[]): Promise<void> {
-    await api.post('/cart', {
+    await api.post('/api/cart', {
       items: cartItems
     })
   },

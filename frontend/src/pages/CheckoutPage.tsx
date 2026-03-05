@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom'
 import {
   FiCheckCircle, FiShoppingBag,
   FiCreditCard, FiAlertCircle, FiLoader,
+  FiMapPin, FiPhone, FiUser, FiMessageCircle,
 } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useCart } from '@/context/CartContext'
 import { orderService, type CheckoutPaymentMethod, type CreatedOrder } from '@/services/orderService'
 import { formatPrice, cn } from '@/lib/utils'
@@ -38,6 +41,17 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('COD')
   const [placing, setPlacing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Shipping information
+  const [shippingInfo, setShippingInfo] = useState({
+    fullName: '',
+    phone: '',
+    address: '',
+    city: '',
+    country: '',
+    postalCode: ''
+  })
+  
   // For Easypaisa/Bank Transfer
   const [transactionId, setTransactionId] = useState('')
   const [screenshot, setScreenshot] = useState<File | null>(null)
@@ -45,11 +59,54 @@ export function CheckoutPage() {
   const shipping = total >= 2000 ? 0 : 200
   const grandTotal = total + shipping
 
+  // Get unique sellers from cart items
+  const getSellers = () => {
+    const sellerMap = new Map()
+    items.forEach(({ product }) => {
+      if (product && product.storeName) {
+        const sellerId = product.sellerId || 'unknown'
+        if (!sellerMap.has(sellerId)) {
+          sellerMap.set(sellerId, {
+            id: sellerId,
+            name: product.storeName,
+            phone: '+923001234567', // Default contact number
+            products: []
+          })
+        }
+        sellerMap.get(sellerId).products.push(product)
+      }
+    })
+    return Array.from(sellerMap.values())
+  }
+
   async function placeOrder() {
     if (items.length === 0) {
       setError('Your cart is empty. Please add products before placing an order.')
       return
     }
+    
+    // Validate shipping information
+    if (!shippingInfo.fullName.trim()) {
+      setError('Please enter your full name')
+      return
+    }
+    if (!shippingInfo.phone.trim()) {
+      setError('Please enter your phone number')
+      return
+    }
+    if (!shippingInfo.address.trim()) {
+      setError('Please enter your delivery address')
+      return
+    }
+    if (!shippingInfo.city.trim()) {
+      setError('Please enter your city')
+      return
+    }
+    if (!shippingInfo.country.trim()) {
+      setError('Please enter your country')
+      return
+    }
+    
     // Check for stock issues before syncing cart
   const outOfStock = items.find(item => item.product && typeof item.product.stock === 'number' && item.quantity > item.product.stock)
     if (outOfStock) {
@@ -65,16 +122,23 @@ export function CheckoutPage() {
         quantity: item.quantity
       }))
       await orderService.syncCart(cartPayload)
-      // Prepare extra payment info
-      let extra: any = {}
-      if (paymentMethod === 'BANK_TRANSFER') {
+      // Prepare extra payment info and shipping info
+      let extra: any = {
+        shipping_address: shippingInfo.address,
+        shipping_city: shippingInfo.city,
+        shipping_country: shippingInfo.country,
+        shipping_postal_code: shippingInfo.postalCode,
+        shipping_phone: shippingInfo.phone,
+        shipping_full_name: shippingInfo.fullName,
+      }
+      if (paymentMethod === 'EASYPaisa') {
         extra.transactionId = transactionId
         if (screenshot) {
           // You may need to handle file upload separately in your backend
           extra.screenshot = screenshot
         }
       }
-      // Place order (backend will use synced cart)
+      // Place order with shipping information
       const order = await orderService.checkout(cartPayload, paymentMethod, extra)
       setPlacedOrder(order)
       clearCart()
@@ -120,8 +184,8 @@ export function CheckoutPage() {
         </p>
         <p className="text-slate-500 mb-8 text-sm">
           {paymentMethod === 'COD'
-            ? 'Your order has been placed. The seller will confirm and arrange delivery. Pay in cash when it arrives.'
-            : 'Your order is awaiting payment verification. Contact the seller via their store page to get their Easypaisa number or bank details, then share proof of payment.'}
+            ? 'Your order has been placed and sent to the seller for confirmation. The seller will contact you to arrange delivery. Pay in cash when it arrives.'
+            : 'Your order has been placed and sent to the seller for confirmation. Please contact the seller via WhatsApp for payment details. Your order will be processed after payment verification.'}
         </p>
         <div className="flex gap-3">
           <Button variant="outline" className="flex-1" asChild>
@@ -144,8 +208,144 @@ export function CheckoutPage() {
       </div>
 
       <div className="grid lg:grid-cols-5 gap-6">
-        {/* Left: Payment Method */}
-        <div className="lg:col-span-3">
+        {/* Left: Shipping Information & Payment Method */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Shipping Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
+                  <FiMapPin className="h-4 w-4 text-blue-600" />
+                </div>
+                Shipping Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="John Doe"
+                    value={shippingInfo.fullName}
+                    onChange={(e) => setShippingInfo(prev => ({ ...prev, fullName: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+923001234567"
+                    value={shippingInfo.phone}
+                    onChange={(e) => setShippingInfo(prev => ({ ...prev, phone: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="address">Delivery Address *</Label>
+                  <Input
+                    id="address"
+                    type="text"
+                    placeholder="123 Main Street, Apt 4B"
+                    value={shippingInfo.address}
+                    onChange={(e) => setShippingInfo(prev => ({ ...prev, address: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="city">City *</Label>
+                  <Input
+                    id="city"
+                    type="text"
+                    placeholder="Karachi"
+                    value={shippingInfo.city}
+                    onChange={(e) => setShippingInfo(prev => ({ ...prev, city: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="country">Country *</Label>
+                  <Input
+                    id="country"
+                    type="text"
+                    placeholder="Pakistan"
+                    value={shippingInfo.country}
+                    onChange={(e) => setShippingInfo(prev => ({ ...prev, country: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Input
+                    id="postalCode"
+                    type="text"
+                    placeholder="74000"
+                    value={shippingInfo.postalCode}
+                    onChange={(e) => setShippingInfo(prev => ({ ...prev, postalCode: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Seller Contact Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center">
+                  <FiMessageCircle className="h-4 w-4 text-purple-600" />
+                </div>
+                Seller Contact Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm text-slate-600 mb-3">
+                Contact sellers directly on WhatsApp for payment details and order confirmation
+              </div>
+              {getSellers().map((seller, index) => (
+                <div key={seller.id} className="border rounded-lg p-4 bg-slate-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h4 className="font-semibold text-slate-900">{seller.name}</h4>
+                      <p className="text-sm text-slate-600">Products: {seller.products.length}</p>
+                    </div>
+                    <a
+                      href={`https://wa.me/${seller.phone.replace(/[^\d]/g, '')}?text=Hi! I'm interested in buying products from your store. Order details:`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors"
+                    >
+                      <FiPhone className="h-4 w-4" />
+                      Contact on WhatsApp
+                    </a>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    <p>📱 {seller.phone}</p>
+                    <p className="mt-1">💬 Click to chat on WhatsApp for payment details</p>
+                  </div>
+                </div>
+              ))}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <FiAlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-700">
+                    <p className="font-medium mb-1">Important:</p>
+                    <ul className="space-y-0.5">
+                      <li>• Contact seller for payment confirmation</li>
+                      <li>• Order will be processed after seller approval</li>
+                      <li>• Shipping arrangements made by seller</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Method */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -181,7 +381,7 @@ export function CheckoutPage() {
                 </button>
               ))}
 
-              {paymentMethod === 'BANK_TRANSFER' && (
+              {paymentMethod === 'EASYPaisa' && (
                 <>
                   <div className="flex items-start gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
                     <FiAlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />

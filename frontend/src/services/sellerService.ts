@@ -178,7 +178,7 @@ export const sellerService = {
     const res = await api.get<ApiResp<{
       orders: BuyerOrder[]
       pagination: Pagination & { total_orders: number }
-    }>>(`/orders?${qs}`)
+    }>>(`/api/orders?${qs}`)
     return res.data
   },
 
@@ -188,7 +188,7 @@ export const sellerService = {
 
   // Categories (public)
   async getCategories(): Promise<ApiCategory[]> {
-    const res = await api.get<ApiResp<ApiCategory[]>>('/categories')
+    const res = await api.get<ApiResp<ApiCategory[]>>('/api/categories')
     return res.data
   },
 }
