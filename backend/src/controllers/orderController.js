@@ -106,10 +106,7 @@ const getBuyerOrders = async (req, res) => {
     
     const countParams = params.slice(0, -2);
     
-    const [ordersResult, countResult] = await Promise.all([
-      query(ordersQuery, params),
-      query(countQuery, countParams),
-    ]);
+    const countResult = await query(countQuery, countParams);
     
     const totalOrders = parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(totalOrders / parsedLimit);
@@ -525,10 +522,7 @@ const getSellerOrders = async (req, res) => {
     
     const countParams = params.slice(0, -2);
     
-    const [ordersResult, countResult] = await Promise.all([
-      query(ordersQuery, params),
-      query(countQuery, countParams),
-    ]);
+    const countResult = await query(countQuery, countParams);
     
     const totalOrders = parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(totalOrders / parsedLimit);
