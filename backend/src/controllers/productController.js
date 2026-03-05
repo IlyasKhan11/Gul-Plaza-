@@ -232,7 +232,7 @@ const getProductById = async (req, res) => {
 const createProduct = async (req, res) => {
   try {
     const sellerId = req.user.userId;
-    const { title, description, price, stock, category_id, is_active = true } = req.body;
+    const { title, description, price, stock, category_id, is_active = true, images = [] } = req.body;
 
     // Get seller's store
     const storeResult = await query(
@@ -262,10 +262,39 @@ const createProduct = async (req, res) => {
       [storeId, category_id, title, description, price, stock, is_active, sellerId]
     );
 
+    const productId = insertResult.rows[0].id;
+
+    // Insert product images
+    if (images.length > 0) {
+      for (let i = 0; i < images.length; i++) {
+        await query(
+          `INSERT INTO product_images (product_id, image_url)
+           VALUES ($1, $2)`,
+          [productId, images[i]]
+        );
+      }
+    }
+
+    // Fetch the created product with images
+    const productWithImages = await query(
+      `SELECT p.*, 
+        COALESCE(
+          JSON_AGG(
+            JSON_BUILD_OBJECT('id', pi.id, 'image_url', pi.image_url)
+          ) FILTER (WHERE pi.id IS NOT NULL),
+          '[]'
+        ) as images
+       FROM products p
+       LEFT JOIN product_images pi ON p.id = pi.product_id
+       WHERE p.id = $1
+       GROUP BY p.id`,
+      [productId]
+    );
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
-      data: insertResult.rows[0],
+      data: productWithImages.rows[0],
     });
   } catch (error) {
     console.error('Error creating product:', error);
@@ -291,7 +320,7 @@ const updateProduct = async (req, res) => {
     
     const sellerId = req.user.userId;
     const productId = parseInt(req.params.id);
-    const { title, description, price, stock, category_id, is_active } = req.body;
+    const { title, description, price, stock, category_id, is_active, images } = req.body;
     
     // Check if product exists and belongs to seller
     const productCheckQuery = `
@@ -349,11 +378,42 @@ const updateProduct = async (req, res) => {
       is_active,
       productId
     ]);
+
+    // Update product images if provided
+    if (images && Array.isArray(images) && images.length > 0) {
+      // Delete existing images
+      await query('DELETE FROM product_images WHERE product_id = $1', [productId]);
+      
+      // Insert new images
+      for (let i = 0; i < images.length; i++) {
+        await query(
+          `INSERT INTO product_images (product_id, image_url)
+           VALUES ($1, $2)`,
+          [productId, images[i]]
+        );
+      }
+    }
+    
+    // Fetch updated product with images
+    const productWithImages = await query(
+      `SELECT p.*, 
+        COALESCE(
+          JSON_AGG(
+            JSON_BUILD_OBJECT('id', pi.id, 'image_url', pi.image_url)
+          ) FILTER (WHERE pi.id IS NOT NULL),
+          '[]'
+        ) as images
+       FROM products p
+       LEFT JOIN product_images pi ON p.id = pi.product_id
+       WHERE p.id = $1
+       GROUP BY p.id`,
+      [productId]
+    );
     
     res.status(200).json({
       success: true,
       message: 'Product updated successfully',
-      data: updatedProductResult.rows[0],
+      data: productWithImages.rows[0],
     });
   } catch (error) {
     console.error('Error updating product:', error);

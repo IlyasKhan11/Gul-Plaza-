@@ -10,6 +10,7 @@ import { StarRating } from '@/components/common/StarRating'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/api'
+import { ratingService, type ProductRatingSummary } from '@/services/ratingService'
 import type { Product } from '@/types'
 import { formatPrice } from '@/lib/utils'
 
@@ -53,11 +54,15 @@ export function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [ratingSummary, setRatingSummary] = useState<ProductRatingSummary | null>(null)
 
+  // Fetch product and ratings
   useEffect(() => {
     if (!id) return
     setLoading(true)
-    api.get<{ data: Product }>(`/products/${id}`)
+    
+    // Fetch product
+    api.get<{ data: Product }>(`/api/products/${id}`)
       .then(res => {
         setProduct(res.data)
         setError(null)
@@ -67,6 +72,15 @@ export function ProductDetailPage() {
         setProduct(null)
       })
       .finally(() => setLoading(false))
+    
+    // Fetch ratings
+    ratingService.getProductRatings(Number(id))
+      .then(data => {
+        setRatingSummary(data.summary)
+      })
+      .catch(() => {
+        // Silently fail for ratings
+      })
   }, [id])
 
   const handleReportSubmit = async (e: React.FormEvent) => {
@@ -186,7 +200,11 @@ export function ProductDetailPage() {
           <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
 
           <div className="flex items-center gap-3 mt-2">
-            <StarRating rating={product.rating || 0} reviewCount={product.reviewCount || 0} size="md" />
+            <StarRating 
+              rating={ratingSummary?.average_rating || product.rating || 0} 
+              reviewCount={ratingSummary?.total_reviews || product.reviewCount || 0} 
+              size="md" 
+            />
             <Badge variant={(product.stock || 0) > 0 ? 'success' : 'destructive'}>
               {(product.stock || 0) > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
             </Badge>

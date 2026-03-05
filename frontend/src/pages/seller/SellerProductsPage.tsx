@@ -13,6 +13,7 @@ import { formatPrice } from '@/lib/utils'
 
 const emptyForm = {
   title: '', description: '', price: '', stock: '', category_id: '',
+  images: [] as string[],
 }
 
 export function SellerProductsPage() {
@@ -30,6 +31,7 @@ export function SellerProductsPage() {
   const [editProduct, setEditProduct] = useState<SellerProduct | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [newImageUrl, setNewImageUrl] = useState('')
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
 
@@ -80,6 +82,7 @@ export function SellerProductsPage() {
       price: product.price,
       stock: String(product.stock),
       category_id: '',
+      images: product.primary_image ? [product.primary_image] : [],
     })
   }
 
@@ -87,6 +90,23 @@ export function SellerProductsPage() {
     setAddOpen(false)
     setEditProduct(null)
     setForm(emptyForm)
+    setNewImageUrl('')
+  }
+
+  function addImageUrl() {
+    if (newImageUrl.trim()) {
+      try {
+        new URL(newImageUrl.trim())
+        setForm(f => ({ ...f, images: [...f.images, newImageUrl.trim()] }))
+        setNewImageUrl('')
+      } catch {
+        alert('Please enter a valid image URL')
+      }
+    }
+  }
+
+  function removeImageUrl(index: number) {
+    setForm(f => ({ ...f, images: f.images.filter((_, i) => i !== index) }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -104,6 +124,7 @@ export function SellerProductsPage() {
           price: Number(form.price),
           stock: Number(form.stock),
           category_id: form.category_id ? Number(form.category_id) : undefined,
+          images: form.images,
         })
         setProducts(prev => prev.map(p => p.id === editProduct.id ? updated : p))
         setSuccessMsg('Product updated successfully!')
@@ -114,6 +135,7 @@ export function SellerProductsPage() {
           price: Number(form.price),
           stock: Number(form.stock),
           category_id: Number(form.category_id),
+          images: form.images.length > 0 ? form.images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=600&fit=crop'],
         })
         setProducts(prev => [created, ...prev])
         setTotalProducts(t => t + 1)
@@ -314,9 +336,36 @@ export function SellerProductsPage() {
                   placeholder="e.g. 50" className="mt-1" required />
               </div>
             </div>
-            <p className="text-xs text-slate-400 flex items-center gap-1">
-              <FiX className="h-3 w-3" /> Product images can be added after creation via the product detail page.
-            </p>
+            {/* Image URLs */}
+            <div>
+              <Label>Product Images</Label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={newImageUrl}
+                  onChange={e => setNewImageUrl(e.target.value)}
+                  placeholder="Enter image URL (https://...)"
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addImageUrl())}
+                />
+                <Button type="button" variant="outline" onClick={addImageUrl}>Add</Button>
+              </div>
+              {form.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {form.images.map((url, idx) => (
+                    <div key={idx} className="relative group">
+                      <img src={url} alt="" className="w-16 h-16 rounded-lg object-cover border" />
+                      <button
+                        type="button"
+                        onClick={() => removeImageUrl(idx)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-slate-400 mt-1">Add image URLs for your product. First image will be the primary image.</p>
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
               <Button type="submit" disabled={saving}>

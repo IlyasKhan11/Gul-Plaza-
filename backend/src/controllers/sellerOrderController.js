@@ -29,24 +29,56 @@ const getSellerOrders = async (req, res) => {
     
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
     
+    // First get the orders without items
     const ordersQuery = `
-      SELECT DISTINCT
+      SELECT 
         o.id, o.status, o.total_amount, o.payment_status, o.payment_method,
         o.shipping_address, o.shipping_city, o.shipping_country, o.shipping_postal_code, o.shipping_phone,
         o.courier_name, o.tracking_number, o.seller_confirmed_at, o.seller_notes,
         o.created_at, o.updated_at,
-        u.name as buyer_name, u.email as buyer_email, u.phone as buyer_phone
+        u.name as buyer_name, u.email as buyer_email, u.phone as buyer_phone,
+        s.name as store_name
       FROM orders o
       LEFT JOIN users u ON o.buyer_id = u.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       LEFT JOIN products p ON oi.product_id = p.id
       LEFT JOIN stores s ON p.store_id = s.id
       ${whereClause}
+      GROUP BY o.id, u.name, u.email, u.phone, s.name
       ORDER BY o.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     
     params.push(parsedLimit, offset);
+    
+    // Get orders
+    const ordersResult = await query(ordersQuery, params);
+    
+    // Get order IDs to fetch items
+    const orderIds = ordersResult.rows.map(r => r.id);
+    let itemsMap = {};
+    
+    if (orderIds.length > 0) {
+      // Get items for these orders
+      const itemsQuery = `
+        SELECT 
+          oi.order_id,
+          JSON_AGG(JSON_BUILD_OBJECT('title', p.title, 'quantity', oi.quantity, 'price', oi.price_at_purchase)) as items
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = ANY($1)
+        GROUP BY oi.order_id
+      `;
+      const itemsResult = await query(itemsQuery, [orderIds]);
+      itemsResult.rows.forEach(row => {
+        itemsMap[row.order_id] = row.items;
+      });
+    }
+    
+    // Add items to each order
+    ordersResult.rows.forEach(row => {
+      row.items = itemsMap[row.id] || [];
+    });
     
     // Get total count
     const countQuery = `
@@ -59,11 +91,7 @@ const getSellerOrders = async (req, res) => {
     `;
     
     const countParams = params.slice(0, -2);
-    
-    const [ordersResult, countResult] = await Promise.all([
-      query(ordersQuery, params),
-      query(countQuery, countParams),
-    ]);
+    const countResult = await query(countQuery, countParams);
     
     const totalOrders = parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(totalOrders / parsedLimit);
@@ -191,25 +219,29 @@ const confirmOrder = async (req, res) => {
       });
     }
     
-    // Check if order can be confirmed (must be CONFIRMED status for COD)
-    if (order.status !== 'confirmed') {
+    // Check if order can be confirmed (must be PENDING or CONFIRMED status)
+    if (order.status !== 'pending' && order.status !== 'confirmed') {
       return res.status(400).json({
         success: false,
-        message: `Order with status ${order.status} cannot be confirmed. Only CONFIRMED orders can be confirmed.`,
+        message: `Order with status ${order.status} cannot be confirmed. Only PENDING or CONFIRMED orders can be confirmed.`,
       });
     }
     
-    // Update order with seller confirmation
+    // Determine new status based on current status
+    const newStatus = order.status === 'pending' ? 'confirmed' : order.status;
+    
+    // Update order with seller confirmation and status change
     const updateQuery = `
       UPDATE orders 
-      SET seller_confirmed_at = CURRENT_TIMESTAMP,
-          seller_notes = $1,
+      SET status = $1,
+          seller_confirmed_at = CURRENT_TIMESTAMP,
+          seller_notes = $2,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2
+      WHERE id = $3
       RETURNING id, status, seller_confirmed_at, seller_notes, updated_at
     `;
     
-    const updatedOrderResult = await query(updateQuery, [notes, orderId]);
+    const updatedOrderResult = await query(updateQuery, [newStatus, notes, orderId]);
     const updatedOrder = updatedOrderResult.rows[0];
     
     // Create notification for buyer
@@ -304,7 +336,7 @@ const shipOrderWithTracking = async (req, res) => {
     }
     
     // For COD orders, check if seller has confirmed
-    if (order.payment_method === 'cod' && !order.seller_confirmed_at) {
+    if ((order.payment_method === 'cod' || order.payment_method === 'COD') && !order.seller_confirmed_at) {
       return res.status(400).json({
         success: false,
         message: 'COD orders must be confirmed before shipping',
@@ -393,6 +425,126 @@ const shipOrderWithTracking = async (req, res) => {
       success: false,
       message: 'Internal server error',
     });
+  }
+};
+
+// Mark order as delivered
+const deliverOrder = async (req, res) => {
+  const { orderId } = req.params;
+  const sellerId = req.user.userId;
+
+  if (!orderId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Order ID is required',
+    });
+  }
+
+  const client = await require('../config/db').pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // First verify the order belongs to this seller
+    const orderCheckQuery = `
+      SELECT o.id, o.status, o.payment_method, o.seller_confirmed_at
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      LEFT JOIN stores s ON p.store_id = s.id
+      WHERE o.id = $1 AND s.owner_id = $2
+    `;
+    const orderCheckResult = await client.query(orderCheckQuery, [orderId, sellerId]);
+
+    if (orderCheckResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found or does not belong to your store',
+      });
+    }
+
+    const order = orderCheckResult.rows[0];
+
+    // Check if order can be marked as delivered (must be shipped)
+    if (order.status !== 'shipped') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Only shipped orders can be marked as delivered',
+      });
+    }
+
+    // Update order to delivered
+    const updateQuery = `
+      UPDATE orders 
+      SET status = 'delivered',
+          delivered_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING id, status, delivered_at, updated_at
+    `;
+
+    const updatedOrderResult = await client.query(updateQuery, [orderId]);
+    const updatedOrder = updatedOrderResult.rows[0];
+
+    // Create notification for buyer
+    await client.query(
+      `INSERT INTO order_notifications (order_id, seller_id, notification_type, message) 
+       VALUES ($1, $2, 'order_delivered', $3)`,
+      [orderId, sellerId, `Your order #${orderId} has been delivered! Thank you for shopping with us.`]
+    );
+
+    // Send WhatsApp notification to buyer
+    try {
+      const buyerQuery = `SELECT name, phone FROM users WHERE id = (SELECT buyer_id FROM orders WHERE id = $1)`;
+      const buyerResult = await client.query(buyerQuery, [orderId]);
+
+      if (buyerResult.rows.length > 0) {
+        const buyer = buyerResult.rows[0];
+        const message = `✅ Order Delivered!
+
+Order #${orderId}
+
+Your order has been delivered successfully!
+Thank you for shopping with Gul Plaza.
+
+Rate your experience: https://gulplaza.com/feedback/${orderId}`;
+
+        console.log('📱 WhatsApp Message (Development Mode):', {
+          to: buyer.phone,
+          message,
+          type: 'text',
+          timestamp: new Date().toISOString()
+        });
+
+        await client.query(
+          `UPDATE order_notifications SET whatsapp_sent = true, whatsapp_message_id = $1 
+           WHERE order_id = $2 AND notification_type = 'order_delivered' AND seller_id = $3`,
+          ['dev-' + Date.now(), orderId, sellerId]
+        );
+      }
+    } catch (whatsappError) {
+      console.error('WhatsApp notification error:', whatsappError);
+    }
+
+    await client.query('COMMIT');
+
+    res.status(200).json({
+      success: true,
+      message: 'Order marked as delivered',
+      data: updatedOrder,
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error delivering order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  } finally {
+    client.release();
   }
 };
 
@@ -509,11 +661,164 @@ const markNotificationAsRead = async (req, res) => {
   }
 };
 
+// Get Monthly Revenue for Seller
+const getMonthlyRevenue = async (req, res) => {
+  try {
+    const sellerId = req.user.userId;
+    const { months = 6 } = req.query;
+    const parsedMonths = Math.min(parseInt(months), 12);
+    
+    // Get revenue grouped by month for the last N months
+    const revenueQuery = `
+      SELECT 
+        TO_CHAR(o.created_at, 'YYYY-MM') as month,
+        TO_CHAR(o.created_at, 'Mon') as month_name,
+        COUNT(*) as order_count,
+        COALESCE(SUM(o.total_amount), 0) as revenue
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      LEFT JOIN stores s ON p.store_id = s.id
+      WHERE s.owner_id = $1
+        AND o.created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '${parsedMonths} months'
+        AND o.payment_status IN ('paid', 'verified')
+      GROUP BY TO_CHAR(o.created_at, 'YYYY-MM'), TO_CHAR(o.created_at, 'Mon')
+      ORDER BY month ASC
+    `;
+    
+    const revenueResult = await query(revenueQuery, [sellerId]);
+    
+    // Get total revenue
+    const totalQuery = `
+      SELECT COALESCE(SUM(o.total_amount), 0) as total
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      LEFT JOIN stores s ON p.store_id = s.id
+      WHERE s.owner_id = $1 AND o.payment_status IN ('paid', 'verified')
+    `;
+    
+    const totalResult = await query(totalQuery, [sellerId]);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Monthly revenue retrieved successfully',
+      data: {
+        monthly_revenue: revenueResult.rows.map(row => ({
+          month: row.month,
+          month_name: row.month_name,
+          order_count: parseInt(row.order_count),
+          revenue: parseFloat(row.revenue)
+        })),
+        total_revenue: parseFloat(totalResult.rows[0].total)
+      }
+    });
+  } catch (error) {
+    console.error('Error getting monthly revenue:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+// Get Seller Earnings/Transactions
+const getSellerEarnings = async (req, res) => {
+  try {
+    const sellerId = req.user.userId;
+    const { page = 1, limit = 20 } = req.query;
+    const parsedLimit = Math.min(parseInt(limit), 100);
+    const offset = (parseInt(page) - 1) * parsedLimit;
+    
+    // Get transaction slips for this seller
+    const transactionsQuery = `
+      SELECT 
+        ts.id,
+        ts.order_id,
+        ts.slip_image_url,
+        ts.transaction_id,
+        ts.notes,
+        ts.status,
+        ts.created_at,
+        ts.approved_at,
+        o.total_amount as order_amount
+      FROM transaction_slips ts
+      LEFT JOIN orders o ON ts.order_id = o.id
+      WHERE ts.seller_id = $1
+      ORDER BY ts.created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
+    
+    const transactionsResult = await query(transactionsQuery, [sellerId, parsedLimit, offset]);
+    
+    // Get totals
+    const totalsQuery = `
+      SELECT 
+        COUNT(*) as total_count,
+        COALESCE(SUM(CASE WHEN ts.status = 'approved' THEN o.total_amount ELSE 0 END), 0) as total_earned,
+        COALESCE(SUM(CASE WHEN ts.status = 'pending' THEN o.total_amount ELSE 0 END), 0) as pending_release,
+        COALESCE(SUM(CASE WHEN ts.status = 'rejected' THEN o.total_amount ELSE 0 END), 0) as rejected
+      FROM transaction_slips ts
+      LEFT JOIN orders o ON ts.order_id = o.id
+      WHERE ts.seller_id = $1
+    `;
+    
+    const totalsResult = await query(totalsQuery, [sellerId]);
+    const totals = totalsResult.rows[0];
+    
+    // Also get paid orders revenue (orders that are delivered/paid but not through transaction slips)
+    const ordersRevenueQuery = `
+      SELECT COALESCE(SUM(o.total_amount), 0) as direct_revenue
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      LEFT JOIN stores s ON p.store_id = s.id
+      WHERE s.owner_id = $1 AND o.payment_status IN ('paid', 'verified') AND o.status = 'delivered'
+    `;
+    
+    const ordersRevenueResult = await query(ordersRevenueQuery, [sellerId]);
+    const directRevenue = parseFloat(ordersRevenueResult.rows[0].direct_revenue) || 0;
+    
+    res.status(200).json({
+      success: true,
+      message: 'Seller earnings retrieved successfully',
+      data: {
+        transactions: transactionsResult.rows.map(tx => ({
+          id: tx.id,
+          order_id: tx.order_id,
+          amount: tx.order_amount,
+          status: tx.status,
+          created_at: tx.created_at,
+          approved_at: tx.approved_at
+        })),
+        totals: {
+          total_earned: directRevenue + parseFloat(totals.total_earned),
+          pending_release: parseFloat(totals.pending_release),
+          withdrawn: parseFloat(totals.total_earned)
+        },
+        pagination: {
+          current_page: parseInt(page),
+          total_count: parseInt(totals.total_count)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error getting seller earnings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   getSellerOrders,
   getSellerOrderById,
   confirmOrder,
   shipOrderWithTracking,
+  deliverOrder,
   getSellerNotifications,
   markNotificationAsRead,
+  getMonthlyRevenue,
+  getSellerEarnings,
 };

@@ -7,9 +7,17 @@ const {
   getSellerOrderById,
   confirmOrder,
   shipOrderWithTracking,
+  deliverOrder,
   getSellerNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
+  getMonthlyRevenue,
+  getSellerEarnings
 } = require('../controllers/sellerOrderController');
+
+// Import seller payment controller for WhatsApp
+const {
+  sendWhatsAppMessage
+} = require('../controllers/sellerPaymentController');
 
 const { body, param } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/validationMiddleware');
@@ -122,6 +130,21 @@ router.post(
 );
 
 /**
+ * @route   POST /api/seller/orders/:orderId/deliver
+ * @desc    Mark order as delivered (seller only)
+ * @access  Private (Seller only)
+ */
+router.post(
+  '/orders/:orderId/deliver',
+  authenticateToken,
+  requireSeller,
+  sellerOrderActionLimiter,
+  param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
+  handleValidationErrors,
+  deliverOrder
+);
+
+/**
  * @route   GET /api/seller/notifications
  * @desc    Get seller notifications with pagination and filtering
  * @access  Private (Seller only)
@@ -147,6 +170,48 @@ router.patch(
   param('notificationId').isInt({ min: 1 }).withMessage('Notification ID must be a positive integer'),
   handleValidationErrors,
   markNotificationAsRead
+);
+
+/**
+ * @route   POST /api/seller/orders/:orderId/whatsapp
+ * @desc    Send WhatsApp message to buyer (seller only)
+ * @access  Private (Seller only)
+ */
+router.post(
+  '/orders/:orderId/whatsapp',
+  authenticateToken,
+  requireSeller,
+  sellerOrderActionLimiter,
+  param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
+  body('message').isString().notEmpty().withMessage('Message is required'),
+  handleValidationErrors,
+  sendWhatsAppMessage
+);
+
+/**
+ * @route   GET /api/seller/orders/revenue/monthly
+ * @desc    Get monthly revenue for seller
+ * @access  Private (Seller only)
+ */
+router.get(
+  '/orders/revenue/monthly',
+  authenticateToken,
+  requireSeller,
+  sellerOrderLimiter,
+  getMonthlyRevenue
+);
+
+/**
+ * @route   GET /api/seller/earnings
+ * @desc    Get seller earnings/transactions
+ * @access  Private (Seller only)
+ */
+router.get(
+  '/earnings',
+  authenticateToken,
+  requireSeller,
+  sellerOrderLimiter,
+  getSellerEarnings
 );
 
 module.exports = router;

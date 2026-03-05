@@ -17,6 +17,7 @@ const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const ratingRoutes = require('./routes/ratingRoutes');
 
 // Import middleware
 const { combinedLogger } = require('./middleware/loggingMiddleware');
@@ -78,6 +79,8 @@ const corsOptions = {
         'http://127.0.0.1:3000',
         'http://localhost:3001',
         'http://127.0.0.1:3001',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
       ];
       
       // Allow requests with no origin (like mobile apps or curl requests)
@@ -206,6 +209,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api', reportRoutes);
+app.use('/api/ratings', ratingRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

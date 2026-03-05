@@ -92,6 +92,13 @@ const createOrderSchema = Joi.object({
       'string.empty': 'Shipping phone is required',
       'any.required': 'Shipping phone is required',
       'string.max': 'Shipping phone cannot exceed 20 characters'
+    }),
+  
+  shipping_full_name: Joi.string()
+    .trim()
+    .max(255)
+    .messages({
+      'string.max': 'Full name cannot exceed 255 characters'
     })
 });
 

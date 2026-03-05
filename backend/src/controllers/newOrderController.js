@@ -21,7 +21,8 @@ const createOrder = async (req, res) => {
       shipping_city, 
       shipping_country, 
       shipping_postal_code, 
-      shipping_phone 
+      shipping_phone,
+      shipping_full_name
     } = req.body;
     
     // Validate required shipping information
@@ -77,15 +78,15 @@ const createOrder = async (req, res) => {
         INSERT INTO orders (
           buyer_id, user_id, total_amount, payment_status, 
           shipping_address, shipping_city, shipping_country, 
-          shipping_postal_code, shipping_phone
-        ) VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7, $8)
+          shipping_postal_code, shipping_phone, shipping_full_name
+        ) VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7, $8, $9)
         RETURNING id, status, total_amount, payment_status, created_at, updated_at
       `;
       
       const newOrderResult = await client.query(createOrderQuery, [
         userId, userId, totalAmount,
         shipping_address, shipping_city, shipping_country, 
-        shipping_postal_code, shipping_phone
+        shipping_postal_code, shipping_phone, shipping_full_name || null
       ]);
       
       const newOrder = newOrderResult.rows[0];

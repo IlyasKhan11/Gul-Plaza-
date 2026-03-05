@@ -166,7 +166,8 @@ const canVerifyPayment = (currentStatus) => {
  * @returns {boolean} - True if order can be shipped
  */
 const canShipOrder = (currentStatus) => {
-  return currentStatus === ORDER_STATUSES.PAID || currentStatus === ORDER_STATUSES.CONFIRMED;
+  const status = currentStatus?.toLowerCase();
+  return status === 'paid' || status === 'confirmed' || status === 'processing';
 };
 
 /**

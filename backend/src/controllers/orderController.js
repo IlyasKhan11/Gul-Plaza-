@@ -43,17 +43,59 @@ const getBuyerOrders = async (req, res) => {
     
     const ordersQuery = `
       SELECT 
-        o.id, o.status, o.total_amount, o.payment_status, o.created_at, o.updated_at,
-        COUNT(oi.id) as item_count
+        o.id, o.status, o.total_amount, o.payment_status, o.payment_method,
+        o.courier_name, o.tracking_number, o.created_at, o.updated_at,
+        o.delivered_at, o.shipped_at,
+        u.name as buyer_name, u.phone as buyer_phone,
+        o.shipping_address, o.shipping_city
       FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN users u ON o.buyer_id = u.id
       ${whereClause}
-      GROUP BY o.id, o.status, o.total_amount, o.payment_status, o.created_at, o.updated_at
       ORDER BY o.created_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      LIMIT ${paramIndex} OFFSET ${paramIndex + 1}
     `;
     
     params.push(parsedLimit, offset);
+    
+    // Get orders first
+    const ordersResult = await query(ordersQuery, params);
+    
+    // Then get items separately for each order
+    if (ordersResult.rows.length > 0) {
+      const orderIds = ordersResult.rows.map(o => o.id);
+      
+      const itemsQuery = `
+        SELECT 
+          oi.order_id,
+          JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'product_id', oi.product_id,
+              'title', p.title, 
+              'quantity', oi.quantity, 
+              'price', oi.price_at_purchase,
+              'store_name', s.name
+            )
+          ) as items
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        LEFT JOIN stores s ON p.store_id = s.id
+        WHERE oi.order_id = ANY($1)
+        GROUP BY oi.order_id
+      `;
+      
+      const itemsResult = await query(itemsQuery, [orderIds]);
+      
+      // Create a map of order_id to items
+      const itemsMap = {};
+      itemsResult.rows.forEach(row => {
+        itemsMap[row.order_id] = row.items;
+      });
+      
+      // Attach items to orders
+      ordersResult.rows.forEach(order => {
+        order.items = itemsMap[order.id] || [];
+      });
+    }
     
     // Get total count
     const countQuery = `

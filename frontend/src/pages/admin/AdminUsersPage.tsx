@@ -123,10 +123,10 @@ export function AdminUsersPage() {
                         <td className="py-3">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarFallback>{user.username[0]?.toUpperCase()}</AvatarFallback>
+                              <AvatarFallback>{user.name[0]?.toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-slate-800">{user.username}</p>
+                              <p className="font-medium text-slate-800">{user.name}</p>
                               <p className="text-xs text-slate-500">{user.email}</p>
                             </div>
                           </div>

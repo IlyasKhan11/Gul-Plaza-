@@ -376,6 +376,26 @@ CREATE TABLE IF NOT EXISTS order_notifications (
 );
 
 -- ===============================
+-- PRODUCT RATINGS TABLE
+-- ===============================
+CREATE TABLE IF NOT EXISTS product_ratings (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    buyer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    review TEXT,
+    is_verified_purchase BOOLEAN DEFAULT false,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_id, buyer_id)
+);
+
+-- Index for product ratings
+CREATE INDEX IF NOT EXISTS idx_product_ratings_product_id ON product_ratings(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_ratings_buyer_id ON product_ratings(buyer_id);
+
+-- ===============================
 -- COMPLETION MESSAGE
 -- ===============================
 -- Schema created successfully!

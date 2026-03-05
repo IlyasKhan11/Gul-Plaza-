@@ -66,6 +66,7 @@ export const orderService = {
       shipping_country,
       shipping_postal_code,
       shipping_phone,
+      shipping_full_name: extra?.shipping_full_name,
     })
     const order = orderRes.data
     // Prepare payment payload

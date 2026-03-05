@@ -217,19 +217,19 @@ class OrderService {
       let paramIndex = 2;
       
       if (status) {
-        conditions.push(`o.status = $${paramIndex}`);
+        conditions.push(`o.status = ${paramIndex}`);
         params.push(status);
         paramIndex++;
       }
       
       if (start_date) {
-        conditions.push(`o.created_at >= $${paramIndex}`);
+        conditions.push(`o.created_at >= ${paramIndex}`);
         params.push(start_date);
         paramIndex++;
       }
       
       if (end_date) {
-        conditions.push(`o.created_at <= $${paramIndex}`);
+        conditions.push(`o.created_at <= ${paramIndex}`);
         params.push(end_date);
         paramIndex++;
       }
@@ -241,7 +241,7 @@ class OrderService {
       
       const whereClause = conditions.join(' AND ');
       
-      // Get orders
+      // Get orders with buyer info and shipping
       const ordersQuery = `
         SELECT 
           o.id,
@@ -250,11 +250,15 @@ class OrderService {
           o.currency,
           o.created_at,
           o.updated_at,
+          o.courier_name,
+          o.tracking_number,
+          o.shipping_address,
+          o.shipping_city,
           COUNT(oi.id) as item_count
         FROM orders o
         LEFT JOIN order_items oi ON o.id = oi.order_id
         WHERE ${whereClause}
-        GROUP BY o.id, o.total_amount, o.status, o.currency, o.created_at, o.updated_at
+        GROUP BY o.id
         ORDER BY o.${sortColumn} ${sortDirection}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
@@ -275,11 +279,53 @@ class OrderService {
         query(countQuery, countParams)
       ]);
       
+      const orders = ordersResult.rows;
+      
+      // Get order items for each order
+      if (orders.length > 0) {
+        const orderIds = orders.map(o => o.id);
+        
+        const itemsQuery = `
+          SELECT 
+            oi.order_id,
+            p.id as product_id,
+            p.title, 
+            oi.quantity, 
+            oi.price_at_purchase,
+            s.name as store_name,
+            (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY id ASC LIMIT 1) as product_image
+          FROM order_items oi
+          JOIN products p ON oi.product_id = p.id
+          LEFT JOIN stores s ON p.store_id = s.id
+          WHERE oi.order_id = ANY($1)
+        `;
+        
+        const itemsResult = await query(itemsQuery, [orderIds]);
+        
+        // Group items by order_id
+        const itemsMap = {};
+        itemsResult.rows.forEach(item => {
+          if (!itemsMap[item.order_id]) {
+            itemsMap[item.order_id] = [];
+          }
+          itemsMap[item.order_id].push(item);
+        });
+        
+        // Attach items and store names to orders
+        orders.forEach(order => {
+          order.items = itemsMap[order.id] || [];
+          // Get store name from first item
+          if (order.items.length > 0) {
+            order.store_name = order.items[0].store_name;
+          }
+        });
+      }
+      
       const totalOrders = parseInt(countResult.rows[0].total);
       const totalPages = Math.ceil(totalOrders / parsedLimit);
       
       return {
-        orders: ordersResult.rows,
+        orders: orders,
         pagination: {
           current_page: parseInt(page),
           total_pages: totalPages,

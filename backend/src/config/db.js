@@ -232,6 +232,22 @@ const initializeDatabase = async () => {
       )
     `);
 
+    // Create product_ratings table
+    await query(`
+      CREATE TABLE IF NOT EXISTS product_ratings (
+        id BIGSERIAL PRIMARY KEY,
+        product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        buyer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL,
+        rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        review TEXT,
+        is_verified_purchase BOOLEAN DEFAULT false,
+        created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(product_id, buyer_id)
+      )
+    `);
+
     // Add missing columns to orders table
     await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE RESTRICT`);
     await query(`UPDATE orders SET user_id = buyer_id WHERE user_id IS NULL`).catch(() => {});
@@ -273,6 +289,10 @@ const initializeDatabase = async () => {
     await query('CREATE INDEX IF NOT EXISTS idx_product_reports_product_id ON product_reports(product_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_product_reports_reporter_id ON product_reports(reporter_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_product_reports_status ON product_reports(status)');
+
+    // Create indexes for product_ratings
+    await query('CREATE INDEX IF NOT EXISTS idx_product_ratings_product_id ON product_ratings(product_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_product_ratings_buyer_id ON product_ratings(buyer_id)');
 
     // Create updated_at trigger function
     await query(`

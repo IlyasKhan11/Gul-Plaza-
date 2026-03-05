@@ -3,6 +3,7 @@ import type { OrderStatus } from '@/types'
 
 const statusConfig: Record<OrderStatus, { label: string; variant: 'warning' | 'info' | 'default' | 'success' | 'destructive' | 'secondary' | 'outline' }> = {
   pending: { label: 'Pending', variant: 'warning' },
+  confirmed: { label: 'Confirmed', variant: 'info' },
   processing: { label: 'Processing', variant: 'info' },
   shipped: { label: 'Shipped', variant: 'default' },
   delivered: { label: 'Delivered', variant: 'success' },

@@ -53,13 +53,21 @@ export interface SellerOrder {
 }
 
 export interface BuyerOrder {
-  id: number
+  id: number | string
   status: string
   total_amount: string
   currency: string | null
   created_at: string
   updated_at: string
   item_count: string
+  store_name?: string
+  buyer_name?: string
+  buyer_phone?: string
+  shipping_address?: string
+  shipping_city?: string
+  items?: Array<{ product_id?: number; title: string; quantity: number; price_at_purchase?: number; price?: number; store_name?: string; product_image?: string }>
+  courier_name?: string
+  tracking_number?: string
 }
 
 export interface ApiCategory {
@@ -74,7 +82,7 @@ export interface ApiCategory {
 export const sellerService = {
   // Store
   async getProfile() {
-    const res = await api.get<ApiResp<{ user: unknown; profile: unknown; store: SellerStore | null }>>(
+    const res = await api.get<{ success: boolean; data: { user: unknown; profile: unknown; store: SellerStore | null } }>(
       '/api/sellers/profile'
     )
     return res.data
@@ -129,7 +137,7 @@ export const sellerService = {
     const res = await api.get<ApiResp<{
       products: SellerProduct[]
       pagination: Pagination & { total_products: number }
-    }>>(`/products/seller/my-products?${qs}`)
+    }>>(`/api/products/seller/my-products?${qs}`)
     return res.data
   },
 
@@ -139,34 +147,69 @@ export const sellerService = {
     price: number
     stock: number
     category_id: number
+    images?: string[]
   }): Promise<SellerProduct> {
-    const res = await api.post<ApiResp<SellerProduct>>('/products', data)
+    const res = await api.post<ApiResp<SellerProduct>>('/api/products', data)
     return res.data
   },
 
   async updateProduct(
     productId: number,
-    data: { title?: string; description?: string; price?: number; stock?: number; category_id?: number; is_active?: boolean }
+    data: { title?: string; description?: string; price?: number; stock?: number; category_id?: number; is_active?: boolean; images?: string[] }
   ): Promise<SellerProduct> {
-    const res = await api.put<ApiResp<SellerProduct>>(`/products/${productId}`, data)
+    const res = await api.put<ApiResp<SellerProduct>>(`/api/products/${productId}`, data)
     return res.data
   },
 
   async deleteProduct(productId: number): Promise<void> {
-    await api.delete(`/products/${productId}`)
+    await api.delete(`/api/products/${productId}`)
   },
 
   // Orders (seller)
-  // When backend adds the endpoint, replace above
-  async getOrders(_params?: { page?: number; status?: string; limit?: number }): Promise<{
+  async getOrders(params?: { page?: number; status?: string; limit?: number }): Promise<{
     orders: SellerOrder[]
     pagination: Pagination & { total_orders: number }
   }> {
-    throw new Error('Seller orders endpoint is not yet available. Please ask the backend developer to add GET /api/orders/seller/my-orders.')
+    const qs = new URLSearchParams()
+    if (params?.page) qs.set('page', String(params.page))
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.status) qs.set('status', params.status)
+    const res = await api.get<{
+      success: boolean
+      message?: string
+      data: {
+        orders: SellerOrder[]
+        pagination: Pagination & { total_orders: number }
+      }
+    }>(`/api/seller/orders?${qs}`)
+    return res.data
   },
 
-  async updateOrderStatus(_orderId: number, _status: string): Promise<void> {
-    throw new Error('Seller order status update is not yet available in the backend.')
+  async updateOrderStatus(orderId: number, status: string): Promise<void> {
+    await api.patch(`/api/seller/orders/${orderId}/status`, { status })
+  },
+
+  async confirmOrder(orderId: number, notes?: string): Promise<void> {
+    await api.post(`/api/seller/orders/${orderId}/confirm`, { notes })
+  },
+
+  async shipOrder(orderId: number, courier_name: string, tracking_number: string): Promise<void> {
+    await api.post(`/api/seller/orders/${orderId}/ship`, { courier_name, tracking_number })
+  },
+
+  async deliverOrder(orderId: number): Promise<void> {
+    await api.post(`/api/seller/orders/${orderId}/deliver`)
+  },
+
+  // Send WhatsApp message to buyer
+  async sendWhatsAppMessage(orderId: number, message: string): Promise<{ success: boolean; messageId?: string }> {
+    const res = await api.post(`/api/seller/orders/${orderId}/whatsapp`, { message })
+    return res.data
+  },
+
+  // Verify payment for COD order
+  async verifyCODPayment(orderId: number): Promise<void> {
+    await api.post(`/api/seller/orders/${orderId}/confirm`, { notes: 'COD payment verified - buyer will pay on delivery' })
   },
 
   // Buyer orders
@@ -184,6 +227,39 @@ export const sellerService = {
 
   async cancelOrder(_orderId: number): Promise<void> {
     throw new Error('Order cancellation is not yet available in the backend.')
+  },
+
+  // Get monthly revenue for seller dashboard
+  async getMonthlyRevenue(months: number = 6): Promise<{
+    monthly_revenue: Array<{ month: string; month_name: string; order_count: number; revenue: number }>
+    total_revenue: number
+  }> {
+    const res = await api.get<any>(`/api/seller/orders/revenue/monthly?months=${months}`)
+    return res.data.data
+  },
+
+  // Get seller earnings/transactions
+  async getSellerEarnings(): Promise<{
+    transactions: Array<{
+      id: number
+      order_id: number
+      amount: number
+      status: string
+      created_at: string
+      approved_at: string | null
+    }>
+    totals: {
+      total_earned: number
+      pending_release: number
+      withdrawn: number
+    }
+    pagination: {
+      current_page: number
+      total_count: number
+    }
+  }> {
+    const res = await api.get<any>(`/api/seller/earnings`)
+    return res.data.data
   },
 
   // Categories (public)

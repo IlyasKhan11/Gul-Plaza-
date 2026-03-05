@@ -82,7 +82,7 @@ export interface CartItem {
   quantity: number
 }
 
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
 
 export interface OrderItem {
   product: Product

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FiDollarSign, FiPackage, FiShoppingBag, FiBriefcase, FiTrendingUp, FiGlobe, FiArrowRight, FiRefreshCw } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { OrderStatusBadge } from '@/components/common/OrderStatusBadge'
@@ -16,6 +16,7 @@ export function SellerDashboardPage() {
   const [storeProfile, setStoreProfile] = useState<any>(null)
   const [orders, setOrders] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
+  const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,14 +40,16 @@ export function SellerDashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const [profileData, ordersData, productsData] = await Promise.all([
+      const [profileData, ordersData, productsData, revenueData] = await Promise.all([
         sellerService.getProfile(),
         sellerService.getOrders(),
-        sellerService.getProducts()
+        sellerService.getProducts(),
+        sellerService.getMonthlyRevenue(6).catch(() => ({ monthly_revenue: [], total_revenue: 0 }))
       ])
       setStoreProfile(profileData)
       setOrders(ordersData.orders || [])
       setProducts(productsData.products || [])
+      setMonthlyRevenue(revenueData?.monthly_revenue || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
     } finally {
@@ -144,7 +147,33 @@ export function SellerDashboardPage() {
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <FiTrendingUp className="h-4 w-4 text-blue-600" /> Order Status Overview
+                  <FiTrendingUp className="h-4 w-4 text-blue-600" /> Monthly Revenue
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {monthlyRevenue && monthlyRevenue.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={monthlyRevenue}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="month_name" tick={{ fontSize: 12 }} stroke="#888" />
+                      <YAxis tick={{ fontSize: 12 }} stroke="#888" tickFormatter={(value) => `Rs.${value / 1000}k`} />
+                      <Tooltip 
+                        formatter={(value) => [`Rs.${Number(value).toLocaleString()}`, 'Revenue']}
+                        contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                      />
+                      <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Revenue" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[220px] flex items-center justify-center text-slate-300 text-sm">No revenue data yet</div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FiTrendingUp className="h-4 w-4 text-purple-600" /> Order Status
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -163,33 +192,6 @@ export function SellerDashboardPage() {
                 ) : (
                   <div className="h-[220px] flex items-center justify-center text-slate-300 text-sm">No orders yet</div>
                 )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">Total Products</span>
-                    <span className="font-semibold">{products?.length || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">Pending Orders</span>
-                    <span className="font-semibold">{orders?.filter(o => o.status === 'pending').length || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">Completed Orders</span>
-                    <span className="font-semibold">{orders?.filter(o => o.status === 'delivered').length || 0}</span>
-                  </div>
-                  <div className="pt-2">
-                    <Button size="sm" className="w-full" asChild>
-                      <Link to="/seller/products/new">Add New Product</Link>
-                    </Button>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>

@@ -1,17 +1,28 @@
+import { useState, useEffect } from 'react'
 import { FiDollarSign, FiClock, FiCheckCircle } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/AuthContext'
-import { mockTransactions } from '@/data/mockData'
+import { sellerService } from '@/services/sellerService'
 import { formatPrice, formatDate } from '@/lib/utils'
 
 export function SellerEarningsPage() {
   const { user } = useAuth()
-  const myTransactions = mockTransactions.filter(t => t.sellerId === user?.id)
+  const [earningsData, setEarningsData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  const totalEarned = myTransactions.filter(t => t.status === 'released' || t.status === 'withdrawn').reduce((s, t) => s + t.sellerShare, 0)
-  const pendingRelease = myTransactions.filter(t => t.status === 'pending').reduce((s, t) => s + t.sellerShare, 0)
-  const withdrawn = myTransactions.filter(t => t.status === 'withdrawn').reduce((s, t) => s + t.sellerShare, 0)
+  useEffect(() => {
+    if (user?.role === 'seller') {
+      sellerService.getSellerEarnings()
+        .then(data => setEarningsData(data))
+        .catch(() => setEarningsData(null))
+        .finally(() => setLoading(false))
+    }
+  }, [user])
+
+  const totalEarned = earningsData?.totals?.total_earned || 0
+  const pendingRelease = earningsData?.totals?.pending_release || 0
+  const withdrawn = earningsData?.totals?.withdrawn || 0
 
   const stats = [
     { title: 'Total Earned', value: formatPrice(totalEarned), icon: FiDollarSign, color: 'text-green-600', bg: 'bg-green-50' },
@@ -53,7 +64,9 @@ export function SellerEarningsPage() {
       <Card>
         <CardHeader><CardTitle className="text-base">Transaction History</CardTitle></CardHeader>
         <CardContent>
-          {myTransactions.length === 0 ? (
+          {loading ? (
+            <p className="text-center text-slate-400 py-10 text-sm">Loading...</p>
+          ) : !earningsData?.transactions || earningsData.transactions.length === 0 ? (
             <p className="text-center text-slate-400 py-10 text-sm">No transactions yet</p>
           ) : (
             <div className="overflow-x-auto">
@@ -62,23 +75,19 @@ export function SellerEarningsPage() {
                   <tr className="border-b border-slate-200">
                     <th className="text-left pb-3 text-slate-500 font-medium">Order</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Amount</th>
-                    <th className="text-left pb-3 text-slate-500 font-medium">Commission</th>
-                    <th className="text-left pb-3 text-slate-500 font-medium">Your Share</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {myTransactions.map(tx => (
+                  {earningsData.transactions.map((tx: any) => (
                     <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3 font-mono text-xs text-slate-500">#{tx.orderId}</td>
+                      <td className="py-3 font-mono text-xs text-slate-500">#{tx.order_id}</td>
                       <td className="py-3 text-slate-800">{formatPrice(tx.amount)}</td>
-                      <td className="py-3 text-red-500 text-xs">-{formatPrice(tx.commission)}</td>
-                      <td className="py-3 font-bold text-green-700">{formatPrice(tx.sellerShare)}</td>
                       <td className="py-3">
                         <Badge variant={statusVariant(tx.status)} className="capitalize">{tx.status}</Badge>
                       </td>
-                      <td className="py-3 text-slate-500 text-xs">{formatDate(tx.createdAt)}</td>
+                      <td className="py-3 text-slate-500 text-xs">{formatDate(tx.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>

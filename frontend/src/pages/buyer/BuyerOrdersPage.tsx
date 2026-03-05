@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FiPackage, FiRefreshCw } from 'react-icons/fi'
+import { FiPackage, FiRefreshCw, FiStar } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { sellerService, type BuyerOrder } from '@/services/sellerService'
+import { ratingService } from '@/services/ratingService'
 import { formatPrice, formatDate } from '@/lib/utils'
+import { RateProductDialog } from '@/components/common/RatingDialog'
 
 function statusVariant(status: string): 'default' | 'success' | 'warning' | 'destructive' | 'outline' {
   switch (status) {
@@ -25,6 +27,17 @@ export function BuyerOrdersPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
+  
+  // Rating state
+  const [ratableProducts, setRatableProducts] = useState<{[key: string]: boolean}>({})
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<{
+    product_id: number
+    title: string
+    store_name: string
+    order_id: number
+  } | null>(null)
+  const [existingRating, setExistingRating] = useState<{ rating: number; review: string | null } | undefined>()
 
   const fetchOrders = useCallback(async (p: number) => {
     setLoading(true)
@@ -44,6 +57,51 @@ export function BuyerOrdersPage() {
   useEffect(() => {
     fetchOrders(1)
   }, [fetchOrders])
+
+  // Fetch ratable products when orders are loaded
+  useEffect(() => {
+    if (orders.length > 0) {
+      fetchRatableProducts()
+    }
+  }, [orders])
+
+  const fetchRatableProducts = async () => {
+    try {
+      const data = await ratingService.getRatableOrders()
+      const ratableMap: {[key: string]: boolean} = {}
+      
+      // Map order+product combinations that can be rated
+      data.orders.forEach((order: any) => {
+        order.items.forEach((item: any) => {
+          const key = `${order.order_id}-${item.product_id}`
+          ratableMap[key] = !item.already_rated
+        })
+      })
+      
+      setRatableProducts(ratableMap)
+    } catch (err) {
+      console.error('Failed to fetch ratable products:', err)
+    }
+  }
+
+  const handleOpenRating = async (productId: number, title: string, storeName: string, orderId: number) => {
+    setSelectedProduct({ product_id: productId, title, store_name: storeName, order_id: orderId })
+    
+    // Check if already rated
+    try {
+      const existing = await ratingService.getMyRating(productId)
+      setExistingRating(existing ? { rating: existing.rating, review: existing.review } : undefined)
+    } catch {
+      setExistingRating(undefined)
+    }
+    
+    setRatingDialogOpen(true)
+  }
+
+  const handleRatingSuccess = () => {
+    fetchRatableProducts()
+    fetchOrders(page)
+  }
 
   function changePage(newPage: number) {
     setPage(newPage)
@@ -95,11 +153,91 @@ export function BuyerOrdersPage() {
                       <p className="text-sm text-slate-500 mt-1">{formatDate(order.created_at)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-slate-900 text-lg">{formatPrice(parseFloat(order.total_amount))}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{order.item_count} item{Number(order.item_count) !== 1 ? 's' : ''}</p>
+                      <p className="font-bold text-slate-900 text-lg">Total: {formatPrice(parseFloat(order.total_amount))}</p>
                     </div>
                   </div>
                 </CardHeader>
+                <CardContent className="pt-0">
+                  {order.buyer_name && (
+                    <p className="text-sm text-slate-600 mb-1">
+                      <span className="font-medium">Buyer:</span> {order.buyer_name} {order.buyer_phone && `(${order.buyer_phone})`}
+                    </p>
+                  )}
+                  {order.store_name && (
+                    <p className="text-sm text-slate-600 mb-1">
+                      <span className="font-medium">Store:</span> {order.store_name}
+                    </p>
+                  )}
+                  {order.items && order.items.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-sm text-slate-600 mb-2">
+                        <span className="font-medium">Products:</span>{' '}
+                      </p>
+                      <div className="space-y-2">
+                        {order.items.map((item: any, idx: number) => (
+                          <div key={idx} className="flex items-start justify-between bg-slate-50 rounded-lg p-2">
+                            <div className="flex items-start gap-3 flex-1">
+                              {item.product_image ? (
+                                <img src={item.product_image} alt="" className="w-12 h-12 rounded-lg object-cover bg-white shrink-0" />
+                              ) : (
+                                <div className="w-12 h-12 rounded-lg bg-slate-200 shrink-0 flex items-center justify-center">
+                                  <FiPackage className="h-5 w-5 text-slate-400" />
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{item.title}</p>
+                                {item.store_name && (
+                                  <p className="text-xs text-slate-500 mt-0.5">
+                                    <span className="font-medium">Store:</span> {item.store_name}
+                                  </p>
+                                )}
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                  Qty: {item.quantity} × {formatPrice(item.price_at_purchase || item.price || 0)}
+                                </p>
+                              </div>
+                            </div>
+                            {/* Rate Product button for delivered orders */}
+                            {order.status === 'delivered' && (
+                              <div className="ml-2">
+                                {(() => {
+                                  const key = `${order.id}-${item.product_id}`
+                                  const canRate = ratableProducts[key]
+                                  
+                                  return canRate !== undefined ? (
+                                    <Button
+                                      size="sm"
+                                      variant={canRate ? "default" : "outline"}
+                                      className="h-7 text-xs"
+                                      onClick={() => handleOpenRating(
+                                        item.product_id,
+                                        item.title,
+                                        item.store_name || 'Unknown Store',
+                                        Number(order.id)
+                                      )}
+                                    >
+                                      <FiStar className="h-3 w-3 mr-1" />
+                                      {canRate ? 'Rate' : 'Rated'}
+                                    </Button>
+                                  ) : null
+                                })()}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {order.shipping_address && order.shipping_city && (
+                    <p className="text-sm text-slate-500 mt-2">
+                      <span className="font-medium">Shipping:</span> {order.shipping_address}, {order.shipping_city}
+                    </p>
+                  )}
+                  {order.courier_name && order.tracking_number && (
+                    <p className="text-sm text-slate-500 mt-2">
+                      <span className="font-medium">Tracking:</span> {order.courier_name} - {order.tracking_number}
+                    </p>
+                  )}
+                </CardContent>
               </Card>
             ))}
           </div>
@@ -114,6 +252,17 @@ export function BuyerOrdersPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Rating Dialog */}
+      {selectedProduct && (
+        <RateProductDialog
+          open={ratingDialogOpen}
+          onOpenChange={setRatingDialogOpen}
+          product={selectedProduct}
+          existingRating={existingRating}
+          onSuccess={handleRatingSuccess}
+        />
       )}
     </div>
   )

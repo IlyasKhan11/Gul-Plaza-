@@ -9,7 +9,7 @@ interface ApiResp<T> {
 // ─── Types matching backend output ────────────────────────────────────────────
 export interface ApiUser {
   id: number
-  username: string
+  name: string
   email: string
   role: string
   phone: string | null
@@ -181,7 +181,7 @@ export const adminService = {
     )
     const sellers: ApiSeller[] = res.data.users.map(u => ({
       id: u.id,
-      username: u.username,
+      username: u.name,
       email: u.email,
       phone: u.phone,
       created_at: u.created_at,
