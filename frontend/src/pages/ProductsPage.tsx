@@ -30,7 +30,7 @@ export function ProductsPage() {
 
   useEffect(() => {
     setLoading(true)
-    let query = '/products?page=1&limit=40';
+    let query = '/api/products?page=1&limit=40';
     if (selectedCategory && selectedCategory !== 'all') {
       const cat = categories.find(c => c.slug === selectedCategory);
       if (cat) {
@@ -63,7 +63,7 @@ export function ProductsPage() {
   // Fetch categories from backend
   useEffect(() => {
     setCatLoading(true)
-    api.get<{ success: boolean; data: Category[] }>('/categories')
+    api.get<{ success: boolean; data: Category[] }>('/api/categories')
       .then(res => {
         setCategories(res.data)
         setCatError(null)

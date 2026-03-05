@@ -57,7 +57,7 @@ export default function App() {
         }>
           <Route path="seller/dashboard" element={<SellerDashboardPage />} />
           <Route path="seller/products" element={<SellerProductsPage />} />
-
+          <Route path="seller/products/new" element={<SellerProductsPage />} />
           <Route path="seller/orders" element={<SellerOrdersPage />} />
           <Route path="seller/earnings" element={<SellerEarningsPage />} />
           <Route path="seller/store" element={<SellerStorePage />} />

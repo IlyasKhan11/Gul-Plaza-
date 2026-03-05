@@ -6,16 +6,18 @@ import { StoreCard } from '@/components/common/StoreCard'
 import { mockCategories, mockStores } from '@/data/mockData'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { useAuth } from '@/context/AuthContext'
 import type { Product } from '@/types'
 
 export function HomePage() {
+  const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
-    api.get<{ data: { products: Product[] } }>('/products?page=1&limit=40')
+    api.get<{ data: { products: Product[] } }>('/api/products?page=1&limit=40')
       .then(res => {
         setProducts(res.data.products)
         setError(null)
@@ -156,18 +158,20 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Promo Banner */}
-      <section className="py-8 bg-gradient-to-r from-orange-50 to-amber-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-r from-orange-400 to-amber-500 rounded-2xl p-8 md:p-12 text-white text-center">
-            <h2 className="text-3xl font-bold mb-2">Become a Seller Today</h2>
-            <p className="text-orange-100 mb-6 text-lg">Open your online store for free and reach thousands of buyers across Pakistan.</p>
-            <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50" asChild>
-              <Link to="/register">Start Selling — It's Free</Link>
-            </Button>
+      {/* Promo Banner - Only show for non-seller users */}
+      {(!user || user.role === 'buyer') && (
+        <section className="py-8 bg-gradient-to-r from-orange-50 to-amber-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="bg-gradient-to-r from-orange-400 to-amber-500 rounded-2xl p-8 md:p-12 text-white text-center">
+              <h2 className="text-3xl font-bold mb-2">Become a Seller Today</h2>
+              <p className="text-orange-100 mb-6 text-lg">Open your online store for free and reach thousands of buyers across Pakistan.</p>
+              <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50" asChild>
+                <Link to={user ? "/profile?becomeSeller=true" : "/login"}>Start Selling — It's Free</Link>
+              </Button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Trending Stores */}
       <section className="py-12 bg-slate-50">

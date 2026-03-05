@@ -5,9 +5,12 @@ const {
   updateSellerProfile,
   createStore,
   updateStore,
+  applyForSeller,
+  getSellerDashboard,
   updateSellerProfileValidation,
   createStoreValidation,
   updateStoreValidation,
+  applyForSellerValidation,
 } = require('../controllers/sellerController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireSeller } = require('../middleware/roleMiddleware');
@@ -48,10 +51,25 @@ router.get('/', (req, res) => {
       'PUT /api/sellers/profile': 'Update seller profile',
       'POST /api/sellers/store': 'Create store',
       'PUT /api/sellers/store': 'Update store details',
+      'GET /api/sellers/dashboard': 'Get seller dashboard statistics',
     },
     note: 'All endpoints require authentication and seller role',
   });
 });
+
+/**
+ * @route   GET /api/sellers/dashboard
+ * @desc    Get seller dashboard statistics
+ * @access  Private (Seller only)
+ */
+router.get('/dashboard', authenticateToken, requireSeller, profileLimiter, getSellerDashboard);
+
+/**
+ * @route   POST /api/sellers/apply
+ * @desc    Apply to become a seller (create store application)
+ * @access  Private (Buyers only)
+ */
+router.post('/apply', authenticateToken, storeLimiter, applyForSellerValidation, applyForSeller);
 
 /**
  * @route   GET /api/sellers/profile

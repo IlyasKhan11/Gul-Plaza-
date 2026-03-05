@@ -107,7 +107,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-  const { name, email, password, phone, address, city, country, postal_code, role = 'buyer' } = req.body;
+  const { name, email, password, phone, role = 'buyer' } = req.body;
 
     // Check if user already exists
     const existingUser = await query(
@@ -128,10 +128,10 @@ const registerUser = async (req, res) => {
 
     // Insert new user into database
     const newUser = await query(
-      `INSERT INTO users (name, email, password, phone, address, city, country, postal_code, role, is_verified) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
-       RETURNING id, name, email, phone, address, city, country, postal_code, role, is_verified, created_at`,
-      [name, email, passwordHash, phone, address, city, country, postal_code, role, false]
+      `INSERT INTO users (name, email, password, phone, role, is_verified) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING id, name, email, phone, role, is_verified, created_at`,
+      [name, email, passwordHash, phone, role, false]
     );
 
     const user = newUser.rows[0];
@@ -144,7 +144,14 @@ const registerUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error details:', {
+      message: error.message,
+      stack: error.stack,
+      query: error.query,
+      parameters: error.parameters,
+      severity: error.severity,
+      code: error.code
+    });
     res.status(500).json({
       success: false,
       message: 'Internal server error during registration',
@@ -183,7 +190,7 @@ const loginUser = async (req, res) => {
 
     // Find user by email
     const userResult = await query(
-      'SELECT id, name, email, password, role, is_verified, phone, address, city, country, postal_code FROM users WHERE email = $1',
+      'SELECT id, name, email, password, role, is_verified, phone FROM users WHERE email = $1',
       [email]
     );
 

@@ -1,164 +1,237 @@
-import { FiDollarSign, FiPackage, FiShoppingBag, FiBriefcase, FiTrendingUp, FiGlobe, FiArrowRight } from 'react-icons/fi'
+import { useState, useEffect } from 'react'
+import { FiDollarSign, FiPackage, FiShoppingBag, FiBriefcase, FiTrendingUp, FiGlobe, FiArrowRight, FiRefreshCw } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { OrderStatusBadge } from '@/components/common/OrderStatusBadge'
 import { useAuth } from '@/context/AuthContext'
-import { mockOrders, mockProducts, mockSalesData, mockWithdrawals, mockStores } from '@/data/mockData'
+import { sellerService } from '@/services/sellerService'
 import { formatPrice, formatDate } from '@/lib/utils'
 
 const PIE_COLORS = ['#f59e0b', '#3b82f6', '#2563eb', '#22c55e', '#ef4444']
 
 export function SellerDashboardPage() {
   const { user } = useAuth()
-  const myStore = mockStores.some(s => s.sellerId === user?.id)
-  const myOrders = mockOrders.filter(o => o.sellerId === user?.id)
-  const myProducts = mockProducts.filter(p => p.sellerId === user?.id)
-  const myWithdrawals = mockWithdrawals.filter(w => w.sellerId === user?.id)
-  const totalRevenue = myOrders.filter(o => o.status === 'delivered').reduce((s, o) => s + o.total, 0)
-  const pendingWithdrawals = myWithdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + w.amount, 0)
+  const [storeProfile, setStoreProfile] = useState<any>(null)
+  const [orders, setOrders] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
+  const totalRevenue = orders?.filter(o => o.status === 'delivered').reduce((s, o) => s + (o.total || 0), 0) || 0
   const statusCounts = [
-    { name: 'Pending', value: myOrders.filter(o => o.status === 'pending').length },
-    { name: 'Processing', value: myOrders.filter(o => o.status === 'processing').length },
-    { name: 'Shipped', value: myOrders.filter(o => o.status === 'shipped').length },
-    { name: 'Delivered', value: myOrders.filter(o => o.status === 'delivered').length },
-    { name: 'Cancelled', value: myOrders.filter(o => o.status === 'cancelled').length },
+    { name: 'Pending', value: orders?.filter(o => o.status === 'pending').length || 0 },
+    { name: 'Processing', value: orders?.filter(o => o.status === 'processing').length || 0 },
+    { name: 'Shipped', value: orders?.filter(o => o.status === 'shipped').length || 0 },
+    { name: 'Delivered', value: orders?.filter(o => o.status === 'delivered').length || 0 },
+    { name: 'Cancelled', value: orders?.filter(o => o.status === 'cancelled').length || 0 },
   ].filter(s => s.value > 0)
 
   const stats = [
     { title: 'Total Revenue', value: formatPrice(totalRevenue), icon: FiDollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-    { title: 'Total Orders', value: myOrders.length, icon: FiShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { title: 'Products', value: myProducts.length, icon: FiPackage, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { title: 'Pending Withdrawal', value: formatPrice(pendingWithdrawals), icon: FiBriefcase, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { title: 'Total Orders', value: orders?.length || 0, icon: FiShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { title: 'Products', value: products?.length || 0, icon: FiPackage, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { title: 'Pending Withdrawal', value: formatPrice(0), icon: FiBriefcase, color: 'text-amber-600', bg: 'bg-amber-50' },
   ]
+
+  async function fetchDashboardData() {
+    setLoading(true)
+    setError(null)
+    try {
+      const [profileData, ordersData, productsData] = await Promise.all([
+        sellerService.getProfile(),
+        sellerService.getOrders(),
+        sellerService.getProducts()
+      ])
+      setStoreProfile(profileData)
+      setOrders(ordersData.orders || [])
+      setProducts(productsData.products || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (user?.role === 'seller') {
+      fetchDashboardData()
+    }
+  }, [user])
+
+  if (user?.role !== 'seller') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-slate-900">Access Denied</h2>
+          <p className="text-slate-500 text-sm mt-1">You need to be an approved seller to access this dashboard.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">Welcome back! Here's your store overview.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Seller Dashboard</h1>
+          <p className="text-slate-500 text-sm mt-1">Welcome back! Here's your store overview.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={fetchDashboardData} disabled={loading}>
+          <FiRefreshCw className={`h-4 w-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
-      {/* Store Setup Banner */}
-      {!myStore && (
-        <div className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-            <FiGlobe className="h-5 w-5 text-amber-600" />
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold text-slate-900 text-sm">Complete your store setup</p>
-            <p className="text-xs text-slate-500 mt-0.5">Create your store to list products and start receiving orders.</p>
-          </div>
-          <Button size="sm" asChild>
-            <Link to="/seller/store">
-              Set Up Store <FiArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error} — <button className="underline" onClick={fetchDashboardData}>Retry</button>
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(({ title, value, icon: Icon, color, bg }) => (
-          <Card key={title}>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-500 font-medium">{title}</p>
-                  <p className="text-xl font-bold text-slate-900 mt-1">{value}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center`}>
-                  <Icon className={`h-5 w-5 ${color}`} />
-                </div>
+      {loading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}><CardContent className="p-5 h-24 animate-pulse bg-slate-100 rounded-xl" /></Card>
+          ))}
+        </div>
+      ) : (
+        <>
+          {/* Store Setup Banner */}
+          {!storeProfile?.store && (
+            <div className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                <FiGlobe className="h-5 w-5 text-amber-600" />
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Charts */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FiTrendingUp className="h-4 w-4 text-blue-600" /> Monthly Revenue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={mockSalesData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v) => [`Rs. ${Number(v).toLocaleString()}`, 'Revenue']} />
-                <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} dot={{ fill: '#2563eb', r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Order Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {statusCounts.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={statusCounts} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                    {statusCounts.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[220px] flex items-center justify-center text-slate-300 text-sm">No orders yet</div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Orders */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Recent Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {myOrders.length === 0 ? (
-            <p className="text-slate-400 text-sm py-8 text-center">No orders yet</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left pb-3 text-slate-500 font-medium">Order ID</th>
-                    <th className="text-left pb-3 text-slate-500 font-medium">Buyer</th>
-                    <th className="text-left pb-3 text-slate-500 font-medium">Amount</th>
-                    <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
-                    <th className="text-left pb-3 text-slate-500 font-medium">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {myOrders.slice(0, 5).map(order => (
-                    <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3 font-mono text-xs text-slate-500">#{order.id}</td>
-                      <td className="py-3 text-slate-800">{order.buyerName}</td>
-                      <td className="py-3 font-semibold text-slate-900">{formatPrice(order.total)}</td>
-                      <td className="py-3"><OrderStatusBadge status={order.status} /></td>
-                      <td className="py-3 text-slate-500 text-xs">{formatDate(order.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-900 text-sm">Complete your store setup</p>
+                <p className="text-xs text-slate-500 mt-0.5">Configure your store to list products and start receiving orders.</p>
+              </div>
+              <Button size="sm" asChild>
+                <Link to="/seller/store">
+                  Set Up Store <FiArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map(({ title, value, icon: Icon, color, bg }) => (
+              <Card key={title}>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 font-medium">{title}</p>
+                      <p className="text-xl font-bold text-slate-900 mt-1">{value}</p>
+                    </div>
+                    <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center`}>
+                      <Icon className={`h-5 w-5 ${color}`} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Charts and Recent Orders */}
+      {!loading && (
+        <>
+          <div className="grid lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FiTrendingUp className="h-4 w-4 text-blue-600" /> Order Status Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {statusCounts.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={statusCounts} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
+                        {statusCounts.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[220px] flex items-center justify-center text-slate-300 text-sm">No orders yet</div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Total Products</span>
+                    <span className="font-semibold">{products?.length || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Pending Orders</span>
+                    <span className="font-semibold">{orders?.filter(o => o.status === 'pending').length || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Completed Orders</span>
+                    <span className="font-semibold">{orders?.filter(o => o.status === 'delivered').length || 0}</span>
+                  </div>
+                  <div className="pt-2">
+                    <Button size="sm" className="w-full" asChild>
+                      <Link to="/seller/products/new">Add New Product</Link>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Orders */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Recent Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!orders || orders.length === 0 ? (
+                <p className="text-slate-400 text-sm py-8 text-center">No orders yet</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left pb-3 text-slate-500 font-medium">Order ID</th>
+                        <th className="text-left pb-3 text-slate-500 font-medium">Buyer</th>
+                        <th className="text-left pb-3 text-slate-500 font-medium">Amount</th>
+                        <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
+                        <th className="text-left pb-3 text-slate-500 font-medium">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {orders.slice(0, 5).map(order => (
+                        <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-3 font-mono text-xs text-slate-500">#{order.id}</td>
+                          <td className="py-3 text-slate-800">{order.buyer_name || 'N/A'}</td>
+                          <td className="py-3 font-semibold text-slate-900">{formatPrice(order.total || 0)}</td>
+                          <td className="py-3"><OrderStatusBadge status={order.status} /></td>
+                          <td className="py-3 text-slate-500 text-xs">{formatDate(order.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   )
 }

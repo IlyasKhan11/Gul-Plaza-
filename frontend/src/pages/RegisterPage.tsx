@@ -14,8 +14,6 @@ export function RegisterPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -30,7 +28,7 @@ export function RegisterPage() {
     }
     if (phone.length < 10) { setError('Phone number must be at least 10 digits'); return }
     setLoading(true)
-  const result = await register(name, email, password, 'buyer', phone, address, city)
+  const result = await register(name, email, password, 'buyer', phone)
     setLoading(false)
     if (result.success) {
       navigate('/login')
@@ -73,14 +71,6 @@ export function RegisterPage() {
               <div>
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="03001234567" className="mt-1" required />
-              </div>
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" value={address} onChange={e => setAddress(e.target.value)} placeholder="Your address" className="mt-1" required />
-              </div>
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Input id="city" value={city} onChange={e => setCity(e.target.value)} placeholder="Your city" className="mt-1" required />
               </div>
               <div>
                 <Label htmlFor="password">Password</Label>

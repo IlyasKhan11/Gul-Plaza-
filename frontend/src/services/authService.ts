@@ -45,7 +45,7 @@ function toUser(u: BackendUser): User {
 
 export const authService = {
   async login(email: string, password: string): Promise<{ token: string; user: User }> {
-    const res = await api.post<LoginResponse>('/auth/login', { email, password })
+    const res = await api.post<LoginResponse>('/api/auth/login', { email, password })
     return { token: res.data.accessToken, user: toUser(res.data.user) }
   },
 
@@ -54,31 +54,27 @@ export const authService = {
     email: string,
     password: string,
     phone: string,
-    role: UserRole = 'buyer',
-    address: string = '',
-    city: string = ''
+    role: UserRole = 'buyer'
   ): Promise<{ user: User }> {
-    const res = await api.post<RegisterResponse>('/auth/register', {
+    const res = await api.post<RegisterResponse>('/api/auth/register', {
       name,
       email,
       password,
       phone,
       role,
-      address,
-      city,
     })
     return { user: toUser(res.data.user) }
   },
 
   async logout(): Promise<void> {
     try {
-      await api.post('/auth/logout')
+      await api.post('/api/auth/logout')
     } catch {
       // Ignore errors — always clear local state regardless
     }
   },
     async updateUserProfile(profile: { name?: string; phone?: string; address?: string; city?: string }): Promise<{ user: User }> {
-      const res = await api.put<RegisterResponse>('/users/profile', profile)
+      const res = await api.put<RegisterResponse>('/api/users/profile', profile)
       return { user: toUser(res.data.user) }
     },
 }

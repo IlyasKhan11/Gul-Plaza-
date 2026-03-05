@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
-import { FiUsers, FiShoppingBag, FiDollarSign, FiTrendingUp, FiRefreshCw, FiClock } from 'react-icons/fi'
+import { FiUsers, FiShoppingBag, FiDollarSign, FiTrendingUp, FiRefreshCw, FiClock, FiCheckCircle, FiXCircle, FiHome } from 'react-icons/fi'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { adminService, type DashboardStats } from '@/services/adminService'
+import { Badge } from '@/components/ui/badge'
+import { adminService, type DashboardStats, type ApiSellerApplication } from '@/services/adminService'
 import { mockAdminSalesData } from '@/data/mockData'
 import { formatPrice } from '@/lib/utils'
 
 export function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [sellerApplications, setSellerApplications] = useState<ApiSellerApplication[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -16,12 +18,38 @@ export function AdminDashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await adminService.getStats()
+      const [data, applications] = await Promise.all([
+        adminService.getStats(),
+        adminService.getSellerApplications()
+      ])
       setStats(data)
+      setSellerApplications(applications)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load stats')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleApproveApplication(storeId: number) {
+    try {
+      await adminService.approveSellerApplication(storeId)
+      // Refresh the applications list
+      const applications = await adminService.getSellerApplications()
+      setSellerApplications(applications)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve application')
+    }
+  }
+
+  async function handleRejectApplication(storeId: number) {
+    try {
+      await adminService.rejectSellerApplication(storeId)
+      // Refresh the applications list
+      const applications = await adminService.getSellerApplications()
+      setSellerApplications(applications)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reject application')
     }
   }
 
@@ -98,6 +126,77 @@ export function AdminDashboardPage() {
               <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Seller Applications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FiHome className="h-4 w-4 text-orange-600" /> Pending Seller Applications
+            {sellerApplications.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {sellerApplications.length}
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sellerApplications.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <FiHome className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+              <p>No pending seller applications</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sellerApplications.map((application) => (
+                <div key={application.id} className="border border-slate-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-slate-900">{application.name}</h3>
+                        <Badge variant="outline" className="text-xs">Pending</Badge>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-2">
+                        Applied by: <span className="font-medium">{application.owner_name}</span> ({application.owner_email})
+                      </p>
+                      {application.description && (
+                        <p className="text-sm text-slate-600 mb-2">{application.description}</p>
+                      )}
+                      <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+                        {application.contact_email && (
+                          <span>Email: {application.contact_email}</span>
+                        )}
+                        {application.contact_phone && (
+                          <span>Phone: {application.contact_phone}</span>
+                        )}
+                        <span>Applied: {new Date(application.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        onClick={() => handleApproveApplication(application.id)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <FiCheckCircle className="h-4 w-4 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRejectApplication(application.id)}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        <FiXCircle className="h-4 w-4 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

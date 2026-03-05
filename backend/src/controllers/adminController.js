@@ -363,10 +363,128 @@ const getUserById = async (req, res) => {
   }
 };
 
+// Get seller applications for admin approval
+const getSellerApplications = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT s.*, u.name as owner_name, u.email as owner_email
+      FROM stores s
+      JOIN users u ON s.owner_id = u.id
+      WHERE s.is_active = false
+      ORDER BY s.created_at DESC
+    `);
+
+    res.status(200).json({
+      success: true,
+      message: 'Seller applications retrieved successfully',
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error('Error getting seller applications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+// Approve seller application
+const approveSellerApplication = async (req, res) => {
+  try {
+    const { storeId } = req.params;
+
+    // Get store and user info
+    const storeResult = await query(
+      'SELECT s.*, u.id as user_id FROM stores s JOIN users u ON s.owner_id = u.id WHERE s.id = $1',
+      [storeId]
+    );
+
+    if (storeResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Store application not found',
+      });
+    }
+
+    const store = storeResult.rows[0];
+
+    // Start transaction
+    await query('BEGIN');
+
+    try {
+      // Activate the store
+      await query(
+        'UPDATE stores SET is_active = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+        [storeId]
+      );
+
+      // Update user role to seller
+      await query(
+        'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        ['seller', store.user_id]
+      );
+
+      await query('COMMIT');
+
+      res.status(200).json({
+        success: true,
+        message: 'Seller application approved successfully',
+      });
+    } catch (error) {
+      await query('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error approving seller application:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+// Reject seller application
+const rejectSellerApplication = async (req, res) => {
+  try {
+    const { storeId } = req.params;
+    const { reason } = req.body;
+
+    // Delete the store application
+    const result = await query(
+      'DELETE FROM stores WHERE id = $1 AND is_active = false RETURNING *',
+      [storeId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Store application not found or already processed',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Seller application rejected successfully',
+      data: {
+        reason: reason || 'Application rejected by admin',
+      },
+    });
+  } catch (error) {
+    console.error('Error rejecting seller application:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   blockUser,
   unblockUser,
   getUserById,
+  getSellerApplications,
+  approveSellerApplication,
+  rejectSellerApplication,
   blockUserValidation,
 };

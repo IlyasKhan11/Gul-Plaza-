@@ -17,7 +17,7 @@ export function SellerOrdersPage() {
       setLoading(true)
       setError(null)
       try {
-        const resp = await api.get('/seller/orders') as { data?: any[] }
+        const resp = await api.get('/api/seller/orders') as { data?: any[] }
         setOrders(resp.data || [])
       } catch (err: any) {
         setError(err.message || 'Failed to load orders')

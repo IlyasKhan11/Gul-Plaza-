@@ -92,6 +92,22 @@ export const sellerService = {
     return res.data
   },
 
+  async applyForSeller(data: {
+    name: string
+    description?: string
+    contact_email?: string
+    contact_phone?: string
+    address?: string
+    city?: string
+    country?: string
+    postal_code?: string
+    business_license?: string
+    tax_id?: string
+  }): Promise<SellerStore> {
+    const res = await api.post<ApiResp<SellerStore>>('/sellers/apply', data)
+    return res.data
+  },
+
   async updateStore(data: {
     store_name?: string
     logo_url?: string

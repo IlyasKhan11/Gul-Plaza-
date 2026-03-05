@@ -5,6 +5,9 @@ const {
   blockUser,
   unblockUser,
   getUserById,
+  getSellerApplications,
+  approveSellerApplication,
+  rejectSellerApplication,
   blockUserValidation,
 } = require('../controllers/adminController');
 const {
@@ -60,6 +63,7 @@ router.get('/', (req, res) => {
       'GET /api/admin/users/:id': 'Get user details by ID',
       'PATCH /api/admin/users/:id/block': 'Block user',
       'PATCH /api/admin/users/:id/unblock': 'Unblock user',
+      'GET /api/admin/dashboard': 'Get admin dashboard statistics',
       'GET /api/admin/dashboard/summary': 'Get dashboard summary statistics',
       'GET /api/admin/dashboard/sales-report': 'Get sales report with date range',
       'GET /api/admin/dashboard/top-products': 'Get top 5 products by sales',
@@ -102,6 +106,13 @@ router.patch('/users/:id/block', authenticateToken, requireAdmin, blockLimiter, 
 router.patch('/users/:id/unblock', authenticateToken, requireAdmin, blockLimiter, blockUserValidation, unblockUser);
 
 // Dashboard Analytics Routes
+
+/**
+ * @route   GET /api/admin/dashboard
+ * @desc    Get admin dashboard (alias for summary)
+ * @access  Private (Admin only)
+ */
+router.get('/dashboard', authenticateToken, requireAdmin, adminLimiter, dashboardSummaryValidation, getDashboardSummary);
 
 /**
  * @route   GET /api/admin/dashboard/summary
@@ -160,5 +171,26 @@ router.get('/reports/product/:productId', authenticateToken, requireAdmin, admin
  * @access  Private (Admin only)
  */
 router.put('/reports/:id/status', authenticateToken, requireAdmin, adminLimiter, updateReportStatus);
+
+/**
+ * @route   GET /api/admin/seller-applications
+ * @desc    Get pending seller applications
+ * @access  Private (Admin only)
+ */
+router.get('/seller-applications', authenticateToken, requireAdmin, adminLimiter, getSellerApplications);
+
+/**
+ * @route   POST /api/admin/seller-applications/:storeId/approve
+ * @desc    Approve seller application
+ * @access  Private (Admin only)
+ */
+router.post('/seller-applications/:storeId/approve', authenticateToken, requireAdmin, adminLimiter, approveSellerApplication);
+
+/**
+ * @route   POST /api/admin/seller-applications/:storeId/reject
+ * @desc    Reject seller application
+ * @access  Private (Admin only)
+ */
+router.post('/seller-applications/:storeId/reject', authenticateToken, requireAdmin, adminLimiter, rejectSellerApplication);
 
 module.exports = router;

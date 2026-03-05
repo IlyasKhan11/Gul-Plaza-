@@ -1,7 +1,49 @@
 const Joi = require('joi');
 
-// Create order validation schema (with shipping information)
+// Create order validation schema (with shipping information and items)
 const createOrderSchema = Joi.object({
+  items: Joi.array()
+    .items(
+      Joi.object({
+        productId: Joi.number()
+          .integer()
+          .positive()
+          .required()
+          .messages({
+            'number.base': 'Product ID must be a number',
+            'number.integer': 'Product ID must be an integer',
+            'number.positive': 'Product ID must be a positive integer',
+            'any.required': 'Product ID is required'
+          }),
+        quantity: Joi.number()
+          .integer()
+          .positive()
+          .min(1)
+          .required()
+          .messages({
+            'number.base': 'Quantity must be a number',
+            'number.integer': 'Quantity must be an integer',
+            'number.positive': 'Quantity must be a positive integer',
+            'number.min': 'Quantity must be at least 1',
+            'any.required': 'Quantity is required'
+          })
+      })
+    )
+    .min(1)
+    .required()
+    .messages({
+      'array.min': 'At least one item is required',
+      'any.required': 'Items are required'
+    }),
+
+  paymentMethod: Joi.string()
+    .valid('COD', 'EASYPaisa', 'BANK_TRANSFER', 'DIRECT_SELLER')
+    .required()
+    .messages({
+      'any.only': 'Payment method must be one of: COD, EASYPaisa, BANK_TRANSFER, DIRECT_SELLER',
+      'any.required': 'Payment method is required'
+    }),
+
   shipping_address: Joi.string()
     .required()
     .trim()
@@ -51,8 +93,6 @@ const createOrderSchema = Joi.object({
       'any.required': 'Shipping phone is required',
       'string.max': 'Shipping phone cannot exceed 20 characters'
     })
-}).unknown(false).messages({
-  'object.unknown': 'No additional fields allowed in order creation'
 });
 
 // Order ID validation schema

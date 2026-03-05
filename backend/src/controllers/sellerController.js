@@ -42,6 +42,20 @@ const createStoreValidation = [
   }),
 ];
 
+// Validation rules for seller application
+const applyForSellerValidation = [
+  body('name').notEmpty().isLength({ min: 1, max: 100 }).trim().escape(),
+  body('description').optional().isLength({ max: 2000 }).trim().escape(),
+  body('contact_email').optional().isEmail().withMessage('Invalid email format'),
+  body('contact_phone').optional().isLength({ min: 10, max: 20 }).trim().escape(),
+  body('address').optional().isLength({ max: 500 }).trim().escape(),
+  body('city').optional().isLength({ min: 1, max: 50 }).trim().escape(),
+  body('country').optional().isLength({ min: 1, max: 50 }).trim().escape(),
+  body('postal_code').optional().isLength({ min: 3, max: 20 }).trim().escape(),
+  body('business_license').optional().isLength({ max: 100 }).trim().escape(),
+  body('tax_id').optional().isLength({ max: 50 }).trim().escape(),
+];
+
 // Validation rules for store updates
 const updateStoreValidation = [
   body('store_name').optional().isLength({ min: 1, max: 100 }).trim().escape(),
@@ -523,12 +537,199 @@ const updateStore = async (req, res) => {
   }
 };
 
+// Apply to become a seller (create store application)
+const applyForSeller = async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
+      });
+    }
+
+    const userId = req.user.userId;
+    const {
+      name,
+      description,
+      contact_email,
+      contact_phone,
+      address,
+      city,
+      country,
+      postal_code,
+      business_license,
+      tax_id,
+    } = req.body;
+
+    // Check if user exists and is a buyer
+    const userResult = await query(
+      'SELECT id, role FROM users WHERE id = $1',
+      [userId]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (userResult.rows[0].role !== 'buyer') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only buyers can apply to become sellers',
+      });
+    }
+
+    // Check if user already has a pending or approved store application
+    const existingStoreResult = await query(
+      'SELECT id, name, is_active FROM stores WHERE owner_id = $1',
+      [userId]
+    );
+    if (existingStoreResult.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'You already have a store application',
+        data: {
+          store: existingStoreResult.rows[0],
+        },
+      });
+    }
+
+    // Create store application (inactive by default, needs admin approval)
+    const newStoreResult = await query(
+      `INSERT INTO stores (owner_id, name, description, contact_email, contact_phone, address, city, country, postal_code, business_license, tax_id, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false)
+       RETURNING id, name, description, contact_email, contact_phone, address, city, country, postal_code, business_license, tax_id, is_active, created_at`,
+      [userId, name, description, contact_email, contact_phone, address, city, country, postal_code, business_license, tax_id]
+    );
+
+    const newStore = newStoreResult.rows[0];
+
+    res.status(201).json({
+      success: true,
+      message: 'Seller application submitted successfully. Your store will be reviewed by an admin.',
+      data: {
+        store: {
+          id: newStore.id,
+          name: newStore.name,
+          description: newStore.description,
+          contact_email: newStore.contact_email,
+          contact_phone: newStore.contact_phone,
+          address: newStore.address,
+          city: newStore.city,
+          country: newStore.country,
+          postal_code: newStore.postal_code,
+          business_license: newStore.business_license,
+          tax_id: newStore.tax_id,
+          is_active: newStore.is_active,
+          created_at: newStore.created_at,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error applying for seller:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+// Get seller dashboard statistics
+const getSellerDashboard = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // Get seller's store info
+    const storeResult = await query(
+      'SELECT id, name, is_active FROM stores WHERE owner_id = $1',
+      [userId]
+    );
+
+    if (storeResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Store not found. Please create a store first.',
+      });
+    }
+
+    const store = storeResult.rows[0];
+
+    // Get dashboard statistics
+    const [
+      totalProductsResult,
+      activeProductsResult,
+      totalOrdersResult,
+      pendingOrdersResult,
+      completedOrdersResult,
+      totalRevenueResult,
+      recentOrdersResult
+    ] = await Promise.all([
+      query('SELECT COUNT(*) as count FROM products WHERE store_id = $1', [store.id]),
+      query('SELECT COUNT(*) as count FROM products WHERE store_id = $1 AND is_active = true', [store.id]),
+      query('SELECT COUNT(*) as count FROM orders WHERE seller_id = $1', [userId]),
+      query('SELECT COUNT(*) as count FROM orders WHERE seller_id = $1 AND status = $2', [userId, 'pending']),
+      query('SELECT COUNT(*) as count FROM orders WHERE seller_id = $1 AND status = $2', [userId, 'delivered']),
+      query('SELECT COALESCE(SUM(total_amount), 0) as revenue FROM orders WHERE seller_id = $1 AND payment_status = $2', [userId, 'paid']),
+      query(`
+        SELECT o.id, o.total_amount, o.status, o.created_at, u.name as buyer_name
+        FROM orders o
+        JOIN users u ON o.buyer_id = u.id
+        WHERE o.seller_id = $1
+        ORDER BY o.created_at DESC
+        LIMIT 5
+      `, [userId])
+    ]);
+
+    const dashboardData = {
+      store: {
+        id: store.id,
+        name: store.name,
+        is_active: store.is_active,
+      },
+      statistics: {
+        total_products: parseInt(totalProductsResult.rows[0].count),
+        active_products: parseInt(activeProductsResult.rows[0].count),
+        total_orders: parseInt(totalOrdersResult.rows[0].count),
+        pending_orders: parseInt(pendingOrdersResult.rows[0].count),
+        completed_orders: parseInt(completedOrdersResult.rows[0].count),
+        total_revenue: parseFloat(totalRevenueResult.rows[0].revenue),
+      },
+      recent_orders: recentOrdersResult.rows.map(order => ({
+        id: order.id,
+        total_amount: order.total_amount,
+        status: order.status,
+        created_at: order.created_at,
+        buyer_name: order.buyer_name,
+      })),
+    };
+
+    res.status(200).json({
+      success: true,
+      message: 'Seller dashboard data retrieved successfully',
+      data: dashboardData,
+    });
+  } catch (error) {
+    console.error('Error getting seller dashboard:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   getSellerProfile,
   updateSellerProfile,
   createStore,
   updateStore,
+  applyForSeller,
+  getSellerDashboard,
   updateSellerProfileValidation,
   createStoreValidation,
   updateStoreValidation,
+  applyForSellerValidation,
 };

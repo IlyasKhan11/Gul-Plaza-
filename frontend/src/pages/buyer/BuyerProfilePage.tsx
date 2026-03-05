@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FiEdit2, FiCheckCircle, FiPhone, FiMapPin, FiGlobe, FiClock } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { sellerService } from '@/services/sellerService'
 import { mockStores } from '@/data/mockData'
 import { generateId } from '@/lib/utils'
 import type { Store } from '@/types'
@@ -36,12 +38,23 @@ export function BuyerProfilePage() {
   const [sellerFormOpen, setSellerFormOpen] = useState(false)
   const [storeForm, setStoreForm] = useState(emptyStoreForm)
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
   const [pendingStore, setPendingStore] = useState<Store | null>(
     () => mockStores.find(s => s.sellerId === user?.id) ?? null
   )
   const [appliedOpen, setAppliedOpen] = useState(false)
+  const [searchParams] = useSearchParams()
 
   const { setUser } = useAuth() as any
+
+  // Auto-open seller application if coming from "Start Selling" button
+  useEffect(() => {
+    if (searchParams.get('becomeSeller') === 'true' && !pendingStore) {
+      setSellerFormOpen(true)
+      // Clean up the URL parameter
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [searchParams, pendingStore])
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     try {
@@ -61,36 +74,51 @@ export function BuyerProfilePage() {
     }
   }
 
-  function handleStoreSubmit(e: React.FormEvent) {
+  async function handleStoreSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
     setSubmitting(true)
+    setError('')
 
-    const newStore: Store = {
-      id: generateId(),
-      sellerId: user.id,
-      sellerName: user.name,
-      name: storeForm.name,
-      slug: toSlug(storeForm.name),
-      description: storeForm.description,
-      logo: storeForm.logo,
-      banner: storeForm.banner,
-      contactEmail: storeForm.contactEmail,
-      whatsapp: storeForm.whatsapp,
-      rating: 0,
-      reviewCount: 0,
-      productCount: 0,
-      isApproved: false,
-      isBlocked: false,
-      createdAt: new Date().toISOString().split('T')[0],
+    try {
+      const storeData = {
+        name: storeForm.name,
+        description: storeForm.description,
+        contact_email: storeForm.contactEmail,
+        contact_phone: storeForm.whatsapp,
+      }
+
+      const result = await sellerService.applyForSeller(storeData)
+      
+      // Create a store object for the UI
+      const newStore: Store = {
+        id: result.id.toString(),
+        sellerId: user.id,
+        sellerName: user.name,
+        name: result.name,
+        slug: toSlug(result.name),
+        description: result.description || '',
+        logo: '',
+        banner: '',
+        contactEmail: result.contact_email || '',
+        whatsapp: result.contact_phone || '',
+        rating: 0,
+        reviewCount: 0,
+        productCount: 0,
+        isApproved: false,
+        isBlocked: false,
+        createdAt: new Date().toISOString().split('T')[0],
+      }
+
+      setPendingStore(newStore)
+      setStoreForm(emptyStoreForm)
+      setSellerFormOpen(false)
+      setAppliedOpen(true)
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit seller application')
+    } finally {
+      setSubmitting(false)
     }
-
-    mockStores.push(newStore)
-    setPendingStore(newStore)
-    setStoreForm(emptyStoreForm)
-    setSubmitting(false)
-    setSellerFormOpen(false)
-    setAppliedOpen(true)
   }
 
   return (
@@ -305,6 +333,11 @@ export function BuyerProfilePage() {
               />
               <p className="text-xs text-slate-400 mt-1">Buyers will contact you on this number for orders and payments.</p>
             </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setSellerFormOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={submitting}>

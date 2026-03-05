@@ -65,6 +65,25 @@ export interface ApiReport {
   created_at: string
 }
 
+export interface ApiSellerApplication {
+  id: number
+  name: string
+  description: string | null
+  contact_email: string | null
+  contact_phone: string | null
+  address: string | null
+  city: string | null
+  country: string | null
+  postal_code: string | null
+  business_license: string | null
+  tax_id: string | null
+  is_active: boolean
+  created_at: string
+  owner_id: number
+  owner_name?: string
+  owner_email?: string
+}
+
 export interface ApiProduct {
   id: number
   title: string
@@ -98,7 +117,7 @@ interface Pagination {
 export const adminService = {
   // Dashboard
   async getStats(): Promise<DashboardStats> {
-    const res = await api.get<ApiResp<DashboardStats>>('/admin/dashboard/summary')
+    const res = await api.get<ApiResp<DashboardStats>>('/api/admin/dashboard/summary')
     return res.data
   },
 
@@ -181,22 +200,36 @@ export const adminService = {
 
   // Categories
   async getCategories(): Promise<ApiCategory[]> {
-    const res = await api.get<ApiResp<ApiCategory[]>>('/categories')
+    const res = await api.get<ApiResp<ApiCategory[]>>('/api/categories')
     return res.data
   },
 
   async createCategory(data: { name: string; slug: string; parent_id?: number }): Promise<ApiCategory> {
-    const res = await api.post<ApiResp<ApiCategory>>('/categories', data)
+    const res = await api.post<ApiResp<ApiCategory>>('/api/categories', data)
     return res.data
   },
 
   async updateCategory(id: number, data: { name?: string; slug?: string; parent_id?: number | null }): Promise<ApiCategory> {
-    const res = await api.put<ApiResp<ApiCategory>>(`/categories/${id}`, data)
+    const res = await api.put<ApiResp<ApiCategory>>(`/api/categories/${id}`, data)
     return res.data
   },
 
   async deleteCategory(id: number): Promise<void> {
-    await api.delete(`/categories/${id}`)
+    await api.delete(`/api/categories/${id}`)
+  },
+
+  // Seller Applications
+  async getSellerApplications(): Promise<ApiSellerApplication[]> {
+    const res = await api.get<ApiResp<ApiSellerApplication[]>>('/api/admin/seller-applications')
+    return res.data
+  },
+
+  async approveSellerApplication(storeId: number): Promise<void> {
+    await api.post(`/api/admin/seller-applications/${storeId}/approve`)
+  },
+
+  async rejectSellerApplication(storeId: number, reason?: string): Promise<void> {
+    await api.post(`/api/admin/seller-applications/${storeId}/reject`, { reason })
   },
 
   // Reports

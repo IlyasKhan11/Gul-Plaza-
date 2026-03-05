@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { FiFacebook, FiInstagram, FiTwitter, FiMail, FiPhone, FiMapPin } from 'react-icons/fi'
 import { Separator } from '@/components/ui/separator'
+import { useAuth } from '@/context/AuthContext'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
 
 export function Footer() {
+  const { user } = useAuth()
   return (
     <footer className="bg-slate-900 text-slate-300 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
@@ -29,7 +31,9 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
               <li><Link to="/products" className="hover:text-white transition-colors">All Products</Link></li>
-              <li><Link to="/register" className="hover:text-white transition-colors">Become a Seller</Link></li>
+              {user?.role !== 'admin' && (
+                <li><Link to="/login" className="hover:text-white transition-colors">Become a Seller</Link></li>
+              )}
               <li><Link to="/cart" className="hover:text-white transition-colors">My Cart</Link></li>
             </ul>
           </div>

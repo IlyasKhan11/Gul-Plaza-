@@ -3,7 +3,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { FiShoppingCart, FiMessageCircle, FiChevronLeft, FiPackage, FiShield, FiTruck, FiZap, FiFlag } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -12,7 +11,7 @@ import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/api'
 import type { Product } from '@/types'
-import { formatPrice, formatDate } from '@/lib/utils'
+import { formatPrice } from '@/lib/utils'
 
 const REPORT_REASONS = [
   { value: 'inappropriate_content', label: 'Inappropriate Content' },
@@ -83,7 +82,7 @@ export function ProductDetailPage() {
     setReportSubmitting(true)
     setReportError(null)
     try {
-      await api.post('/reports', {
+      await api.post('/api/reports', {
         product_id: Number(id),
         reason: reportReason,
         ...(reportDesc ? { description: reportDesc } : {}),
@@ -140,7 +139,6 @@ export function ProductDetailPage() {
     ? Math.round(((Number(product.originalPrice) - Number(product.price)) / Number(product.originalPrice)) * 100)
     : 0
 
-  const whatsappMsg = encodeURIComponent(`Hi! I'm interested in "${product.title}" (Price: ${formatPrice(Number(product.price))}). Can you give me more details?`)
   const whatsappUrl = '#'
 
   return (
@@ -188,9 +186,9 @@ export function ProductDetailPage() {
           <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
 
           <div className="flex items-center gap-3 mt-2">
-            <StarRating rating={product.rating} reviewCount={product.reviewCount} size="md" />
-            <Badge variant={product.stock > 0 ? 'success' : 'destructive'}>
-              {product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
+            <StarRating rating={product.rating || 0} reviewCount={product.reviewCount || 0} size="md" />
+            <Badge variant={(product.stock || 0) > 0 ? 'success' : 'destructive'}>
+              {(product.stock || 0) > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
             </Badge>
           </div>
 
