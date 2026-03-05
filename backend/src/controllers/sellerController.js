@@ -576,10 +576,17 @@ const applyForSeller = async (req, res) => {
       });
     }
 
-    if (userResult.rows[0].role !== 'buyer') {
+    if (userResult.rows[0].role === 'seller') {
       return res.status(403).json({
         success: false,
-        message: 'Only buyers can apply to become sellers',
+        message: 'You are already a seller',
+      });
+    }
+    
+    if (userResult.rows[0].role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admins cannot apply to become sellers',
       });
     }
 

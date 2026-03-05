@@ -39,9 +39,9 @@ const getAllUsers = async (req, res) => {
       paramIndex++;
     }
 
-    // Validate sort column (users table uses 'name', not 'username')
+    // Validate sort column (users table uses 'name', not 'name')
     const allowedSortColumns = ['id', 'name', 'email', 'role', 'created_at', 'updated_at'];
-    const sortColumn = allowedSortColumns.includes(sortBy) && sortBy !== 'username' ? sortBy : 'created_at';
+    const sortColumn = allowedSortColumns.includes(sortBy) && sortBy !== 'name' ? sortBy : 'created_at';
     const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     // Build the main query
@@ -49,7 +49,7 @@ const getAllUsers = async (req, res) => {
 
     const usersQuery = `
       SELECT
-        u.id, u.name as username, u.email, u.role,
+        u.id, u.name as name, u.email, u.role,
         COALESCE(up.phone, u.phone) as phone,
         u.created_at, u.updated_at,
         CASE WHEN s.id IS NOT NULL THEN true ELSE false END as has_store,
@@ -132,7 +132,7 @@ const blockUser = async (req, res) => {
 
     // Check if user exists
     const userResult = await query(
-      'SELECT id, username, email, role FROM users WHERE id = $1',
+      'SELECT id, name, email, role FROM users WHERE id = $1',
       [userId]
     );
 
@@ -180,7 +180,7 @@ const blockUser = async (req, res) => {
       data: {
         user: {
           id: targetUser.id,
-          username: targetUser.username,
+          name: targetUser.name,
           email: targetUser.email,
           role: targetUser.role,
         },
@@ -218,7 +218,7 @@ const unblockUser = async (req, res) => {
 
     // Check if user exists
     const userResult = await query(
-      'SELECT id, username, email, role FROM users WHERE id = $1',
+      'SELECT id, name, email, role FROM users WHERE id = $1',
       [userId]
     );
 
@@ -259,7 +259,7 @@ const unblockUser = async (req, res) => {
       data: {
         user: {
           id: targetUser.id,
-          username: targetUser.username,
+          name: targetUser.name,
           email: targetUser.email,
           role: targetUser.role,
         },
@@ -287,7 +287,7 @@ const getUserById = async (req, res) => {
     // Get user details with profile and store information
     const userQuery = `
       SELECT 
-        u.id, u.username, u.email, u.role, u.created_at, u.updated_at,
+        u.id, u.name, u.email, u.role, u.created_at, u.updated_at,
         up.first_name, up.last_name, up.phone, up.address, up.city, 
         up.country, up.postal_code, up.avatar_url, up.bio,
         s.id as store_id, s.name as store_name, s.logo_url, s.banner_url, 
@@ -315,7 +315,7 @@ const getUserById = async (req, res) => {
     // Format the response
     const userData = {
       id: user.id,
-      username: user.username,
+      name: user.name,
       email: user.email,
       role: user.role,
       created_at: user.created_at,

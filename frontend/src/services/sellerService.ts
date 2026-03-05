@@ -75,7 +75,7 @@ export const sellerService = {
   // Store
   async getProfile() {
     const res = await api.get<ApiResp<{ user: unknown; profile: unknown; store: SellerStore | null }>>(
-      '/sellers/profile'
+      '/api/sellers/profile'
     )
     return res.data
   },
@@ -88,7 +88,7 @@ export const sellerService = {
     contact_email?: string
     contact_phone?: string
   }): Promise<SellerStore> {
-    const res = await api.post<ApiResp<SellerStore>>('/sellers/store', data)
+    const res = await api.post<ApiResp<SellerStore>>('/api/sellers/store', data)
     return res.data
   },
 
@@ -103,9 +103,9 @@ export const sellerService = {
     postal_code?: string
     business_license?: string
     tax_id?: string
-  }): Promise<SellerStore> {
-    const res = await api.post<ApiResp<SellerStore>>('/sellers/apply', data)
-    return res.data
+  }): Promise<ApiResp<{ store: SellerStore }>> {
+    const res = await api.post<ApiResp<{ store: SellerStore }>>('/api/sellers/apply', data)
+    return { success: true, data: res.data }
   },
 
   async updateStore(data: {
@@ -116,7 +116,7 @@ export const sellerService = {
     contact_email?: string
     contact_phone?: string
   }): Promise<SellerStore> {
-    const res = await api.put<ApiResp<SellerStore>>('/sellers/store', data)
+    const res = await api.put<ApiResp<SellerStore>>('/api/sellers/store', data)
     return res.data
   },
 

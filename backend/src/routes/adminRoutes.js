@@ -24,6 +24,17 @@ const {
   getProductReports,
   updateReportStatus,
 } = require('../controllers/reportController');
+const {
+  getAllOrders,
+  getAdminOrderById,
+  updateOrderStatus,
+  getOrderStatistics,
+} = require('../controllers/newOrderController');
+const {
+  validateAdminOrderQuery,
+  validateOrderId,
+  validateUpdateOrderStatus,
+} = require('../validations/orderValidation');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireAdmin } = require('../middleware/roleMiddleware');
 
@@ -63,6 +74,10 @@ router.get('/', (req, res) => {
       'GET /api/admin/users/:id': 'Get user details by ID',
       'PATCH /api/admin/users/:id/block': 'Block user',
       'PATCH /api/admin/users/:id/unblock': 'Unblock user',
+      'GET /api/admin/orders': 'Get all orders with pagination and filtering',
+      'GET /api/admin/orders/:id': 'Get order details by ID',
+      'PUT /api/admin/orders/:id/status': 'Update order status',
+      'GET /api/admin/orders/statistics': 'Get order statistics',
       'GET /api/admin/dashboard': 'Get admin dashboard statistics',
       'GET /api/admin/dashboard/summary': 'Get dashboard summary statistics',
       'GET /api/admin/dashboard/sales-report': 'Get sales report with date range',
@@ -104,6 +119,36 @@ router.patch('/users/:id/block', authenticateToken, requireAdmin, blockLimiter, 
  * @access  Private (Admin only)
  */
 router.patch('/users/:id/unblock', authenticateToken, requireAdmin, blockLimiter, blockUserValidation, unblockUser);
+
+// Order Management Routes
+
+/**
+ * @route   GET /api/admin/orders
+ * @desc    Get all orders with pagination and filtering
+ * @access  Private (Admin only)
+ */
+router.get('/orders', authenticateToken, requireAdmin, adminLimiter, validateAdminOrderQuery, getAllOrders);
+
+/**
+ * @route   GET /api/admin/orders/:id
+ * @desc    Get order details by ID
+ * @access  Private (Admin only)
+ */
+router.get('/orders/:id', authenticateToken, requireAdmin, adminLimiter, validateOrderId, getAdminOrderById);
+
+/**
+ * @route   PUT /api/admin/orders/:id/status
+ * @desc    Update order status
+ * @access  Private (Admin only)
+ */
+router.put('/orders/:id/status', authenticateToken, requireAdmin, adminLimiter, validateOrderId, validateUpdateOrderStatus, updateOrderStatus);
+
+/**
+ * @route   GET /api/admin/orders/statistics
+ * @desc    Get order statistics
+ * @access  Private (Admin only)
+ */
+router.get('/orders/statistics', authenticateToken, requireAdmin, adminLimiter, getOrderStatistics);
 
 // Dashboard Analytics Routes
 

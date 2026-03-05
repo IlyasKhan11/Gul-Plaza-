@@ -54,7 +54,7 @@ export function HomePage() {
                   <Link to="/products">Shop Now <FiArrowRight className="h-4 w-4" /></Link>
                 </Button>
                 <Button size="lg" variant="outline" className="border-white/50 text-white hover:bg-white/10 bg-transparent" asChild>
-                  <Link to="/register">Sell on GUL PLAZA</Link>
+                  <Link to={user ? "/buyer/profile?becomeSeller=true" : "/login"}>Sell on GUL PLAZA</Link>
                 </Button>
               </div>
               <div className="flex items-center gap-6 text-sm text-blue-200">
@@ -166,7 +166,7 @@ export function HomePage() {
               <h2 className="text-3xl font-bold mb-2">Become a Seller Today</h2>
               <p className="text-orange-100 mb-6 text-lg">Open your online store for free and reach thousands of buyers across Pakistan.</p>
               <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50" asChild>
-                <Link to={user ? "/profile?becomeSeller=true" : "/login"}>Start Selling — It's Free</Link>
+                <Link to={user ? "/buyer/profile?becomeSeller=true" : "/login"}>Start Selling — It's Free</Link>
               </Button>
             </div>
           </div>

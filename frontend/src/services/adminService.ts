@@ -134,17 +134,17 @@ export const adminService = {
     if (params?.search) qs.set('search', params.search)
     if (params?.role) qs.set('role', params.role)
     const res = await api.get<ApiResp<{ users: ApiUser[]; pagination: Pagination & { total_users: number } }>>(
-      `/admin/users?${qs.toString()}`
+      `/api/admin/users?${qs.toString()}`
     )
     return res.data
   },
 
   async blockUser(userId: number, reason?: string): Promise<void> {
-    await api.patch(`/admin/users/${userId}/block`, { reason })
+    await api.patch(`/api/admin/users/${userId}/block`, { reason })
   },
 
   async unblockUser(userId: number): Promise<void> {
-    await api.patch(`/admin/users/${userId}/unblock`, {})
+    await api.patch(`/api/admin/users/${userId}/unblock`, {})
   },
 
   // Orders
@@ -158,13 +158,13 @@ export const adminService = {
     if (params?.limit) qs.set('limit', String(params.limit))
     if (params?.status) qs.set('status', params.status)
     const res = await api.get<ApiResp<{ orders: ApiOrder[]; pagination: Pagination & { total_orders: number } }>>(
-      `/orders/admin/orders?${qs.toString()}`
+      `/api/admin/orders?${qs.toString()}`
     )
     return res.data
   },
 
   async updateOrderStatus(orderId: number, status: string): Promise<void> {
-    await api.put(`/orders/admin/orders/${orderId}/status`, { status })
+    await api.put(`/api/admin/orders/${orderId}/status`, { status })
   },
 
   // Sellers — uses GET /admin/users?role=seller, maps to ApiSeller shape
@@ -177,7 +177,7 @@ export const adminService = {
     if (params?.search) qs.set('search', params.search)
     qs.set('role', 'seller')
     const res = await api.get<ApiResp<{ users: ApiUser[]; pagination: Pagination & { total_users: number } }>>(
-      `/admin/users?${qs.toString()}`
+      `/api/admin/users?${qs.toString()}`
     )
     const sellers: ApiSeller[] = res.data.users.map(u => ({
       id: u.id,
@@ -243,13 +243,13 @@ export const adminService = {
     if (params?.limit) qs.set('limit', String(params.limit))
     if (params?.status) qs.set('status', params.status)
     const res = await api.get<ApiResp<{ reports: ApiReport[]; pagination: Pagination & { total_reports: number } }>>(
-      `/admin/reports?${qs.toString()}`
+      `/api/admin/reports?${qs.toString()}`
     )
     return res.data
   },
 
   async updateReportStatus(id: number, status: string, admin_notes?: string): Promise<void> {
-    await api.put(`/admin/reports/${id}/status`, { status, admin_notes })
+    await api.put(`/api/admin/reports/${id}/status`, { status, admin_notes })
   },
 
   // Products (public endpoint, no admin prefix)
@@ -263,7 +263,7 @@ export const adminService = {
     if (params?.limit) qs.set('limit', String(params.limit))
     if (params?.search) qs.set('search', params.search)
     const res = await api.get<ApiResp<{ products: ApiProduct[]; pagination: Pagination & { total_products: number } }>>(
-      `/products?${qs.toString()}`
+      `/api/products?${qs.toString()}`
     )
     return res.data
   },

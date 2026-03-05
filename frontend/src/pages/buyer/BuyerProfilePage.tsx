@@ -92,16 +92,16 @@ export function BuyerProfilePage() {
       
       // Create a store object for the UI
       const newStore: Store = {
-        id: result.id.toString(),
+        id: result.data.store.id.toString(),
         sellerId: user.id,
         sellerName: user.name,
-        name: result.name,
-        slug: toSlug(result.name),
-        description: result.description || '',
+        name: result.data.store.name,
+        slug: toSlug(result.data.store.name),
+        description: result.data.store.description || '',
         logo: '',
         banner: '',
-        contactEmail: result.contact_email || '',
-        whatsapp: result.contact_phone || '',
+        contactEmail: result.data.store.contact_email || '',
+        whatsapp: result.data.store.contact_phone || '',
         rating: 0,
         reviewCount: 0,
         productCount: 0,

@@ -49,11 +49,12 @@ router.get('/', (req, res) => {
     endpoints: {
       'GET /api/sellers/profile': 'Get seller profile',
       'PUT /api/sellers/profile': 'Update seller profile',
+      'POST /api/sellers/apply': 'Apply to become a seller (non-seller users only)',
       'POST /api/sellers/store': 'Create store',
       'PUT /api/sellers/store': 'Update store details',
       'GET /api/sellers/dashboard': 'Get seller dashboard statistics',
     },
-    note: 'All endpoints require authentication and seller role',
+    note: 'All endpoints require authentication. Some require seller role.',
   });
 });
 
@@ -67,7 +68,7 @@ router.get('/dashboard', authenticateToken, requireSeller, profileLimiter, getSe
 /**
  * @route   POST /api/sellers/apply
  * @desc    Apply to become a seller (create store application)
- * @access  Private (Buyers only)
+ * @access  Private (Non-seller users only)
  */
 router.post('/apply', authenticateToken, storeLimiter, applyForSellerValidation, applyForSeller);
 
