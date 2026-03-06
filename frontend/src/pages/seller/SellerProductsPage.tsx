@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { FiPlus, FiEdit2, FiTrash2, FiPackage, FiX, FiCheckCircle, FiSearch, FiRefreshCw } from 'react-icons/fi'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { FiPlus, FiEdit2, FiTrash2, FiPackage, FiX, FiCheckCircle, FiSearch, FiRefreshCw, FiUpload } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { sellerService, type SellerProduct, type ApiCategory } from '@/services/sellerService'
 import { formatPrice } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const emptyForm = {
   title: '', description: '', price: '', stock: '', category_id: '',
@@ -31,8 +32,10 @@ export function SellerProductsPage() {
   const [editProduct, setEditProduct] = useState<SellerProduct | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
-  const [newImageUrl, setNewImageUrl] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [successMsg, setSuccessMsg] = useState('')
 
   const fetchProducts = useCallback(async (p: number, q: string) => {
@@ -71,6 +74,7 @@ export function SellerProductsPage() {
 
   function openAdd() {
     setForm(emptyForm)
+    setImagePreviewUrls([])
     setAddOpen(true)
   }
 
@@ -84,28 +88,50 @@ export function SellerProductsPage() {
       category_id: '',
       images: product.primary_image ? [product.primary_image] : [],
     })
+    setImagePreviewUrls(product.primary_image ? [product.primary_image] : [])
   }
 
   function closeForm() {
     setAddOpen(false)
     setEditProduct(null)
     setForm(emptyForm)
-    setNewImageUrl('')
+    setImagePreviewUrls(prev => {
+      prev.forEach(url => { if (url.startsWith('blob:')) URL.revokeObjectURL(url) })
+      return []
+    })
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  function addImageUrl() {
-    if (newImageUrl.trim()) {
-      try {
-        new URL(newImageUrl.trim())
-        setForm(f => ({ ...f, images: [...f.images, newImageUrl.trim()] }))
-        setNewImageUrl('')
-      } catch {
-        alert('Please enter a valid image URL')
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    setUploadingImage(true)
+    try {
+      for (const file of Array.from(files)) {
+        const blobUrl = URL.createObjectURL(file)
+        setImagePreviewUrls(prev => [...prev, blobUrl])
+        const serverUrl = await sellerService.uploadProductImage(file)
+        setForm(f => ({ ...f, images: [...f.images, serverUrl] }))
       }
+    } catch (err) {
+      setImagePreviewUrls(prev => {
+        const last = prev[prev.length - 1]
+        if (last?.startsWith('blob:')) URL.revokeObjectURL(last)
+        return prev.slice(0, -1)
+      })
+      alert(err instanceof Error ? err.message : 'Failed to upload image')
+    } finally {
+      setUploadingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
-  function removeImageUrl(index: number) {
+  function removeImage(index: number) {
+    setImagePreviewUrls(prev => {
+      const url = prev[index]
+      if (url?.startsWith('blob:')) URL.revokeObjectURL(url)
+      return prev.filter((_, i) => i !== index)
+    })
     setForm(f => ({ ...f, images: f.images.filter((_, i) => i !== index) }))
   }
 
@@ -118,7 +144,7 @@ export function SellerProductsPage() {
     setSaving(true)
     try {
       if (editProduct) {
-        const updated = await sellerService.updateProduct(editProduct.id, {
+        await sellerService.updateProduct(editProduct.id, {
           title: form.title,
           description: form.description,
           price: Number(form.price),
@@ -126,22 +152,20 @@ export function SellerProductsPage() {
           category_id: form.category_id ? Number(form.category_id) : undefined,
           images: form.images,
         })
-        setProducts(prev => prev.map(p => p.id === editProduct.id ? updated : p))
         setSuccessMsg('Product updated successfully!')
       } else {
-        const created = await sellerService.createProduct({
+        await sellerService.createProduct({
           title: form.title,
           description: form.description,
           price: Number(form.price),
           stock: Number(form.stock),
           category_id: Number(form.category_id),
-          images: form.images.length > 0 ? form.images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=600&fit=crop'],
+          images: form.images.length > 0 ? form.images : [],
         })
-        setProducts(prev => [created, ...prev])
-        setTotalProducts(t => t + 1)
         setSuccessMsg('Product added successfully!')
       }
       closeForm()
+      fetchProducts(page, search)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to save product')
     } finally {
@@ -203,8 +227,41 @@ export function SellerProductsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left pb-3 text-slate-500 font-medium">Product</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Category</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Price</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Stock</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
+                    <th className="text-right pb-3 text-slate-500 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="py-3">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                      </td>
+                      <td className="py-3"><Skeleton className="h-3 w-20" /></td>
+                      <td className="py-3"><Skeleton className="h-4 w-16" /></td>
+                      <td className="py-3"><Skeleton className="h-4 w-8" /></td>
+                      <td className="py-3"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                      <td className="py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Skeleton className="h-8 w-8 rounded-md" />
+                          <Skeleton className="h-8 w-8 rounded-md" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-16">
@@ -232,7 +289,9 @@ export function SellerProductsPage() {
                         <td className="py-3">
                           <div className="flex items-center gap-3">
                             {product.primary_image ? (
-                              <img src={product.primary_image} alt="" className="w-10 h-10 rounded-lg object-cover bg-slate-50 shrink-0" />
+                              <img
+                                src={product.primary_image}
+                                alt="" className="w-10 h-10 rounded-lg object-cover bg-slate-50 shrink-0" />
                             ) : (
                               <div className="w-10 h-10 rounded-lg bg-slate-100 shrink-0 flex items-center justify-center">
                                 <FiPackage className="h-4 w-4 text-slate-400" />
@@ -336,35 +395,52 @@ export function SellerProductsPage() {
                   placeholder="e.g. 50" className="mt-1" required />
               </div>
             </div>
-            {/* Image URLs */}
+            {/* Image Upload */}
             <div>
               <Label>Product Images</Label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  value={newImageUrl}
-                  onChange={e => setNewImageUrl(e.target.value)}
-                  placeholder="Enter image URL (https://...)"
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addImageUrl())}
-                />
-                <Button type="button" variant="outline" onClick={addImageUrl}>Add</Button>
-              </div>
-              {form.images.length > 0 && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="mt-1 w-full flex flex-col items-center gap-2 px-4 py-5 border-2 border-dashed border-slate-300 rounded-xl hover:border-blue-400 hover:bg-blue-50/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploadingImage ? (
+                  <div className="h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <FiUpload className="h-5 w-5 text-slate-400" />
+                )}
+                <span className="text-sm text-slate-500">
+                  {uploadingImage ? 'Uploading…' : 'Click to upload images (JPG, PNG, WEBP — max 5MB each)'}
+                </span>
+              </button>
+              {imagePreviewUrls.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {form.images.map((url, idx) => (
+                  {imagePreviewUrls.map((previewUrl, idx) => (
                     <div key={idx} className="relative group">
-                      <img src={url} alt="" className="w-16 h-16 rounded-lg object-cover border" />
+                      <img
+                        src={previewUrl}
+                        alt={`Product ${idx + 1}`}
+                        className="h-16 w-16 object-cover rounded-lg border border-slate-200"
+                      />
                       <button
                         type="button"
-                        onClick={() => removeImageUrl(idx)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeImage(idx)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        ×
+                        <FiX className="h-3 w-3" />
                       </button>
                     </div>
                   ))}
                 </div>
               )}
-              <p className="text-xs text-slate-400 mt-1">Add image URLs for your product. First image will be the primary image.</p>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>

@@ -98,10 +98,13 @@ CREATE TABLE IF NOT EXISTS orders (
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
     payment_status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'verified', 'failed', 'refunded')),
     payment_method VARCHAR(50),
+    transaction_id VARCHAR(100),
+    payment_screenshot VARCHAR(500),
     currency VARCHAR(10) DEFAULT 'USD',
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     
     -- Shipping Information
+    shipping_full_name VARCHAR(100) NOT NULL DEFAULT '',
     shipping_address TEXT NOT NULL,
     shipping_city VARCHAR(100) NOT NULL,
     shipping_country VARCHAR(100) NOT NULL,

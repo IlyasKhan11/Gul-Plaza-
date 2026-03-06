@@ -1,5 +1,4 @@
 const express = require('express');
-const rateLimit = require('express-rate-limit');
 
 // Import new order controllers and validation
 const {
@@ -29,29 +28,28 @@ const { requireBuyer, requireAdmin } = require('../middleware/roleMiddleware');
 
 const router = express.Router();
 
-// Rate limiting for order operations
-const orderLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Limit each IP to 50 requests per windowMs
-  message: {
-    success: false,
-    message: 'Too many order requests, please try again later.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Rate limiting disabled for development
+// const orderLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 50, // Limit each IP to 50 requests per windowMs
+//   message: {
+//     success: false,
+//     message: 'Too many order requests, please try again later.',
+//   },
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
 
-// More restrictive rate limiting for order creation and status updates
-const orderActionLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 order actions per windowMs
-  message: {
-    success: false,
-    message: 'Too many order actions, please try again later.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// const orderActionLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 10, // Limit each IP to 10 order actions per windowMs
+//   message: {
+//     success: false,
+//     message: 'Too many order actions, please try again later.',
+//   },
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
 
 // BUYER ROUTES
 
@@ -64,7 +62,6 @@ router.post(
   '/',
   authenticateToken,
   requireBuyer,
-  orderActionLimiter,
   validateCreateOrder,
   createOrder
 );
@@ -78,7 +75,6 @@ router.get(
   '/',
   authenticateToken,
   requireBuyer,
-  orderLimiter,
   validateOrderQuery,
   getMyOrders
 );
@@ -92,7 +88,6 @@ router.get(
   '/:orderId',
   authenticateToken,
   requireBuyer,
-  orderLimiter,
   validateOrderId,
   getOrderById
 );
@@ -106,7 +101,6 @@ router.post(
   '/:id/select-payment',
   authenticateToken,
   requireBuyer,
-  orderActionLimiter,
   validateOrderId,
   validateSelectPaymentMethod,
   selectPaymentMethod
@@ -123,7 +117,7 @@ router.get(
   '/admin/orders',
   authenticateToken,
   requireAdmin,
-  orderLimiter,
+  
   validateAdminOrderQuery,
   getAllOrders
 );
@@ -137,7 +131,7 @@ router.get(
   '/admin/orders/:orderId',
   authenticateToken,
   requireAdmin,
-  orderLimiter,
+  
   validateOrderId,
   getAdminOrderById
 );
@@ -151,7 +145,7 @@ router.put(
   '/admin/orders/:orderId/status',
   authenticateToken,
   requireAdmin,
-  orderLimiter,
+  
   validateOrderId,
   validateUpdateOrderStatus,
   updateOrderStatus
@@ -166,7 +160,7 @@ router.get(
   '/admin/orders/statistics',
   authenticateToken,
   requireAdmin,
-  orderLimiter,
+  
   getOrderStatistics
 );
 
@@ -179,7 +173,7 @@ router.patch(
   '/admin/orders/:id/verify',
   authenticateToken,
   requireAdmin,
-  orderActionLimiter,
+  
   validateOrderId,
   verifyPayment
 );
@@ -193,7 +187,7 @@ router.patch(
   '/admin/orders/:id/ship',
   authenticateToken,
   requireAdmin,
-  orderActionLimiter,
+  
   validateOrderId,
   shipOrder
 );

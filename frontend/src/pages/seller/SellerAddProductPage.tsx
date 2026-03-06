@@ -1,46 +1,41 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { FiPlus, FiX, FiChevronLeft, FiImage, FiUpload } from 'react-icons/fi'
+import { FiX, FiChevronLeft, FiImage, FiUpload } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAuth } from '@/context/AuthContext'
 import { sellerService, type SellerStore, type ApiCategory } from '@/services/sellerService'
 
 export function SellerAddProductPage() {
-  const { user } = useAuth()
   const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [originalPrice, setOriginalPrice] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [stock, setStock] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
   const [images, setImages] = useState<string[]>([])
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  
+
   // Real data from API
   const [sellerStore, setSellerStore] = useState<SellerStore | null>(null)
   const [categories, setCategories] = useState<ApiCategory[]>([])
   const [loadingData, setLoadingData] = useState(true)
 
-  // Fetch store and categories
   useEffect(() => {
     async function fetchData() {
       try {
-        // Get seller profile/store
         const profileRes = await sellerService.getProfile()
-        if (profileRes.data.store) {
-          setSellerStore(profileRes.data.store)
+        if (profileRes.store) {
+          setSellerStore(profileRes.store)
         }
-        
-        // Get categories
         const categoriesRes = await sellerService.getCategories()
         setCategories(categoriesRes)
       } catch (err) {
@@ -52,27 +47,34 @@ export function SellerAddProductPage() {
     fetchData()
   }, [])
 
-  function addImage() {
-    if (imageUrl.trim()) {
-      // Validate URL format
-      try {
-        new URL(imageUrl.trim())
-        setImages(prev => [...prev, imageUrl.trim()])
-        setImageUrl('')
-      } catch {
-        setError('Please enter a valid image URL')
-      }
-    }
-  }
-
   function removeImage(index: number) {
     setImages(prev => prev.filter((_, i) => i !== index))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    setUploadingImage(true)
+    setError('')
+    try {
+      const uploaded: string[] = []
+      for (const file of Array.from(files)) {
+        const url = await sellerService.uploadProductImage(file)
+        uploaded.push(url)
+      }
+      setImages(prev => [...prev, ...uploaded])
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to upload image')
+    } finally {
+      setUploadingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
-    
+
     if (!name.trim() || !price || !categoryId || !stock) {
       setError('Please fill in all required fields')
       return
@@ -91,12 +93,12 @@ export function SellerAddProductPage() {
         price: Number(price),
         stock: Number(stock),
         category_id: Number(categoryId),
-        images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=600&fit=crop']
+        images: images.length > 0 ? images : [],
       })
       setSuccess(true)
       setTimeout(() => navigate('/seller/products'), 1500)
-    } catch (err: any) {
-      setError(err.message || 'Failed to create product')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create product')
     } finally {
       setLoading(false)
     }
@@ -243,32 +245,51 @@ export function SellerAddProductPage() {
               </div>
             </div>
 
+            {/* Image Upload */}
             <div className="space-y-2">
               <Label>Product Images</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter image URL (https://...)"
-                  value={imageUrl}
-                  onChange={e => setImageUrl(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addImage())}
-                />
-                <Button type="button" variant="outline" onClick={addImage}>
-                  <FiPlus className="h-4 w-4" /> Add
-                </Button>
-              </div>
-              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
+              />
+
+              {/* Upload button */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="w-full flex flex-col items-center gap-2 px-4 py-6 border-2 border-dashed border-slate-300 rounded-xl hover:border-blue-400 hover:bg-blue-50/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploadingImage ? (
+                  <div className="h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <FiUpload className="h-6 w-6 text-slate-400" />
+                )}
+                <span className="text-sm text-slate-500">
+                  {uploadingImage ? 'Uploading…' : 'Click to upload images (JPG, PNG, WEBP — max 5MB each)'}
+                </span>
+              </button>
+
+              {/* Image previews */}
               {images.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {images.map((img, idx) => (
                     <div key={idx} className="relative group">
-                      <img
-                        src={img}
-                        alt={`Product ${idx + 1}`}
-                        className="h-20 w-20 object-cover rounded-lg border"
-                        onError={e => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Invalid+URL'
-                        }}
-                      />
+                      {img ? (
+                        <img
+                          src={img}
+                          alt={`Product ${idx + 1}`}
+                          className="h-20 w-20 object-cover rounded-lg border border-slate-200"
+                        />
+                      ) : (
+                        <div className="h-20 w-20 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center">
+                          <FiImage className="h-6 w-6 text-slate-400" />
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
@@ -280,10 +301,6 @@ export function SellerAddProductPage() {
                   ))}
                 </div>
               )}
-              
-              <p className="text-xs text-slate-500 mt-1">
-                Add image URLs for your product. You can use images from the internet.
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -292,7 +309,7 @@ export function SellerAddProductPage() {
           <Button type="button" variant="outline" asChild>
             <Link to="/seller/products">Cancel</Link>
           </Button>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || uploadingImage}>
             {loading ? 'Creating...' : 'Create Product'}
           </Button>
         </div>

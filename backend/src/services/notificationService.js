@@ -1,7 +1,9 @@
-// Notification Service for real-time admin notifications
-// Uses Server-Sent Events (SSE) for push notifications
+// Notification Service for real-time notifications
+// Uses Server-Sent Events (SSE) for push + DB for persistence
 
-// Store active connections
+const { query } = require('../config/db');
+
+// Store active SSE connections
 const clients = new Map();
 
 // Event types
@@ -22,32 +24,61 @@ const NotificationEvents = {
   LOW_STOCK_ALERT: 'low_stock_alert',
 };
 
-// Add a new client connection
+// Add a new SSE client connection
 function addClient(userId, res) {
   const clientId = `${userId}_${Date.now()}`;
   clients.set(clientId, { userId, res });
-  
-  // Remove client on close
+
   res.on('close', () => {
     clients.delete(clientId);
   });
-  
+
   return clientId;
 }
 
-// Send notification to specific user
-function sendToUser(userId, event, data) {
-  clients.forEach((client, clientId) => {
-    if (client.userId === userId || client.userId === 'admin') {
-      const payload = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
+// Save notification to DB and push via SSE
+async function saveNotification(userId, type, title, message, link = null) {
+  try {
+    const result = await query(
+      `INSERT INTO notifications (user_id, type, title, message, link)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, user_id, type, title, message, link, is_read, created_at`,
+      [userId, type, title, message, link]
+    );
+    const notification = result.rows[0];
+
+    // Push via SSE to the user if connected
+    pushToUser(String(userId), 'notification', notification);
+
+    return notification;
+  } catch (err) {
+    console.error('Failed to save notification:', err);
+  }
+}
+
+// Push SSE event to a specific user (by userId string)
+function pushToUser(userId, event, data) {
+  const payload = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
+  clients.forEach((client) => {
+    if (String(client.userId) === String(userId)) {
       client.res.write(`data: ${payload}\n\n`);
     }
   });
 }
 
-// Send notification to all admins
+// Send notification to specific user (SSE only, legacy)
+function sendToUser(userId, event, data) {
+  const payload = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
+  clients.forEach((client) => {
+    if (String(client.userId) === String(userId) || client.userId === 'admin') {
+      client.res.write(`data: ${payload}\n\n`);
+    }
+  });
+}
+
+// Send notification to all admins (SSE only)
 function sendToAdmins(event, data) {
-  clients.forEach((client, clientId) => {
+  clients.forEach((client) => {
     if (client.userId === 'admin') {
       const payload = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
       client.res.write(`data: ${payload}\n\n`);
@@ -55,7 +86,7 @@ function sendToAdmins(event, data) {
   });
 }
 
-// Send notification to all connected clients
+// Broadcast to all connected clients (SSE only)
 function broadcast(event, data) {
   const payload = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
   clients.forEach((client) => {
@@ -71,6 +102,7 @@ function getConnectedCount() {
 module.exports = {
   NotificationEvents,
   addClient,
+  saveNotification,
   sendToUser,
   sendToAdmins,
   broadcast,

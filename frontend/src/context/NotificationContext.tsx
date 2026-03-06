@@ -30,8 +30,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Connect to SSE endpoint
     const connectSSE = () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('gul_plaza_token');
       if (!token) return;
+
+      // Check if token is expired
+      try {
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          if (payload.exp && Date.now() >= payload.exp * 1000) {
+            // Token is expired, clear it and don't connect
+            localStorage.removeItem('gul_plaza_token');
+            localStorage.removeItem('gul_plaza_user');
+            return;
+          }
+        }
+      } catch (e) {
+        // Invalid token format, clear it
+        localStorage.removeItem('gul_plaza_token');
+        localStorage.removeItem('gul_plaza_user');
+        return;
+      }
 
       const eventSource = new EventSource(
         `http://localhost:3000/api/notifications/sse?token=${token}`

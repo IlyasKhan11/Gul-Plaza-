@@ -18,7 +18,7 @@ const getSellerOrders = async (req, res) => {
     const parsedLimit = Math.min(parseInt(limit), 100);
     
     // Build WHERE conditions
-    const conditions = ['s.owner_id = $1'];
+    const conditions = ['p.seller_id = $1'];
     const params = [sellerId];
     let paramIndex = 2;
     
@@ -35,7 +35,7 @@ const getSellerOrders = async (req, res) => {
       SELECT 
         o.id, o.status, o.total_amount, o.payment_status, o.payment_method,
         o.shipping_address, o.shipping_city, o.shipping_country, o.shipping_postal_code, o.shipping_phone,
-        o.courier_name, o.tracking_number, o.seller_confirmed_at, o.seller_notes,
+        o.courier_name, o.tracking_number, o.transaction_id, o.seller_confirmed_at, o.seller_notes,
         o.created_at, o.updated_at,
         u.name as buyer_name, u.email as buyer_email, u.phone as buyer_phone,
         s.name as store_name
@@ -47,10 +47,8 @@ const getSellerOrders = async (req, res) => {
       ${whereClause}
       GROUP BY o.id, u.name, u.email, u.phone, s.name
       ORDER BY o.created_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      LIMIT ${parsedLimit} OFFSET ${offset}
     `;
-    
-    params.push(parsedLimit, offset);
     
     // Get orders
     const ordersResult = await query(ordersQuery, params);
@@ -91,8 +89,7 @@ const getSellerOrders = async (req, res) => {
       ${whereClause}
     `;
     
-    const countParams = params.slice(0, -2);
-    const countResult = await query(countQuery, countParams);
+    const countResult = await query(countQuery, params);
     
     const totalOrders = parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(totalOrders / parsedLimit);
@@ -413,7 +410,13 @@ const shipOrderWithTracking = async (req, res) => {
         const buyerId = buyerInfoResult.rows[0].buyer_id;
         const buyerName = buyerInfoResult.rows[0].buyer_name;
         
-        // Send real-time notification to buyer
+        // Persist + push notification to buyer
+        await notificationService.saveNotification(
+          buyerId, 'order',
+          'Order Shipped',
+          `Your order #${orderId} has been shipped via ${courier_name}. Tracking: ${tracking_number || 'N/A'}`,
+          '/buyer/orders'
+        );
         notificationService.sendToUser(buyerId, notificationService.NotificationEvents.ORDER_SHIPPED, {
           orderId: orderId,
           status: 'shipped',
@@ -562,7 +565,13 @@ Rate your experience: https://gulplaza.com/feedback/${orderId}`;
       const buyerId = buyerInfoResult.rows[0].buyer_id;
       const buyerName = buyerInfoResult.rows[0].buyer_name;
       
-      // Send real-time notification to buyer
+      // Persist + push notification to buyer
+      await notificationService.saveNotification(
+        buyerId, 'order',
+        'Order Delivered',
+        `Your order #${orderId} has been delivered! Thank you for shopping with us.`,
+        '/buyer/orders'
+      );
       notificationService.sendToUser(buyerId, notificationService.NotificationEvents.ORDER_DELIVERED, {
         orderId: orderId,
         status: 'delivered',

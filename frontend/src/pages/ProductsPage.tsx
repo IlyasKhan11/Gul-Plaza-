@@ -1,17 +1,15 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { FiSliders } from 'react-icons/fi'
+import { FiSliders, FiStar, FiPackage } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ProductCard } from '@/components/common/ProductCard'
-// import { mockCategories } from '@/data/mockData'
-import type { Category } from '@/types'
-import { useEffect } from 'react'
+import { ProductCardSkeleton } from '@/components/common/ProductCardSkeleton'
+import type { Category, Product } from '@/types'
 import { api } from '@/lib/api'
-import type { Product } from '@/types'
 import { formatPrice } from '@/lib/utils'
 
 export function ProductsPage() {
@@ -19,6 +17,7 @@ export function ProductsPage() {
   const [search, setSearch] = useState(searchParams.get('q') ?? '')
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') ?? 'all')
   const [priceRange, setPriceRange] = useState([0, 150000])
+  const [minRating, setMinRating] = useState(0)
   const [sortBy, setSortBy] = useState('featured')
   const [showFilters, setShowFilters] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
@@ -82,12 +81,13 @@ export function ProductsPage() {
     // Only filter by category if selectedCategory is not 'all'
     // No need to filter by category here, backend already does it
     result = result.filter(p => Number(p.price) >= priceRange[0] && Number(p.price) <= priceRange[1])
+    if (minRating > 0) result = result.filter(p => Number(p.rating ?? 0) >= minRating)
     if (sortBy === 'price-asc') result.sort((a, b) => Number(a.price) - Number(b.price))
     else if (sortBy === 'price-desc') result.sort((a, b) => Number(b.price) - Number(a.price))
     else if (sortBy === 'rating') result.sort((a, b) => (Number(b.rating ?? 0)) - (Number(a.rating ?? 0)))
     else if (sortBy === 'newest') result.sort((a, b) => new Date(b.createdAt ?? '').getTime() - new Date(a.createdAt ?? '').getTime())
     return result
-  }, [products, search, selectedCategory, priceRange, sortBy])
+  }, [products, search, selectedCategory, priceRange, minRating, sortBy])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -139,7 +139,24 @@ export function ProductsPage() {
               </div>
             </div>
 
-            <Button variant="outline" size="sm" className="w-full" onClick={() => { setSelectedCategory('all'); setPriceRange([0, 150000]); setSearch('') }}>
+            {/* Minimum Rating */}
+            <div className="space-y-2">
+              <Label className="text-xs uppercase text-slate-400 tracking-wide">Min. Rating</Label>
+              <div className="flex items-center gap-1">
+                {[0, 1, 2, 3, 4].map(star => (
+                  <button
+                    key={star}
+                    onClick={() => setMinRating(minRating === star + 1 ? 0 : star + 1)}
+                    className={`p-1 rounded transition-colors ${minRating >= star + 1 ? 'text-amber-400' : 'text-slate-300 hover:text-slate-400'}`}
+                  >
+                    <FiStar className={`h-4 w-4 ${minRating >= star + 1 ? 'fill-amber-400' : ''}`} />
+                  </button>
+                ))}
+                {minRating > 0 && <span className="text-xs text-slate-500 ml-1">{minRating}+</span>}
+              </div>
+            </div>
+
+            <Button variant="outline" size="sm" className="w-full" onClick={() => { setSelectedCategory('all'); setPriceRange([0, 150000]); setSearch(''); setMinRating(0) }}>
               Reset Filters
             </Button>
           </div>
@@ -173,12 +190,30 @@ export function ProductsPage() {
             </div>
           </div>
 
-          <p className="text-sm text-slate-500 mb-4">{filtered.length} products found</p>
+          {!loading && <p className="text-sm text-slate-500 mb-4">{filtered.length} products found</p>}
 
-          {filtered.length === 0 ? (
-            <div className="text-center py-20 text-slate-400">
-              <p className="text-xl mb-2">No products found</p>
-              <p className="text-sm">Try adjusting your filters</p>
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <FiPackage className="h-7 w-7 text-red-400" />
+              </div>
+              <p className="text-slate-700 font-medium mb-1">Failed to load products</p>
+              <p className="text-sm text-slate-400">{error}</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                <FiPackage className="h-7 w-7 text-slate-400" />
+              </div>
+              <p className="text-slate-700 font-medium mb-1">No products found</p>
+              <p className="text-sm text-slate-400">Try adjusting your filters or search term</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => { setSelectedCategory('all'); setPriceRange([0, 150000]); setSearch(''); setMinRating(0) }}>
+                Clear all filters
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

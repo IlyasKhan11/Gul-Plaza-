@@ -254,6 +254,7 @@ class OrderService {
           o.tracking_number,
           o.shipping_address,
           o.shipping_city,
+          o.transaction_id,
           COUNT(oi.id) as item_count
         FROM orders o
         LEFT JOIN order_items oi ON o.id = oi.order_id

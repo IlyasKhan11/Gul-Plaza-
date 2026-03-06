@@ -68,6 +68,7 @@ export interface BuyerOrder {
   items?: Array<{ product_id?: number; title: string; quantity: number; price_at_purchase?: number; price?: number; store_name?: string; product_image?: string }>
   courier_name?: string
   tracking_number?: string
+  transaction_id?: string | null
 }
 
 export interface ApiCategory {
@@ -163,6 +164,13 @@ export const sellerService = {
 
   async deleteProduct(productId: number): Promise<void> {
     await api.delete(`/api/products/${productId}`)
+  },
+
+  async uploadProductImage(file: File): Promise<string> {
+    const formData = new FormData()
+    formData.append('image', file)
+    const res = await api.postFormData('/api/products/upload-image', formData) as { success: boolean; data: { image_url: string } }
+    return res.data.image_url
   },
 
   // Orders (seller)

@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(PGPASSWORD=\"\" psql -h localhost -p 5432 -U postgres -d gul_plaza_db -f /Users/rtv-lpt-406/Desktop/personalaccount/Gul-Plaza-/backend/database/migrations/add_report_review_columns.sql)",
-      "Bash(PGPASSWORD=\"\" psql -h localhost -p 5432 -U postgres -d gul_plaza_db -c \"\\\\dt\")"
+      "Bash(PGPASSWORD=\"\" psql -h localhost -p 5432 -U postgres -d gul_plaza_db -c \"\\\\dt\")",
+      "Bash(psql -U rtv-lpt-406 -d ecommerce_db -f /Users/rtv-lpt-406/Desktop/personalaccount/Gul-Plaza-/backend/database/migrations/add_notifications_table.sql)",
+      "Bash(psql -U postgres -c \"\\\\l\")",
+      "Bash(node -e \"const bcrypt = require\\(''bcryptjs''\\); Promise.all\\([bcrypt.hash\\(''Admin@1234'', 10\\), bcrypt.hash\\(''Seller@1234'', 10\\)]\\).then\\(\\([a,s]\\) => console.log\\(a, ''|||'', s\\)\\)\")",
+      "Bash(psql -U postgres -d gul_plaza_db -c \"DELETE FROM users WHERE email IN \\(''superadmin@gulplaza.com'', ''seller@gulplaza.com''\\) RETURNING id, email, role;\")"
     ]
   }
 }

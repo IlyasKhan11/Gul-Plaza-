@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { adminService, type ApiUser } from '@/services/adminService'
 import { formatDate } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export function AdminUsersPage() {
   const [users, setUsers] = useState<ApiUser[]>([])
@@ -98,8 +99,39 @@ export function AdminUsersPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left pb-3 text-slate-500 font-medium">User</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Role</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Store</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Joined</th>
+                    <th className="text-right pb-3 text-slate-500 font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="py-3">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+                          <div className="space-y-1.5">
+                            <Skeleton className="h-4 w-28" />
+                            <Skeleton className="h-3 w-40" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                      <td className="py-3"><Skeleton className="h-3 w-24" /></td>
+                      <td className="py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                      <td className="py-3"><Skeleton className="h-3 w-20" /></td>
+                      <td className="py-3 flex justify-end"><Skeleton className="h-7 w-20 rounded-md" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : users.length === 0 ? (
             <p className="text-center text-slate-400 py-12 text-sm">No users found</p>

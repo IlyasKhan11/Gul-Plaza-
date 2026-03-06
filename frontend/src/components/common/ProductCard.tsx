@@ -1,5 +1,6 @@
 import { FiShoppingCart, FiHeart } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +8,7 @@ import { StarRating } from './StarRating'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { formatPrice } from '@/lib/utils'
+import { wishlistService } from '@/services/wishlistService'
 import type { Product } from '@/types'
 
 interface ProductCardProps {
@@ -17,10 +19,34 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart()
   const { user } = useAuth()
   const isBuyer = !user || user.role === 'buyer'
+  const [saved, setSaved] = useState(false)
+  const [savingWishlist, setSavingWishlist] = useState(false)
+
   // Defensive: Only calculate discount if originalPrice is a valid number > 0
   const discount = (typeof product.originalPrice === 'number' && product.originalPrice > 0)
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0
+
+  useEffect(() => {
+    if (!isBuyer || !user) return
+    wishlistService.check(product.id).then(setSaved).catch(() => {})
+  }, [product.id, isBuyer, user])
+
+  async function toggleWishlist(e: React.MouseEvent) {
+    e.preventDefault()
+    if (!user) return
+    setSavingWishlist(true)
+    try {
+      if (saved) {
+        await wishlistService.remove(product.id)
+        setSaved(false)
+      } else {
+        await wishlistService.add(product.id)
+        setSaved(true)
+      }
+    } catch {}
+    finally { setSavingWishlist(false) }
+  }
 
   return (
     <Card className="group overflow-hidden hover:shadow-md transition-shadow duration-200">
@@ -37,9 +63,15 @@ export function ProductCard({ product }: ProductCardProps) {
             -{discount}%
           </Badge>
         )}
-        <button className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 transition-colors">
-          <FiHeart className="h-4 w-4" />
-        </button>
+        {isBuyer && (
+          <button
+            onClick={toggleWishlist}
+            disabled={savingWishlist}
+            className={`absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white transition-colors ${saved ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}
+          >
+            <FiHeart className={`h-4 w-4 ${saved ? 'fill-red-500' : ''}`} />
+          </button>
+        )}
       </div>
       <CardContent className="p-4">
         <Link to={`/stores/${product.storeId}`} className="text-xs text-blue-600 hover:underline font-medium">

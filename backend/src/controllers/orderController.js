@@ -1,5 +1,6 @@
 const { query } = require('../config/db');
 const { body, param, validationResult } = require('express-validator');
+const notificationService = require('../services/notificationService');
 
 // Validation rules for order creation
 const createOrderValidation = [
@@ -296,7 +297,27 @@ const createOrder = async (req, res) => {
       }
       
       await client.query('COMMIT');
-      
+
+      // Notify each unique seller about the new order
+      const uniqueStoreIds = [...new Set(productsResult.rows.map(p => p.store_id))];
+      for (const storeId of uniqueStoreIds) {
+        const storeResult = await query('SELECT owner_id FROM stores WHERE id = $1', [storeId]);
+        if (storeResult.rows[0]) {
+          const sellerId = storeResult.rows[0].owner_id;
+          await notificationService.saveNotification(
+            sellerId, 'order',
+            'New Order Received',
+            `You have a new order #${newOrder.id}. Check your orders to confirm.`,
+            '/seller/orders'
+          );
+        }
+      }
+
+      // Notify admins via SSE
+      notificationService.sendToAdmins(notificationService.NotificationEvents.NEW_ORDER, {
+        order_id: newOrder.id, buyer_id: buyerId, total_amount: newOrder.total_amount,
+      });
+
       res.status(201).json({
         success: true,
         message: 'Order created successfully',

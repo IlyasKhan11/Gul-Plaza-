@@ -63,7 +63,7 @@ router.get(
   '/pending-verification',
   authenticateToken,
   requireSeller,
-  paymentVerificationLimiter,
+  
   getPendingVerificationOrders
 );
 
@@ -76,7 +76,7 @@ router.post(
   '/:orderId/verify-easypaisa',
   authenticateToken,
   requireSeller,
-  paymentVerificationLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   body('notes').optional().isString().withMessage('Notes must be a string'),
   handleValidationErrors,
@@ -92,7 +92,7 @@ router.post(
   '/:orderId/send-whatsapp',
   authenticateToken,
   requireSeller,
-  whatsappLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   body('message').isString().notEmpty().withMessage('Message is required and cannot be empty'),
   handleValidationErrors,

@@ -50,7 +50,7 @@ router.post(
   '/',
   authenticateToken,
   requireBuyer,
-  ratingLimiter,
+  
   submitRatingValidation,
   handleValidationErrors,
   submitRating
@@ -91,7 +91,7 @@ router.get(
   '/ratable',
   authenticateToken,
   requireBuyer,
-  ratingLimiter,
+  
   getRatableOrders
 );
 

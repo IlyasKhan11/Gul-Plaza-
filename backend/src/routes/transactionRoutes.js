@@ -81,7 +81,7 @@ router.post(
   '/:orderId/upload-slip',
   authenticateToken,
   requireBuyer,
-  transactionLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   upload.single('slip_image'), // Expect single file with field name 'slip_image'
   body('transaction_id').optional().isString().withMessage('Transaction ID must be a string'),
@@ -98,7 +98,7 @@ router.post(
 router.get(
   '/:orderId/slips',
   authenticateToken,
-  transactionLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   handleValidationErrors,
   getTransactionSlips
@@ -113,7 +113,7 @@ router.post(
   '/slips/:slipId/approve',
   authenticateToken,
   requireSeller,
-  transactionLimiter,
+  
   param('slipId').isInt({ min: 1 }).withMessage('Slip ID must be a positive integer'),
   body('action').isIn(['approve', 'reject']).withMessage('Action must be either approve or reject'),
   body('rejection_reason').optional().isString().withMessage('Rejection reason must be a string'),
@@ -130,7 +130,7 @@ router.get(
   '/pending-slips',
   authenticateToken,
   requireSeller,
-  transactionLimiter,
+  
   getPendingTransactionSlips
 );
 

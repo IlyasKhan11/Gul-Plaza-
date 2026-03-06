@@ -479,11 +479,14 @@ const approveWithdrawal = async (req, res) => {
 
     if (withdrawalResult.rows.length > 0) {
       const withdrawal = withdrawalResult.rows[0];
+      await notificationService.saveNotification(
+        withdrawal.seller_id, 'withdrawal',
+        'Withdrawal Approved',
+        `Your withdrawal request of Rs. ${Number(withdrawal.amount).toLocaleString()} has been approved and will be transferred shortly.`,
+        '/seller/payments'
+      );
       notificationService.sendToUser(withdrawal.seller_id, notificationService.NotificationEvents.WITHDRAWAL_APPROVED, {
-        withdrawalId: withdrawal.id,
-        amount: withdrawal.amount,
-        storeName: withdrawal.store_name,
-        message: `Your withdrawal request of Rs. ${withdrawal.amount} has been approved!`
+        withdrawalId: withdrawal.id, amount: withdrawal.amount, storeName: withdrawal.store_name,
       });
     }
 
@@ -541,12 +544,15 @@ const rejectWithdrawal = async (req, res) => {
 
     if (withdrawalResult.rows.length > 0) {
       const withdrawal = withdrawalResult.rows[0];
+      await notificationService.saveNotification(
+        withdrawal.seller_id, 'withdrawal',
+        'Withdrawal Rejected',
+        `Your withdrawal request of Rs. ${Number(withdrawal.amount).toLocaleString()} was rejected. Reason: ${reason || 'Not specified'}.`,
+        '/seller/payments'
+      );
       notificationService.sendToUser(withdrawal.seller_id, notificationService.NotificationEvents.WITHDRAWAL_REJECTED, {
-        withdrawalId: withdrawal.id,
-        amount: withdrawal.amount,
-        storeName: withdrawal.store_name,
+        withdrawalId: withdrawal.id, amount: withdrawal.amount, storeName: withdrawal.store_name,
         reason: reason || 'Withdrawal request rejected by admin',
-        message: `Your withdrawal request of Rs. ${withdrawal.amount} has been rejected.`
       });
     }
     

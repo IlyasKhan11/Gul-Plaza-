@@ -40,13 +40,13 @@ router.get('/', (req, res) => {
  * @desc    Get logged-in buyer profile
  * @access  Private (Buyer only)
  */
-router.get('/profile', authenticateToken, requireBuyer, profileLimiter, getBuyerProfile);
+router.get('/profile', authenticateToken, requireBuyer, getBuyerProfile);
 
 /**
  * @route   PUT /api/users/profile
  * @desc    Update buyer profile
  * @access  Private (Buyer only)
  */
-router.put('/profile', authenticateToken, requireBuyer, profileLimiter, updateProfileValidation, updateBuyerProfile);
+router.put('/profile', authenticateToken, requireBuyer, updateProfileValidation, updateBuyerProfile);
 
 module.exports = router;

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { OrderStatusBadge } from '@/components/common/OrderStatusBadge'
 import { adminService, type ApiOrder } from '@/services/adminService'
 import { formatPrice, formatDate } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const STATUS_OPTIONS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
 
@@ -88,8 +89,34 @@ export function AdminOrdersPage() {
         <CardHeader><CardTitle className="text-base">Order List</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left pb-3 text-slate-500 font-medium">Order ID</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Customer</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Items</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Total</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Status</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="py-3"><Skeleton className="h-3 w-12" /></td>
+                      <td className="py-3 space-y-1.5">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-40" />
+                      </td>
+                      <td className="py-3"><Skeleton className="h-4 w-16" /></td>
+                      <td className="py-3"><Skeleton className="h-4 w-20" /></td>
+                      <td className="py-3"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                      <td className="py-3"><Skeleton className="h-3 w-24" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : orders.length === 0 ? (
             <p className="text-center text-slate-400 py-12 text-sm">No orders found</p>

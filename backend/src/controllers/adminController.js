@@ -427,11 +427,15 @@ const approveSellerApplication = async (req, res) => {
 
       await query('COMMIT');
 
-      // Send notification to the seller
+      // Persist + push notification to the seller
+      await notificationService.saveNotification(
+        store.user_id, 'approval',
+        'Seller Application Approved',
+        `Congratulations! Your store "${store.name}" has been approved. You can now start selling.`,
+        '/seller/dashboard'
+      );
       notificationService.sendToUser(store.user_id, notificationService.NotificationEvents.SELLER_APPLICATION_APPROVED, {
-        storeId: store.id,
-        storeName: store.name,
-        message: 'Your seller application has been approved!'
+        storeId: store.id, storeName: store.name, message: 'Your seller application has been approved!'
       });
 
       res.status(200).json({
@@ -472,12 +476,15 @@ const rejectSellerApplication = async (req, res) => {
 
     const deletedStore = result.rows[0];
 
-    // Send notification to the seller
+    // Persist + push notification to the seller
+    await notificationService.saveNotification(
+      deletedStore.owner_id, 'system',
+      'Seller Application Rejected',
+      `Your store application for "${deletedStore.name}" was rejected. Reason: ${reason || 'Not specified'}.`,
+      '/buyer/profile'
+    );
     notificationService.sendToUser(deletedStore.owner_id, notificationService.NotificationEvents.SELLER_APPLICATION_REJECTED, {
-      storeId: deletedStore.id,
-      storeName: deletedStore.name,
-      reason: reason || 'Application rejected by admin',
-      message: 'Your seller application has been rejected.'
+      storeId: deletedStore.id, storeName: deletedStore.name, reason: reason || 'Application rejected by admin',
     });
 
     res.status(200).json({

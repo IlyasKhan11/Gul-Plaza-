@@ -113,28 +113,28 @@ router.get('/', (req, res) => {
  * @desc    Get all users with pagination and filtering
  * @access  Private (Admin only)
  */
-router.get('/users', authenticateToken, requireAdmin, adminLimiter, getAllUsers);
+router.get('/users', authenticateToken, requireAdmin, getAllUsers);
 
 /**
  * @route   GET /api/admin/users/:id
  * @desc    Get user details by ID
  * @access  Private (Admin only)
  */
-router.get('/users/:id', authenticateToken, requireAdmin, adminLimiter, getUserById);
+router.get('/users/:id', authenticateToken, requireAdmin, getUserById);
 
 /**
  * @route   PATCH /api/admin/users/:id/block
  * @desc    Block user
  * @access  Private (Admin only)
  */
-router.patch('/users/:id/block', authenticateToken, requireAdmin, blockLimiter, blockUserValidation, blockUser);
+router.patch('/users/:id/block', authenticateToken, requireAdmin, blockUserValidation, blockUser);
 
 /**
  * @route   PATCH /api/admin/users/:id/unblock
  * @desc    Unblock user
  * @access  Private (Admin only)
  */
-router.patch('/users/:id/unblock', authenticateToken, requireAdmin, blockLimiter, blockUserValidation, unblockUser);
+router.patch('/users/:id/unblock', authenticateToken, requireAdmin, blockUserValidation, unblockUser);
 
 // Order Management Routes
 
@@ -143,28 +143,28 @@ router.patch('/users/:id/unblock', authenticateToken, requireAdmin, blockLimiter
  * @desc    Get all orders with pagination and filtering
  * @access  Private (Admin only)
  */
-router.get('/orders', authenticateToken, requireAdmin, adminLimiter, validateAdminOrderQuery, getAllOrders);
+router.get('/orders', authenticateToken, requireAdmin, validateAdminOrderQuery, getAllOrders);
 
 /**
  * @route   GET /api/admin/orders/:id
  * @desc    Get order details by ID
  * @access  Private (Admin only)
  */
-router.get('/orders/:id', authenticateToken, requireAdmin, adminLimiter, validateOrderId, getAdminOrderById);
+router.get('/orders/:id', authenticateToken, requireAdmin, validateOrderId, getAdminOrderById);
 
 /**
  * @route   PUT /api/admin/orders/:id/status
  * @desc    Update order status
  * @access  Private (Admin only)
  */
-router.put('/orders/:id/status', authenticateToken, requireAdmin, adminLimiter, validateOrderId, validateUpdateOrderStatus, updateOrderStatus);
+router.put('/orders/:id/status', authenticateToken, requireAdmin, validateOrderId, validateUpdateOrderStatus, updateOrderStatus);
 
 /**
  * @route   GET /api/admin/orders/statistics
  * @desc    Get order statistics
  * @access  Private (Admin only)
  */
-router.get('/orders/statistics', authenticateToken, requireAdmin, adminLimiter, getOrderStatistics);
+router.get('/orders/statistics', authenticateToken, requireAdmin, getOrderStatistics);
 
 // Dashboard Analytics Routes
 
@@ -173,35 +173,35 @@ router.get('/orders/statistics', authenticateToken, requireAdmin, adminLimiter, 
  * @desc    Get admin dashboard (alias for summary)
  * @access  Private (Admin only)
  */
-router.get('/dashboard', authenticateToken, requireAdmin, adminLimiter, dashboardSummaryValidation, getDashboardSummary);
+router.get('/dashboard', authenticateToken, requireAdmin, dashboardSummaryValidation, getDashboardSummary);
 
 /**
  * @route   GET /api/admin/dashboard/summary
  * @desc    Get dashboard summary statistics
  * @access  Private (Admin only)
  */
-router.get('/dashboard/summary', authenticateToken, requireAdmin, adminLimiter, dashboardSummaryValidation, getDashboardSummary);
+router.get('/dashboard/summary', authenticateToken, requireAdmin, dashboardSummaryValidation, getDashboardSummary);
 
 /**
  * @route   GET /api/admin/dashboard/sales-report
  * @desc    Get sales report with date range
  * @access  Private (Admin only)
  */
-router.get('/dashboard/sales-report', authenticateToken, requireAdmin, adminLimiter, salesReportValidation, getSalesReport);
+router.get('/dashboard/sales-report', authenticateToken, requireAdmin, salesReportValidation, getSalesReport);
 
 /**
  * @route   GET /api/admin/dashboard/top-products
  * @desc    Get top 5 products by sales
  * @access  Private (Admin only)
  */
-router.get('/dashboard/top-products', authenticateToken, requireAdmin, adminLimiter, getTopProducts);
+router.get('/dashboard/top-products', authenticateToken, requireAdmin, getTopProducts);
 
 /**
  * @route   GET /api/admin/products/low-stock
  * @desc    Get low stock products alert
  * @access  Private (Admin only)
  */
-router.get('/products/low-stock', authenticateToken, requireAdmin, adminLimiter, getLowStockProducts);
+router.get('/products/low-stock', authenticateToken, requireAdmin, getLowStockProducts);
 
 // Report Management Routes
 
@@ -210,28 +210,28 @@ router.get('/products/low-stock', authenticateToken, requireAdmin, adminLimiter,
  * @desc    Get all product reports
  * @access  Private (Admin only)
  */
-router.get('/reports', authenticateToken, requireAdmin, adminLimiter, getAllReports);
+router.get('/reports', authenticateToken, requireAdmin, getAllReports);
 
 /**
  * @route   GET /api/admin/reports/statistics
  * @desc    Get report statistics
  * @access  Private (Admin only)
  */
-router.get('/reports/statistics', authenticateToken, requireAdmin, adminLimiter, getReportStatistics);
+router.get('/reports/statistics', authenticateToken, requireAdmin, getReportStatistics);
 
 /**
  * @route   GET /api/admin/reports/product/:productId
  * @desc    Get reports for specific product
  * @access  Private (Admin only)
  */
-router.get('/reports/product/:productId', authenticateToken, requireAdmin, adminLimiter, getProductReports);
+router.get('/reports/product/:productId', authenticateToken, requireAdmin, getProductReports);
 
 /**
  * @route   PUT /api/admin/reports/:id/status
  * @desc    Update report status
  * @access  Private (Admin only)
  */
-router.put('/reports/:id/status', authenticateToken, requireAdmin, adminLimiter, updateReportStatus);
+router.put('/reports/:id/status', authenticateToken, requireAdmin, updateReportStatus);
 
 /**
  * @route   GET /api/admin/reports/export/csv
@@ -252,21 +252,21 @@ router.get('/reports/export/pdf', authenticateToken, requireAdmin, exportReports
  * @desc    Get pending seller applications
  * @access  Private (Admin only)
  */
-router.get('/seller-applications', authenticateToken, requireAdmin, adminLimiter, getSellerApplications);
+router.get('/seller-applications', authenticateToken, requireAdmin, getSellerApplications);
 
 /**
  * @route   POST /api/admin/seller-applications/:storeId/approve
  * @desc    Approve seller application
  * @access  Private (Admin only)
  */
-router.post('/seller-applications/:storeId/approve', authenticateToken, requireAdmin, adminLimiter, approveSellerApplication);
+router.post('/seller-applications/:storeId/approve', authenticateToken, requireAdmin, approveSellerApplication);
 
 /**
  * @route   POST /api/admin/seller-applications/:storeId/reject
  * @desc    Reject seller application
  * @access  Private (Admin only)
  */
-router.post('/seller-applications/:storeId/reject', authenticateToken, requireAdmin, adminLimiter, rejectSellerApplication);
+router.post('/seller-applications/:storeId/reject', authenticateToken, requireAdmin, rejectSellerApplication);
 
 // Financial Management Routes
 
@@ -275,35 +275,35 @@ router.post('/seller-applications/:storeId/reject', authenticateToken, requireAd
  * @desc    Get platform commission rate
  * @access  Private (Admin only)
  */
-router.get('/commissions/rate', authenticateToken, requireAdmin, adminLimiter, getPlatformSettings);
+router.get('/commissions/rate', authenticateToken, requireAdmin, getPlatformSettings);
 
 /**
  * @route   PUT /api/admin/commissions/rate
  * @desc    Update platform commission rate
  * @access  Private (Admin only)
  */
-router.put('/commissions/rate', authenticateToken, requireAdmin, adminLimiter, updateCommissionRate);
+router.put('/commissions/rate', authenticateToken, requireAdmin, updateCommissionRate);
 
 /**
  * @route   GET /api/admin/transactions
  * @desc    Get all transactions with commission data
  * @access  Private (Admin only)
  */
-router.get('/transactions', authenticateToken, requireAdmin, adminLimiter, getTransactions);
+router.get('/transactions', authenticateToken, requireAdmin, getTransactions);
 
 /**
  * @route   GET /api/admin/commissions/sellers
  * @desc    Get commission breakdown by seller
  * @access  Private (Admin only)
  */
-router.get('/commissions/sellers', authenticateToken, requireAdmin, adminLimiter, getCommissionsBySeller);
+router.get('/commissions/sellers', authenticateToken, requireAdmin, getCommissionsBySeller);
 
 /**
  * @route   GET /api/admin/withdrawals
  * @desc    Get all withdrawal requests
  * @access  Private (Admin only)
  */
-router.get('/withdrawals', authenticateToken, requireAdmin, adminLimiter, getWithdrawalRequests);
+router.get('/withdrawals', authenticateToken, requireAdmin, getWithdrawalRequests);
 
 /**
  * @route   POST /api/admin/withdrawals
@@ -317,14 +317,14 @@ router.post('/withdrawals', authenticateToken, requireSeller, createWithdrawalRe
  * @desc    Approve withdrawal request
  * @access  Private (Admin only)
  */
-router.post('/withdrawals/:id/approve', authenticateToken, requireAdmin, adminLimiter, approveWithdrawal);
+router.post('/withdrawals/:id/approve', authenticateToken, requireAdmin, approveWithdrawal);
 
 /**
  * @route   POST /api/admin/withdrawals/:id/reject
  * @desc    Reject withdrawal request
  * @access  Private (Admin only)
  */
-router.post('/withdrawals/:id/reject', authenticateToken, requireAdmin, adminLimiter, rejectWithdrawal);
+router.post('/withdrawals/:id/reject', authenticateToken, requireAdmin, rejectWithdrawal);
 
 // Export Routes
 

@@ -87,41 +87,41 @@ router.get('/:sellerId/contact', getStoreContactInfo);
  * @desc    Get seller dashboard statistics
  * @access  Private (Seller only)
  */
-router.get('/dashboard', authenticateToken, requireSeller, profileLimiter, getSellerDashboard);
+router.get('/dashboard', authenticateToken, requireSeller, getSellerDashboard);
 
 /**
  * @route   POST /api/sellers/apply
  * @desc    Apply to become a seller (create store application)
  * @access  Private (Non-seller users only)
  */
-router.post('/apply', authenticateToken, storeLimiter, applyForSellerValidation, applyForSeller);
+router.post('/apply', authenticateToken, applyForSellerValidation, applyForSeller);
 
 /**
  * @route   GET /api/sellers/profile
  * @desc    Get seller profile
  * @access  Private (Seller only)
  */
-router.get('/profile', authenticateToken, requireSeller, profileLimiter, getSellerProfile);
+router.get('/profile', authenticateToken, requireSeller, getSellerProfile);
 
 /**
  * @route   PUT /api/sellers/profile
  * @desc    Update seller profile
  * @access  Private (Seller only)
  */
-router.put('/profile', authenticateToken, requireSeller, profileLimiter, updateSellerProfileValidation, updateSellerProfile);
+router.put('/profile', authenticateToken, requireSeller, updateSellerProfileValidation, updateSellerProfile);
 
 /**
  * @route   POST /api/sellers/store
  * @desc    Create store
  * @access  Private (Seller only)
  */
-router.post('/store', authenticateToken, requireSeller, storeLimiter, createStoreValidation, createStore);
+router.post('/store', authenticateToken, requireSeller, createStoreValidation, createStore);
 
 /**
  * @route   PUT /api/sellers/store
  * @desc    Update store details
  * @access  Private (Seller only)
  */
-router.put('/store', authenticateToken, requireSeller, storeLimiter, updateStoreValidation, updateStore);
+router.put('/store', authenticateToken, requireSeller, updateStoreValidation, updateStore);
 
 module.exports = router;

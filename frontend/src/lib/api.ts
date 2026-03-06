@@ -57,4 +57,13 @@ export const api = {
       handleResponse<T>(r)
     )
   },
+
+  postFormData<T>(path: string, formData: FormData): Promise<T> {
+    const headers: Record<string, string> = {}
+    const token = getToken()
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    return fetch(`${BASE_URL}${path}`, { method: 'POST', headers, body: formData }).then(r =>
+      handleResponse<T>(r)
+    )
+  },
 }

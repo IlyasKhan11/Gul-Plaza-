@@ -1,4 +1,4 @@
-import { useState, Component, type ReactNode } from 'react'
+import { useState, useEffect, useRef, Component, type ReactNode } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { FiLogOut, FiBell, FiHome, FiShoppingBag, FiBriefcase, FiCheckCircle, FiInfo, FiCheck, FiMenu, FiX } from 'react-icons/fi'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
@@ -11,8 +11,17 @@ import { useAuth } from '@/context/AuthContext'
 import { SellerSidebar } from './SellerSidebar'
 import { AdminSidebar } from './AdminSidebar'
 import { BuyerSidebar } from './BuyerSidebar'
-import { mockNotifications } from '@/data/mockData'
-import type { Notification } from '@/types'
+import { api } from '@/lib/api'
+
+interface ApiNotification {
+  id: number
+  type: 'order' | 'withdrawal' | 'approval' | 'system'
+  title: string
+  message: string
+  link?: string | null
+  is_read: boolean
+  created_at: string
+}
 
 // Error boundary to catch crashes in page components
 class PageErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -45,7 +54,7 @@ class PageErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
   }
 }
 
-const typeIcon = (type: Notification['type']) => {
+const typeIcon = (type: ApiNotification['type']) => {
   if (type === 'order') return <FiShoppingBag className="h-4 w-4 text-blue-500" />
   if (type === 'withdrawal') return <FiBriefcase className="h-4 w-4 text-amber-500" />
   if (type === 'approval') return <FiCheckCircle className="h-4 w-4 text-green-500" />
@@ -57,18 +66,46 @@ export function DashboardLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>(
-    mockNotifications.filter(n => n.userId === user?.id)
-  )
+  const [notifications, setNotifications] = useState<ApiNotification[]>([])
+  const sseRef = useRef<EventSource | null>(null)
 
-  const unreadCount = notifications.filter(n => !n.isRead).length
+  const unreadCount = notifications.filter(n => !n.is_read).length
 
-  function markAllRead() {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+  // Fetch notifications on mount
+  useEffect(() => {
+    if (!user) return
+    api.get<{ success: boolean; data: { notifications: ApiNotification[] } }>('/api/notifications')
+      .then(res => { if (res.success) setNotifications(res.data.notifications) })
+      .catch(() => {})
+  }, [user])
+
+  // SSE for real-time notifications
+  useEffect(() => {
+    if (!user) return
+    const token = localStorage.getItem('gul_plaza_token')
+    if (!token) return
+    const apiUrl = import.meta.env.VITE_API_URL as string
+    const es = new EventSource(`${apiUrl}/api/notifications/sse?token=${token}`)
+    sseRef.current = es
+    es.onmessage = (e) => {
+      try {
+        const payload = JSON.parse(e.data)
+        if (payload.event === 'notification' && payload.data) {
+          setNotifications(prev => [payload.data as ApiNotification, ...prev])
+        }
+      } catch {}
+    }
+    return () => { es.close(); sseRef.current = null }
+  }, [user])
+
+  async function markAllRead() {
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+    api.put('/api/notifications/read-all').catch(() => {})
   }
 
-  function markRead(id: string) {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+  async function markRead(id: number) {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
+    api.put(`/api/notifications/${id}/read`).catch(() => {})
   }
 
   function getSidebar(onLinkClick?: () => void) {
@@ -139,7 +176,7 @@ export function DashboardLayout() {
                   notifications.map(n => (
                     <button
                       key={n.id}
-                      className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex gap-3 items-start ${!n.isRead ? 'bg-blue-50/60' : ''}`}
+                      className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex gap-3 items-start ${!n.is_read ? 'bg-blue-50/60' : ''}`}
                       onClick={() => { markRead(n.id); if (n.link) navigate(n.link) }}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
@@ -148,11 +185,11 @@ export function DashboardLayout() {
                         {typeIcon(n.type)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm leading-snug ${!n.isRead ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>{n.title}</p>
+                        <p className={`text-sm leading-snug ${!n.is_read ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>{n.title}</p>
                         <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
-                        <p className="text-[11px] text-slate-400 mt-1">{n.createdAt}</p>
+                        <p className="text-[11px] text-slate-400 mt-1">{new Date(n.created_at).toLocaleString()}</p>
                       </div>
-                      {!n.isRead && <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
+                      {!n.is_read && <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
                     </button>
                   ))
                 )}

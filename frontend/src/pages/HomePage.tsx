@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { FiArrowRight, FiShield, FiTruck, FiHeadphones, FiStar } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { ProductCard } from '@/components/common/ProductCard'
+import { ProductCardSkeleton } from '@/components/common/ProductCardSkeleton'
 import { StoreCard } from '@/components/common/StoreCard'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
@@ -99,7 +100,8 @@ export function HomePage() {
       .catch(() => {})
   }, [])
 
-  const featuredProducts = products.filter(p => p.isFeatured)
+  const featuredProducts = products.slice(0, 8)
+  const moreProducts = products.slice(8)
 
   return (
     <div className="space-y-0">
@@ -134,17 +136,28 @@ export function HomePage() {
               </div>
             </div>
             <div className="hidden md:grid grid-cols-2 gap-4">
-              {featuredProducts.slice(0, 4).map(p => (
-                <Link key={p.id} to={`/products/${p.id}`} className="group">
-                  <div className="bg-white/10 backdrop-blur rounded-xl overflow-hidden hover:bg-white/20 transition-colors">
-                    <img src={p.images?.[0] || p.primary_image || ''} alt={p.name || p.title} className="w-full h-32 object-cover" />
-                    <div className="p-2">
-                      <p className="text-xs font-medium text-white truncate">{p.name || p.title}</p>
-                      <p className="text-blue-200 text-xs">Rs. {Number(p.price).toLocaleString()}</p>
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="bg-white/10 backdrop-blur rounded-xl overflow-hidden animate-pulse">
+                      <div className="w-full h-32 bg-white/20" />
+                      <div className="p-2 space-y-1.5">
+                        <div className="h-2.5 bg-white/20 rounded w-3/4" />
+                        <div className="h-2 bg-white/20 rounded w-1/2" />
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  ))
+                : products.slice(0, 4).map(p => (
+                    <Link key={p.id} to={`/products/${p.id}`} className="group">
+                      <div className="bg-white/10 backdrop-blur rounded-xl overflow-hidden hover:bg-white/20 transition-colors">
+                        <img src={p.images?.[0] || p.primary_image || ''} alt={p.name || p.title} className="w-full h-32 object-cover" />
+                        <div className="p-2">
+                          <p className="text-xs font-medium text-white truncate">{p.name || p.title}</p>
+                          <p className="text-blue-200 text-xs">Rs. {Number(p.price).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+              }
             </div>
           </div>
         </div>
@@ -219,19 +232,22 @@ export function HomePage() {
             </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {featuredProducts.map(product => (
-              <ProductCard key={product.id} product={{
-                ...product,
-                name: product.title,
-                images:
-                  product.images && product.images.length > 0
-                    ? product.images
-                    : product.primary_image
-                    ? [product.primary_image]
-                    : [],
-                price: Number(product.price),
-              }} />
-            ))}
+            {loading
+              ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
+              : featuredProducts.map(product => (
+                  <ProductCard key={product.id} product={{
+                    ...product,
+                    name: product.title,
+                    images:
+                      product.images && product.images.length > 0
+                        ? product.images
+                        : product.primary_image
+                        ? [product.primary_image]
+                        : [],
+                    price: Number(product.price),
+                  }} />
+                ))
+            }
           </div>
         </div>
       </section>
@@ -289,7 +305,7 @@ export function HomePage() {
       )}
 
       {/* All Products */}
-      <section className="py-12 bg-white">
+      {(loading || moreProducts.length > 0) && <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-slate-900">More Products</h2>
@@ -298,22 +314,25 @@ export function HomePage() {
             </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {products.slice(4).map(product => (
-              <ProductCard key={product.id} product={{
-                ...product,
-                name: product.title,
-                images:
-                  product.images && product.images.length > 0
-                    ? product.images
-                    : product.primary_image
-                    ? [product.primary_image]
-                    : [],
-                price: Number(product.price),
-              }} />
-            ))}
+            {loading
+              ? Array.from({ length: 10 }).map((_, i) => <ProductCardSkeleton key={i} />)
+              : moreProducts.map(product => (
+                  <ProductCard key={product.id} product={{
+                    ...product,
+                    name: product.title,
+                    images:
+                      product.images && product.images.length > 0
+                        ? product.images
+                        : product.primary_image
+                        ? [product.primary_image]
+                        : [],
+                    price: Number(product.price),
+                  }} />
+                ))
+            }
           </div>
         </div>
-      </section>
+      </section>}
     </div>
   )
 }

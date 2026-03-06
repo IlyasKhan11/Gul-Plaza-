@@ -59,8 +59,7 @@ export function CheckoutPage() {
   // Seller contact info fetched from backend
   const [sellerContacts, setSellerContacts] = useState<Record<string, { contact_phone: string | null; contact_email: string | null }>>({})
 
-  const shipping = total >= 2000 ? 0 : 200
-  const grandTotal = total + shipping
+  const grandTotal = total
 
   // Get unique sellers from cart items
   const getSellers = () => {
@@ -500,12 +499,6 @@ export function CheckoutPage() {
                   <div className="flex justify-between text-sm text-slate-600">
                     <span>Subtotal</span>
                     <span>{formatPrice(total)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-slate-600">
-                    <span>Shipping</span>
-                    <span className={shipping === 0 ? 'text-green-600 font-medium' : 'text-slate-700'}>
-                      {shipping === 0 ? 'Free' : formatPrice(shipping)}
-                    </span>
                   </div>
                 </div>
 

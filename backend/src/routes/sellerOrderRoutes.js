@@ -79,7 +79,7 @@ router.get(
   '/orders',
   authenticateToken,
   requireSeller,
-  sellerOrderLimiter,
+  
   getSellerOrders
 );
 
@@ -92,7 +92,7 @@ router.get(
   '/orders/:orderId',
   authenticateToken,
   requireSeller,
-  sellerOrderLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   handleValidationErrors,
   getSellerOrderById
@@ -107,7 +107,7 @@ router.post(
   '/orders/:orderId/confirm',
   authenticateToken,
   requireSeller,
-  sellerOrderActionLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   body('notes').optional().isString().withMessage('Notes must be a string'),
   handleValidationErrors,
@@ -123,7 +123,7 @@ router.post(
   '/orders/:orderId/ship',
   authenticateToken,
   requireSeller,
-  sellerOrderActionLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   body('courier_name').isString().notEmpty().withMessage('Courier name is required'),
   body('tracking_number').isString().notEmpty().withMessage('Tracking number is required'),
@@ -140,7 +140,7 @@ router.post(
   '/orders/:orderId/deliver',
   authenticateToken,
   requireSeller,
-  sellerOrderActionLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   handleValidationErrors,
   deliverOrder
@@ -155,7 +155,7 @@ router.get(
   '/notifications',
   authenticateToken,
   requireSeller,
-  sellerOrderLimiter,
+  
   getSellerNotifications
 );
 
@@ -168,7 +168,7 @@ router.patch(
   '/notifications/:notificationId/read',
   authenticateToken,
   requireSeller,
-  sellerOrderActionLimiter,
+  
   param('notificationId').isInt({ min: 1 }).withMessage('Notification ID must be a positive integer'),
   handleValidationErrors,
   markNotificationAsRead
@@ -183,7 +183,7 @@ router.post(
   '/orders/:orderId/whatsapp',
   authenticateToken,
   requireSeller,
-  sellerOrderActionLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   body('message').isString().notEmpty().withMessage('Message is required'),
   handleValidationErrors,
@@ -199,7 +199,7 @@ router.post(
   '/orders/:orderId/verify-payment',
   authenticateToken,
   requireSeller,
-  sellerOrderActionLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   handleValidationErrors,
   verifyEasypaisaPayment
@@ -214,7 +214,7 @@ router.patch(
   '/orders/:orderId/status',
   authenticateToken,
   requireSeller,
-  sellerOrderActionLimiter,
+  
   param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
   body('status').isString().notEmpty().withMessage('Status is required'),
   handleValidationErrors,
@@ -230,7 +230,7 @@ router.get(
   '/orders/revenue/monthly',
   authenticateToken,
   requireSeller,
-  sellerOrderLimiter,
+  
   getMonthlyRevenue
 );
 
@@ -243,7 +243,7 @@ router.get(
   '/earnings',
   authenticateToken,
   requireSeller,
-  sellerOrderLimiter,
+  
   getSellerEarnings
 );
 

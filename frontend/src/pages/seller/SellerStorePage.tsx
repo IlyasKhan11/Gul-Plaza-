@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { sellerService, type SellerStore } from '@/services/sellerService'
 
-const emptyForm = { store_name: '', description: '', logo_url: '', banner_url: '', contact_email: '', contact_phone: '' }
+const emptyForm = { store_name: '', description: '', contact_email: '', contact_phone: '' }
 
 export function SellerStorePage() {
   const [store, setStore] = useState<SellerStore | null>(null)
@@ -48,8 +48,6 @@ export function SellerStorePage() {
     setForm({
       store_name: store.name,
       description: store.description ?? '',
-      logo_url: store.logo_url ?? '',
-      banner_url: store.banner_url ?? '',
       contact_email: store.contact_email ?? '',
       contact_phone: store.contact_phone ?? '',
     })
@@ -63,8 +61,6 @@ export function SellerStorePage() {
       const payload = {
         store_name: form.store_name,
         description: form.description || undefined,
-        logo_url: form.logo_url || undefined,
-        banner_url: form.banner_url || undefined,
         contact_email: form.contact_email || undefined,
         contact_phone: form.contact_phone || undefined,
       }
@@ -138,22 +134,11 @@ export function SellerStorePage() {
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          {store.banner_url && (
-            <div className="h-28 w-full overflow-hidden bg-slate-100">
-              <img src={store.banner_url} alt="" className="w-full h-full object-cover"
-                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            </div>
-          )}
           <CardContent className="p-5">
             <div className="flex items-start gap-4">
-              {store.logo_url ? (
-                <img src={store.logo_url} alt="" className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 bg-white"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-              ) : (
-                <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                  <StoreIcon className="h-6 w-6 text-slate-400" />
-                </div>
-              )}
+              <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                <StoreIcon className="h-6 w-6 text-slate-400" />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-bold text-slate-900 text-base">{store.name}</h3>
@@ -207,20 +192,6 @@ export function SellerStorePage() {
               <Textarea id="sdesc" value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Tell buyers what your store sells..." className="mt-1" rows={3} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="slogo">Logo URL</Label>
-                <Input id="slogo" value={form.logo_url}
-                  onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))}
-                  placeholder="https://..." className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="sbanner">Banner URL</Label>
-                <Input id="sbanner" value={form.banner_url}
-                  onChange={e => setForm(f => ({ ...f, banner_url: e.target.value }))}
-                  placeholder="https://..." className="mt-1" />
-              </div>
             </div>
             <div>
               <Label htmlFor="semail">Contact Email</Label>

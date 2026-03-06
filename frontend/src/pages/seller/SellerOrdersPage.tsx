@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 import { sellerService } from '@/services/sellerService'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { OrderStatusBadge } from '@/components/common/OrderStatusBadge'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export function SellerOrdersPage() {
   const { user } = useAuth()
@@ -225,7 +226,22 @@ export function SellerOrdersPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="py-20 text-center text-slate-400">Loading orders…</div>
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="border-b border-slate-100 pb-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-48" />
+                  <Skeleton className="h-3 w-40" />
+                  <div className="flex gap-2 mt-3">
+                    <Skeleton className="h-8 w-28 rounded-md" />
+                    <Skeleton className="h-8 w-20 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : error ? (
             <div className="py-20 text-center text-red-600">{error}</div>
           ) : orders.length === 0 ? (
@@ -287,6 +303,11 @@ export function SellerOrdersPage() {
                     {order.tracking_number && (
                       <div className="mt-1 text-sm text-slate-600">
                         <span className="font-medium">Tracking:</span> {order.courier_name} - {order.tracking_number}
+                      </div>
+                    )}
+                    {order.transaction_id && (
+                      <div className="mt-1 text-sm text-slate-600">
+                        <span className="font-medium">Transaction ID:</span> {order.transaction_id}
                       </div>
                     )}
                     {actions.length > 0 && (

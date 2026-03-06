@@ -8,6 +8,7 @@ import { sellerService, type BuyerOrder } from '@/services/sellerService'
 import { ratingService } from '@/services/ratingService'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { RateProductDialog } from '@/components/common/RatingDialog'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function statusVariant(status: string): 'default' | 'success' | 'warning' | 'destructive' | 'outline' {
   switch (status) {
@@ -125,8 +126,30 @@ export function BuyerOrdersPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-6 w-24" />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-3">
+                <div className="flex items-start gap-3 bg-slate-50 rounded-lg p-2">
+                  <Skeleton className="w-12 h-12 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+                <Skeleton className="h-3 w-48" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : orders.length === 0 ? (
         <Card>
@@ -235,6 +258,11 @@ export function BuyerOrdersPage() {
                   {order.courier_name && order.tracking_number && (
                     <p className="text-sm text-slate-500 mt-2">
                       <span className="font-medium">Tracking:</span> {order.courier_name} - {order.tracking_number}
+                    </p>
+                  )}
+                  {order.transaction_id && (
+                    <p className="text-sm text-slate-500 mt-2">
+                      <span className="font-medium">Transaction ID:</span> {order.transaction_id}
                     </p>
                   )}
                 </CardContent>

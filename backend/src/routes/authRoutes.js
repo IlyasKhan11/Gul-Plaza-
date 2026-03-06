@@ -1,5 +1,4 @@
 const express = require('express');
-const rateLimit = require('express-rate-limit');
 const {
   registerUser,
   loginUser,
@@ -13,29 +12,28 @@ const { validateJSON } = require('../middleware/jsonValidationMiddleware');
 
 const router = express.Router();
 
-// Rate limiting for authentication routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
-  message: {
-    success: false,
-    message: 'Too many authentication attempts, please try again later.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Rate limiting disabled for development
+// const authLimiter = rateLimit({
+//   windowMs: 15 * 120 * 2000, // 15 minutes
+//   max: 5, // Limit each IP to 5 requests per windowMs
+//   message: {
+//     success: false,
+//     message: 'Too many authentication attempts, please try again later.',
+//   },
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
 
-// Rate limiting for registration (more lenient)
-const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Limit each IP to 3 registration attempts per hour
-  message: {
-    success: false,
-    message: 'Too many registration attempts, please try again later.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// const registerLimiter = rateLimit({
+//   windowMs: 60 * 60 * 1000, // 1 hour
+//   max: 3, // Limit each IP to 3 registration attempts per hour
+//   message: {
+//     success: false,
+//     message: 'Too many registration attempts, please try again later.',
+//   },
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
 
 // Auth routes info endpoint
 router.get('/', (req, res) => {
@@ -58,14 +56,14 @@ router.get('/', (req, res) => {
  * @desc    Register a new user (buyer, seller, or admin)
  * @access  Public
  */
-router.post('/register', registerLimiter, validateJSON, registerValidation, registerUser);
+router.post('/register', validateJSON, registerValidation, registerUser);
 
 /**
  * @route   POST /api/auth/login
  * @desc    Login user and return JWT token
  * @access  Public
  */
-router.post('/login', authLimiter, loginValidation, loginUser);
+router.post('/login', loginValidation, loginUser);
 
 /**
  * @route   POST /api/auth/logout

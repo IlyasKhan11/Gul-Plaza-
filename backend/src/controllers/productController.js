@@ -85,6 +85,13 @@ const getAllProducts = async (req, res) => {
     // Always exclude deleted products
     conditions.push(`p.is_deleted = false`);
 
+    // Exclude products from blocked sellers
+    conditions.push(`NOT EXISTS (
+      SELECT 1 FROM stores st2
+      JOIN user_blocks ub ON ub.user_id = st2.owner_id AND ub.is_active = true
+      WHERE st2.id = p.store_id
+    )`);
+
     if (is_active !== 'all') {
       // Accept both boolean and string values for is_active
       let activeValue = is_active;
@@ -181,8 +188,8 @@ const getProductById = async (req, res) => {
     const productId = parseInt(req.params.id);
     
     const productQuery = `
-      SELECT 
-        p.id, p.title, p.description, p.price, p.stock, p.is_active, 
+      SELECT
+        p.id, p.title, p.description, p.price, p.stock, p.is_active,
         p.created_at, p.updated_at,
         s.id as store_id, s.name as store_name, s.description as store_description,
         c.id as category_id, c.name as category_name, c.slug as category_slug
@@ -190,6 +197,10 @@ const getProductById = async (req, res) => {
       LEFT JOIN stores s ON p.store_id = s.id
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.id = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM user_blocks ub
+          WHERE ub.user_id = s.owner_id AND ub.is_active = true
+        )
     `;
     
     const productResult = await query(productQuery, [productId]);
@@ -480,6 +491,20 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+// Upload product image (Seller only)
+const uploadProductImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file provided' });
+    }
+    const imageUrl = `/uploads/products/${req.file.filename}`;
+    res.status(200).json({ success: true, message: 'Image uploaded successfully', data: { image_url: imageUrl } });
+  } catch (error) {
+    console.error('Error uploading product image:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 // Get seller's products
 const getSellerProducts = async (req, res) => {
   try {
@@ -574,6 +599,7 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getSellerProducts,
+  uploadProductImage,
   createProductValidation,
   updateProductValidation,
   productIdValidation,
