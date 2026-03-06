@@ -39,6 +39,7 @@ export interface SellerProduct {
   category_name: string | null
   primary_image: string | null
   created_at: string
+  updated_at?: string
 }
 
 export interface SellerOrder {

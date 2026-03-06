@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { FiPlus, FiEdit2, FiTrash2, FiPackage, FiX, FiCheckCircle, FiSearch, FiRefreshCw, FiUpload } from 'react-icons/fi'
+import { FiPlus, FiEdit2, FiTrash2, FiPackage, FiX, FiCheckCircle, FiSearch, FiRefreshCw, FiUpload, FiEye } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { sellerService, type SellerProduct, type ApiCategory } from '@/services/sellerService'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, formatDate } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const emptyForm = {
@@ -31,6 +32,7 @@ export function SellerProductsPage() {
   const [deleting, setDeleting] = useState(false)
   const [editProduct, setEditProduct] = useState<SellerProduct | null>(null)
   const [addOpen, setAddOpen] = useState(false)
+  const [viewProduct, setViewProduct] = useState<SellerProduct | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
@@ -314,6 +316,9 @@ export function SellerProductsPage() {
                         </td>
                         <td className="py-3">
                           <div className="flex items-center justify-end gap-2">
+                            <Button size="sm" variant="outline" title="View Details" onClick={() => setViewProduct(product)}>
+                              <FiEye className="h-3.5 w-3.5" />
+                            </Button>
                             <Button size="sm" variant="outline" onClick={() => openEdit(product)}>
                               <FiEdit2 className="h-3.5 w-3.5" />
                             </Button>
@@ -463,6 +468,94 @@ export function SellerProductsPage() {
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
               {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Details Modal */}
+      <Dialog open={!!viewProduct} onOpenChange={() => setViewProduct(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Product Details</DialogTitle>
+          </DialogHeader>
+          {viewProduct && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh]">
+              {/* Product Image - Left Side */}
+              <div className="flex items-start justify-center bg-slate-50 rounded-lg p-4">
+                {viewProduct.primary_image ? (
+                  <img 
+                    src={viewProduct.primary_image} 
+                    alt={viewProduct.title}
+                    className="w-full h-80 object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="w-full h-80 rounded-lg bg-slate-100 flex items-center justify-center">
+                    <FiPackage className="h-24 w-24 text-slate-300" />
+                  </div>
+                )}
+              </div>
+
+              {/* Product Info - Right Side */}
+              <ScrollArea className="pr-4">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900">{viewProduct.title}</h3>
+                    <Badge variant={viewProduct.is_active && viewProduct.stock > 0 ? 'success' : 'destructive'} className="mt-2">
+                      {!viewProduct.is_active ? 'Inactive' : viewProduct.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <p className="text-xs text-slate-500 uppercase tracking-wide">Price</p>
+                      <p className="text-xl font-bold text-slate-900">{formatPrice(parseFloat(viewProduct.price))}</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <p className="text-xs text-slate-500 uppercase tracking-wide">Stock</p>
+                      <p className={`text-xl font-bold ${viewProduct.stock < 10 ? 'text-red-600' : 'text-slate-900'}`}>
+                        {viewProduct.stock} units
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Category</p>
+                    <p className="text-slate-900 font-medium">{viewProduct.category_name || 'Uncategorized'}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Description</p>
+                    <p className="text-slate-700 text-sm leading-relaxed bg-slate-50 rounded-lg p-3">
+                      {viewProduct.description || 'No description provided.'}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-500">Created</p>
+                      <p className="font-medium">{formatDate(viewProduct.created_at)}</p>
+                    </div>
+                    {viewProduct.updated_at && (
+                      <div>
+                        <p className="text-slate-500">Last Updated</p>
+                        <p className="font-medium">{formatDate(viewProduct.updated_at)}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setViewProduct(null)}>Close</Button>
+            <Button onClick={() => {
+              if (viewProduct) {
+                openEdit(viewProduct)
+                setViewProduct(null)
+              }
+            }}>
+              <FiEdit2 className="h-4 w-4 mr-2" /> Edit Product
             </Button>
           </DialogFooter>
         </DialogContent>

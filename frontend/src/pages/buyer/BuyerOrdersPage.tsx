@@ -71,12 +71,11 @@ export function BuyerOrdersPage() {
       const data = await ratingService.getRatableOrders()
       const ratableMap: {[key: string]: boolean} = {}
       
-      // Map order+product combinations that can be rated
-      data.orders.forEach((order: any) => {
-        order.items.forEach((item: any) => {
-          const key = `${order.order_id}-${item.product_id}`
-          ratableMap[key] = !item.already_rated
-        })
+      // The API returns flat array: [{order_id, product_id, product_name, primary_image, ...}, ...]
+      // Each row represents a deliverable product that can be rated
+      data.orders.forEach((item: any) => {
+        const key = `${item.order_id}-${item.product_id}`
+        ratableMap[key] = true // All items in this response can be rated
       })
       
       setRatableProducts(ratableMap)

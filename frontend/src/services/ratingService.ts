@@ -58,26 +58,18 @@ export const ratingService = {
     orders: Array<{
       order_id: number
       order_status: string
-      items: Array<{
-        product_id: number
-        title: string
-        quantity: number
-        store_name: string
-        already_rated: boolean
-      }>
+      product_id: number
+      product_name: string
+      primary_image: string | null
     }>
   }> {
     const res = await api.get<ApiResp<{
       orders: Array<{
         order_id: number
         order_status: string
-        items: Array<{
-          product_id: number
-          title: string
-          quantity: number
-          store_name: string
-          already_rated: boolean
-        }>
+        product_id: number
+        product_name: string
+        primary_image: string | null
       }>
     }>>('/api/ratings/ratable')
     return res.data
