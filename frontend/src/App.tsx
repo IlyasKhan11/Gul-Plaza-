@@ -22,6 +22,7 @@ import { SellerWithdrawalsPage } from '@/pages/seller/SellerWithdrawalsPage'
 
 import { BuyerOrdersPage } from '@/pages/buyer/BuyerOrdersPage'
 import { BuyerProfilePage } from '@/pages/buyer/BuyerProfilePage'
+import { WishlistPage } from '@/pages/buyer/WishlistPage'
 
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
@@ -73,6 +74,7 @@ export default function App() {
           </ProtectedRoute>
         }>
           <Route path="buyer/orders" element={<BuyerOrdersPage />} />
+          <Route path="buyer/wishlist" element={<WishlistPage />} />
           <Route path="buyer/profile" element={<BuyerProfilePage />} />
         </Route>
 

@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FiCheckCircle, FiShoppingBag,
   FiCreditCard, FiAlertCircle, FiLoader,
-  FiMapPin, FiPhone, FiUser, FiMessageCircle,
+  FiMapPin, FiPhone, FiMessageCircle,
 } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCart } from '@/context/CartContext'
 import { orderService, type CheckoutPaymentMethod, type CreatedOrder } from '@/services/orderService'
+import { sellerService } from '@/services/sellerService'
 import { formatPrice, cn } from '@/lib/utils'
 
 type Stage = 'form' | 'success'
@@ -54,7 +55,9 @@ export function CheckoutPage() {
   
   // For Easypaisa/Bank Transfer
   const [transactionId, setTransactionId] = useState('')
-  const [screenshot, setScreenshot] = useState<File | null>(null)
+
+  // Seller contact info fetched from backend
+  const [sellerContacts, setSellerContacts] = useState<Record<string, { contact_phone: string | null; contact_email: string | null }>>({})
 
   const shipping = total >= 2000 ? 0 : 200
   const grandTotal = total + shipping
@@ -69,7 +72,6 @@ export function CheckoutPage() {
           sellerMap.set(sellerId, {
             id: sellerId,
             name: product.storeName,
-            phone: '+923001234567', // Default contact number
             products: []
           })
         }
@@ -78,6 +80,28 @@ export function CheckoutPage() {
     })
     return Array.from(sellerMap.values())
   }
+
+  // Fetch real contact info for each unique seller
+  useEffect(() => {
+    const sellers = getSellers()
+    const uniqueSellerIds = sellers.map(s => s.id).filter(id => id !== 'unknown')
+    if (uniqueSellerIds.length === 0) return
+
+    Promise.all(
+      uniqueSellerIds.map(async (sellerId) => {
+        try {
+          const data = await sellerService.getStoreContactInfo(sellerId)
+          return { sellerId, ...data }
+        } catch {
+          return { sellerId, contact_phone: null, contact_email: null }
+        }
+      })
+    ).then(results => {
+      const map: Record<string, { contact_phone: string | null; contact_email: string | null }> = {}
+      results.forEach(r => { map[r.sellerId] = { contact_phone: r.contact_phone, contact_email: r.contact_email } })
+      setSellerContacts(map)
+    })
+  }, [items])
 
   async function placeOrder() {
     if (items.length === 0) {
@@ -107,6 +131,12 @@ export function CheckoutPage() {
       return
     }
     
+    // Validate EasyPaisa transaction ID
+    if (paymentMethod === 'EASYPaisa' && !transactionId.trim()) {
+      setError('Please enter your EasyPaisa Transaction ID')
+      return
+    }
+
     // Check for stock issues before syncing cart
   const outOfStock = items.find(item => item.product && typeof item.product.stock === 'number' && item.quantity > item.product.stock)
     if (outOfStock) {
@@ -133,10 +163,6 @@ export function CheckoutPage() {
       }
       if (paymentMethod === 'EASYPaisa') {
         extra.transactionId = transactionId
-        if (screenshot) {
-          // You may need to handle file upload separately in your backend
-          extra.screenshot = screenshot
-        }
       }
       // Place order with shipping information
       const order = await orderService.checkout(cartPayload, paymentMethod, extra)
@@ -306,29 +332,48 @@ export function CheckoutPage() {
               <div className="text-sm text-slate-600 mb-3">
                 Contact sellers directly on WhatsApp for payment details and order confirmation
               </div>
-              {getSellers().map((seller, index) => (
-                <div key={seller.id} className="border rounded-lg p-4 bg-slate-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h4 className="font-semibold text-slate-900">{seller.name}</h4>
-                      <p className="text-sm text-slate-600">Products: {seller.products.length}</p>
+              {getSellers().map((seller) => {
+                const contact = sellerContacts[seller.id]
+                const phone = contact?.contact_phone
+                const waLink = phone
+                  ? `https://wa.me/${phone.replace(/[^\d]/g, '')}?text=Hi! I placed an order from your store. Please confirm.`
+                  : null
+                return (
+                  <div key={seller.id} className="border rounded-lg p-4 bg-slate-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h4 className="font-semibold text-slate-900">{seller.name}</h4>
+                        <p className="text-sm text-slate-600">Products: {seller.products.length}</p>
+                      </div>
+                      {waLink ? (
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors"
+                        >
+                          <FiPhone className="h-4 w-4" />
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-400">Contact via order confirmation</span>
+                      )}
                     </div>
-                    <a
-                      href={`https://wa.me/${seller.phone.replace(/[^\d]/g, '')}?text=Hi! I'm interested in buying products from your store. Order details:`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                      <FiPhone className="h-4 w-4" />
-                      Contact on WhatsApp
-                    </a>
+                    <div className="text-xs text-slate-500 space-y-0.5">
+                      {phone ? (
+                        <p>📱 {phone}</p>
+                      ) : (
+                        <p className="italic">Phone not listed — seller will contact you after order</p>
+                      )}
+                      {paymentMethod === 'EASYPaisa' && phone && (
+                        <p className="font-semibold text-green-700 mt-1">
+                          💚 EasyPaisa / Bank: send to {phone} then enter your Transaction ID below
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-500">
-                    <p>📱 {seller.phone}</p>
-                    <p className="mt-1">💬 Click to chat on WhatsApp for payment details</p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <div className="flex items-start gap-2">
                   <FiAlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
@@ -386,26 +431,20 @@ export function CheckoutPage() {
                   <div className="flex items-start gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
                     <FiAlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                     <span>
-                      After placing your order, contact the seller for their Easypaisa number or bank account details.<br />
-                      Enter your Transaction ID and (optionally) upload a screenshot below.
+                      Send the total amount to the seller's EasyPaisa number shown above, then enter your Transaction ID below. The seller will verify your payment before shipping.
                     </span>
                   </div>
                   <div className="mt-4 space-y-3">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Transaction ID</label>
-                    <input
-                      type="text"
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-base"
-                      value={transactionId}
-                      onChange={e => setTransactionId(e.target.value)}
-                      placeholder="Enter Transaction ID"
-                    />
-                    <label className="block text-sm font-medium text-slate-700 mb-1 mt-3">Screenshot (optional)</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-base"
-                      onChange={e => setScreenshot(e.target.files?.[0] || null)}
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Transaction ID <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-base"
+                        value={transactionId}
+                        onChange={e => setTransactionId(e.target.value)}
+                        placeholder="Enter EasyPaisa Transaction ID"
+                      />
+                    </div>
                   </div>
                 </>
               )}

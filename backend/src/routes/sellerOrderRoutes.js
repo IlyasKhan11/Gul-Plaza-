@@ -11,7 +11,9 @@ const {
   getSellerNotifications,
   markNotificationAsRead,
   getMonthlyRevenue,
-  getSellerEarnings
+  getSellerEarnings,
+  verifyEasypaisaPayment,
+  updateOrderStatusBySeller,
 } = require('../controllers/sellerOrderController');
 
 // Import seller payment controller for WhatsApp
@@ -186,6 +188,37 @@ router.post(
   body('message').isString().notEmpty().withMessage('Message is required'),
   handleValidationErrors,
   sendWhatsAppMessage
+);
+
+/**
+ * @route   POST /api/seller/orders/:orderId/verify-payment
+ * @desc    Verify EasyPaisa payment - transition awaiting_verification → paid (seller only)
+ * @access  Private (Seller only)
+ */
+router.post(
+  '/orders/:orderId/verify-payment',
+  authenticateToken,
+  requireSeller,
+  sellerOrderActionLimiter,
+  param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
+  handleValidationErrors,
+  verifyEasypaisaPayment
+);
+
+/**
+ * @route   PATCH /api/seller/orders/:orderId/status
+ * @desc    Update order status (seller only - cancellation only)
+ * @access  Private (Seller only)
+ */
+router.patch(
+  '/orders/:orderId/status',
+  authenticateToken,
+  requireSeller,
+  sellerOrderActionLimiter,
+  param('orderId').isInt({ min: 1 }).withMessage('Order ID must be a positive integer'),
+  body('status').isString().notEmpty().withMessage('Status is required'),
+  handleValidationErrors,
+  updateOrderStatusBySeller
 );
 
 /**

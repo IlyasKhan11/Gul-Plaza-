@@ -1,30 +1,72 @@
 import { useParams, Link } from 'react-router-dom'
-import { FiMessageCircle, FiPackage, FiStar, FiMapPin } from 'react-icons/fi'
+import { useEffect, useState } from 'react'
+import { FiMessageCircle, FiPackage, FiMapPin } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ProductCard } from '@/components/common/ProductCard'
-import { mockStores, mockProducts } from '@/data/mockData'
+import { api } from '@/lib/api'
+import type { Product } from '@/types'
+
+interface StoreDetail {
+  id: number
+  owner_id: number
+  name: string
+  logo_url: string | null
+  banner_url: string | null
+  description: string | null
+  contact_email: string | null
+  contact_phone: string | null
+  city: string | null
+  country: string | null
+  product_count: number
+}
 
 export function StorePage() {
   const { id } = useParams()
-  const store = mockStores.find(s => s.id === id)
+  const [store, setStore] = useState<StoreDetail | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
 
-  if (!store) return (
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    api.get<{ success: boolean; data: StoreDetail }>(`/api/sellers/stores/${id}`)
+      .then(res => {
+        if (res.success) {
+          setStore(res.data)
+          return api.get<{ data: { products: Product[] } }>(`/api/products?store_id=${res.data.id}&limit=40`)
+        }
+        setNotFound(true)
+      })
+      .then(res => { if (res) setProducts(res.data.products) })
+      .catch(() => setNotFound(true))
+      .finally(() => setLoading(false))
+  }, [id])
+
+  if (loading) return (
+    <div className="max-w-7xl mx-auto px-4 py-20 text-center text-slate-400">Loading...</div>
+  )
+
+  if (notFound || !store) return (
     <div className="max-w-7xl mx-auto px-4 py-20 text-center">
       <p className="text-xl text-slate-400">Store not found</p>
       <Button className="mt-4" asChild><Link to="/">Go Home</Link></Button>
     </div>
   )
 
-  const products = mockProducts.filter(p => p.storeId === store.id)
-  const whatsappUrl = `https://wa.me/${store.whatsapp}?text=${encodeURIComponent(`Hi! I found your store on Gul Plaza and I'd like to know more.`)}`
+  const whatsappUrl = store.contact_phone
+    ? `https://wa.me/${store.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent("Hi! I found your store on Gul Plaza and I'd like to know more.")}`
+    : null
+
+  const location = [store.city, store.country].filter(Boolean).join(', ') || 'Pakistan'
 
   return (
     <div>
       {/* Banner */}
       <div className="relative h-48 md:h-64 overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700">
-        {store.banner && (
-          <img src={store.banner} alt={store.name} className="w-full h-full object-cover opacity-70" />
+        {store.banner_url && (
+          <img src={store.banner_url} alt={store.name} className="w-full h-full object-cover opacity-70" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
       </div>
@@ -34,9 +76,10 @@ export function StorePage() {
         <div className="relative -mt-12 mb-8">
           <div className="flex flex-col sm:flex-row items-start gap-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <img
-              src={store.logo}
+              src={store.logo_url || '/default-store-logo.png'}
               alt={store.name}
-              className="w-20 h-20 rounded-xl border-4 border-white shadow-md bg-white"
+              className="w-20 h-20 rounded-xl border-4 border-white shadow-md bg-white object-cover"
+              onError={e => { e.currentTarget.src = '/default-store-logo.png' }}
             />
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -45,29 +88,28 @@ export function StorePage() {
               </div>
               <div className="flex items-center gap-4 text-sm text-slate-500 flex-wrap">
                 <div className="flex items-center gap-1">
-                  <FiStar className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  <span className="font-medium text-slate-700">{store.rating}</span>
-                  <span>({store.reviewCount} reviews)</span>
-                </div>
-                <div className="flex items-center gap-1">
                   <FiPackage className="h-4 w-4" />
-                  <span>{store.productCount} products</span>
+                  <span>{store.product_count} products</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <FiMapPin className="h-4 w-4" />
-                  <span>Pakistan</span>
+                  <span>{location}</span>
                 </div>
               </div>
-              <p className="mt-2 text-slate-600 text-sm max-w-xl">{store.description}</p>
+              {store.description && (
+                <p className="mt-2 text-slate-600 text-sm max-w-xl">{store.description}</p>
+              )}
             </div>
-            <Button
-              className="border-green-500 text-green-700 hover:bg-green-50 shrink-0"
-              variant="outline"
-              onClick={() => window.open(whatsappUrl, '_blank')}
-            >
-              <FiMessageCircle className="h-4 w-4" />
-              Contact on WhatsApp
-            </Button>
+            {whatsappUrl && (
+              <Button
+                className="border-green-500 text-green-700 hover:bg-green-50 shrink-0"
+                variant="outline"
+                onClick={() => window.open(whatsappUrl, '_blank')}
+              >
+                <FiMessageCircle className="h-4 w-4" />
+                Contact on WhatsApp
+              </Button>
+            )}
           </div>
         </div>
 
@@ -79,7 +121,12 @@ export function StorePage() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {products.map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={{
+                  ...product,
+                  name: product.title,
+                  images: product.images?.length ? product.images : product.primary_image ? [product.primary_image] : [],
+                  price: Number(product.price),
+                }} />
               ))}
             </div>
           )}

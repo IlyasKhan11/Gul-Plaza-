@@ -207,9 +207,15 @@ export const sellerService = {
     return res.data
   },
 
-  // Verify payment for COD order
-  async verifyCODPayment(orderId: number): Promise<void> {
-    await api.post(`/api/seller/orders/${orderId}/confirm`, { notes: 'COD payment verified - buyer will pay on delivery' })
+  // Verify EasyPaisa payment (awaiting_verification → paid)
+  async verifyEasypaisaPayment(orderId: number): Promise<void> {
+    await api.post(`/api/seller/orders/${orderId}/verify-payment`)
+  },
+
+  // Get store contact info (public - for checkout page)
+  async getStoreContactInfo(sellerId: string | number): Promise<{ store_name: string; contact_phone: string | null; contact_email: string | null }> {
+    const res = await api.get(`/api/sellers/${sellerId}/contact`) as { data: { success: boolean; data: { store_name: string; contact_phone: string | null; contact_email: string | null } } }
+    return res.data.data
   },
 
   // Buyer orders

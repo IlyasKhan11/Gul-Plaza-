@@ -104,11 +104,10 @@ const isValidStatusTransition = (currentStatus, newStatus, paymentMethod = null)
  */
 const getStatusAfterPaymentSelection = (paymentMethod) => {
   switch (paymentMethod?.toUpperCase()) {
-    case PAYMENT_METHODS.COD:
+    case 'COD':
       return ORDER_STATUSES.CONFIRMED;
-    case PAYMENT_METHODS.EASYPaisa:
-      return ORDER_STATUSES.AWAITING_VERIFICATION;
-    case PAYMENT_METHODS.DIRECT_SELLER:
+    case 'EASYPAISA':
+    case 'DIRECT_SELLER':
       return ORDER_STATUSES.AWAITING_VERIFICATION;
     default:
       throw new Error(`Invalid payment method: ${paymentMethod}`);
@@ -121,7 +120,7 @@ const getStatusAfterPaymentSelection = (paymentMethod) => {
  * @returns {boolean} - True if payment method is valid
  */
 const isValidPaymentMethod = (paymentMethod) => {
-  return Object.values(PAYMENT_METHODS).includes(paymentMethod?.toUpperCase());
+  return Object.values(PAYMENT_METHODS).map(v => v.toUpperCase()).includes(paymentMethod?.toUpperCase());
 };
 
 /**

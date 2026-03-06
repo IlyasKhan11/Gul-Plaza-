@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PGPASSWORD=\"\" psql -h localhost -p 5432 -U postgres -d gul_plaza_db -f /Users/rtv-lpt-406/Desktop/personalaccount/Gul-Plaza-/backend/database/migrations/add_report_review_columns.sql)",
+      "Bash(PGPASSWORD=\"\" psql -h localhost -p 5432 -U postgres -d gul_plaza_db -c \"\\\\dt\")"
+    ]
+  }
+}

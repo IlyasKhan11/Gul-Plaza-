@@ -1,11 +1,32 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { FiFacebook, FiInstagram, FiTwitter, FiMail, FiPhone, FiMapPin } from 'react-icons/fi'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/context/AuthContext'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
+import { api } from '@/lib/api'
+
+interface FooterCategory {
+  id: number
+  name: string
+  slug: string
+  parent_id: number | null
+}
 
 export function Footer() {
   const { user } = useAuth()
+  const [categories, setCategories] = useState<FooterCategory[]>([])
+
+  useEffect(() => {
+    api.get<{ success: boolean; data: FooterCategory[] }>('/api/categories')
+      .then(res => {
+        if (res.success && res.data.length > 0) {
+          setCategories(res.data.filter(c => c.parent_id === null).slice(0, 5))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   return (
     <footer className="bg-slate-900 text-slate-300 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
@@ -42,11 +63,13 @@ export function Footer() {
           <div className="space-y-3">
             <h3 className="font-semibold text-white">Categories</h3>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/products?category=electronics" className="hover:text-white transition-colors">Electronics</Link></li>
-              <li><Link to="/products?category=fashion" className="hover:text-white transition-colors">Fashion</Link></li>
-              <li><Link to="/products?category=home-living" className="hover:text-white transition-colors">Home & Living</Link></li>
-              <li><Link to="/products?category=beauty" className="hover:text-white transition-colors">Beauty</Link></li>
-              <li><Link to="/products?category=sports" className="hover:text-white transition-colors">Sports</Link></li>
+              {categories.map(cat => (
+                <li key={cat.id}>
+                  <Link to={`/products?category=${cat.slug}`} className="hover:text-white transition-colors">
+                    {cat.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

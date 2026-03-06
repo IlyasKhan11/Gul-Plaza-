@@ -728,6 +728,126 @@ const getSellerDashboard = async (req, res) => {
   }
 };
 
+// Get a single store by ID (Public - no auth required)
+const getPublicStoreById = async (req, res) => {
+  try {
+    const storeId = parseInt(req.params.storeId);
+    if (isNaN(storeId)) {
+      return res.status(400).json({ success: false, message: 'Invalid store ID' });
+    }
+
+    const result = await query(
+      `SELECT s.id, s.owner_id, s.name, s.logo_url, s.banner_url, s.description,
+              s.contact_email, s.contact_phone, s.city, s.country,
+              COUNT(p.id) FILTER (WHERE p.is_active = true) AS product_count
+       FROM stores s
+       LEFT JOIN products p ON p.store_id = s.id
+       WHERE s.id = $1 AND s.is_active = true
+       GROUP BY s.id`,
+      [storeId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Store not found' });
+    }
+
+    const s = result.rows[0];
+    res.status(200).json({
+      success: true,
+      data: {
+        id: s.id,
+        owner_id: s.owner_id,
+        name: s.name,
+        logo_url: s.logo_url,
+        banner_url: s.banner_url,
+        description: s.description,
+        contact_email: s.contact_email,
+        contact_phone: s.contact_phone,
+        city: s.city,
+        country: s.country,
+        product_count: parseInt(s.product_count) || 0,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting store by ID:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Get public list of active stores (Public - no auth required)
+const getPublicStores = async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 6, 20);
+
+    const result = await query(
+      `SELECT s.id, s.owner_id, s.name, s.logo_url, s.banner_url, s.description,
+              COUNT(p.id) FILTER (WHERE p.is_active = true) AS product_count
+       FROM stores s
+       LEFT JOIN products p ON p.store_id = s.id
+       WHERE s.is_active = true
+       GROUP BY s.id
+       ORDER BY product_count DESC
+       LIMIT $1`,
+      [limit]
+    );
+
+    const stores = result.rows.map(s => ({
+      id: s.id,
+      owner_id: s.owner_id,
+      name: s.name,
+      logo_url: s.logo_url,
+      banner_url: s.banner_url,
+      description: s.description,
+      product_count: parseInt(s.product_count) || 0,
+    }));
+
+    res.status(200).json({ success: true, data: stores });
+  } catch (error) {
+    console.error('Error getting public stores:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Get Store Contact Info (Public - no auth required)
+// Used by checkout to show seller's EasyPaisa/contact number
+const getStoreContactInfo = async (req, res) => {
+  try {
+    const sellerId = parseInt(req.params.sellerId);
+
+    const storeResult = await query(
+      `SELECT s.name, s.contact_phone, s.contact_email, u.phone as owner_phone
+       FROM stores s
+       LEFT JOIN users u ON s.owner_id = u.id
+       WHERE s.owner_id = $1 AND s.is_active = true`,
+      [sellerId]
+    );
+
+    if (storeResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Store not found',
+      });
+    }
+
+    const store = storeResult.rows[0];
+
+    res.status(200).json({
+      success: true,
+      data: {
+        store_name: store.name,
+        contact_phone: store.contact_phone || store.owner_phone || null,
+        contact_email: store.contact_email || null,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting store contact info:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   getSellerProfile,
   updateSellerProfile,
@@ -735,6 +855,9 @@ module.exports = {
   updateStore,
   applyForSeller,
   getSellerDashboard,
+  getPublicStores,
+  getPublicStoreById,
+  getStoreContactInfo,
   updateSellerProfileValidation,
   createStoreValidation,
   updateStoreValidation,

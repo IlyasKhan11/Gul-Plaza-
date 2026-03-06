@@ -6,7 +6,7 @@ const createReportValidation = [
   body('product_id').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
   body('reason').isIn(['inappropriate_content', 'fake_product', 'misleading_description', 'spam', 'copyright_violation', 'other'])
     .withMessage('Invalid report reason'),
-  body('description').isLength({ min: 10, max: 1000 }).trim().escape()
+  body('description').optional({ checkFalsy: true }).isLength({ min: 10, max: 1000 }).trim().escape()
     .withMessage('Description must be between 10 and 1000 characters'),
 ];
 
@@ -237,7 +237,7 @@ const getAllReports = async (req, res) => {
         reviewer.name as reviewer_name
       FROM product_reports pr
       JOIN products p ON pr.product_id = p.id
-      JOIN stores s ON p.store_id = s.id
+      LEFT JOIN stores s ON p.store_id = s.id
       JOIN users reporter ON pr.reporter_id = reporter.id
       LEFT JOIN users reviewer ON pr.reviewed_by = reviewer.id
       ${whereClause}

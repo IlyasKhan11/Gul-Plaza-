@@ -121,7 +121,7 @@ export function SellerOrdersPage() {
   const handleVerifyPayment = async (orderId: number) => {
     setProcessing(orderId)
     try {
-      await sellerService.verifyCODPayment(orderId)
+      await sellerService.verifyEasypaisaPayment(orderId)
       await fetchOrders()
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to verify payment')
@@ -150,20 +150,10 @@ export function SellerOrdersPage() {
   const getAvailableActions = (order: any) => {
     const actions: { label: string; icon: any; handler: () => void; variant: 'default' | 'outline' | 'destructive' }[] = []
     
-    // For pending orders - check payment method
+    // Pending COD orders: seller confirms then ships
     if (order.status === 'pending') {
-      // Check if it's COD payment - show Verify Payment button
-      if (order.payment_method === 'COD' || order.payment_method === 'Cash on Delivery') {
-        actions.push({
-          label: 'Verify Payment',
-          icon: FiCheck,
-          handler: () => handleVerifyPayment(order.id),
-          variant: 'default'
-        })
-      }
-      // Always show Confirm and Cancel
       actions.push({
-        label: 'Confirm',
+        label: 'Confirm Order',
         icon: FiCheck,
         handler: () => handleConfirm(order.id),
         variant: 'default'
@@ -175,9 +165,25 @@ export function SellerOrdersPage() {
         variant: 'destructive'
       })
     }
-    
-    if (order.status === 'confirmed' || order.status === 'processing') {
-      // Add WhatsApp button for COD orders
+
+    // EasyPaisa orders awaiting verification: seller checks their app and verifies
+    if (order.status === 'awaiting_verification') {
+      actions.push({
+        label: 'Verify Payment',
+        icon: FiCheck,
+        handler: () => handleVerifyPayment(order.id),
+        variant: 'default'
+      })
+      actions.push({
+        label: 'Cancel',
+        icon: FiX,
+        handler: () => openCancelModal(order),
+        variant: 'destructive'
+      })
+    }
+
+    // COD confirmed or EasyPaisa paid: ready to ship
+    if (order.status === 'confirmed' || order.status === 'processing' || order.status === 'paid') {
       if (order.payment_method === 'COD' || order.payment_method === 'Cash on Delivery') {
         actions.push({
           label: 'Send WhatsApp',

@@ -811,6 +811,161 @@ const getSellerEarnings = async (req, res) => {
   }
 };
 
+// Verify EasyPaisa Payment (Seller Only)
+// Transitions order from awaiting_verification → paid so it can be shipped
+const verifyEasypaisaPayment = async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const sellerId = req.user.userId;
+
+    // Verify the order contains this seller's products
+    const orderQuery = `
+      SELECT o.id, o.status, o.payment_method
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      LEFT JOIN stores s ON p.store_id = s.id
+      WHERE o.id = $1 AND s.owner_id = $2
+    `;
+
+    const orderResult = await query(orderQuery, [orderId, sellerId]);
+
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found or access denied',
+      });
+    }
+
+    const order = orderResult.rows[0];
+
+    if (order.status !== 'awaiting_verification') {
+      return res.status(400).json({
+        success: false,
+        message: `Only orders awaiting verification can be verified. Current status: ${order.status}`,
+      });
+    }
+
+    const updateQuery = `
+      UPDATE orders
+      SET status = 'paid',
+          payment_status = 'verified',
+          seller_confirmed_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING id, status, payment_status, updated_at
+    `;
+
+    const updatedOrderResult = await query(updateQuery, [orderId]);
+
+    // Create notification for buyer
+    await query(
+      `INSERT INTO order_notifications (order_id, seller_id, notification_type, message)
+       VALUES ($1, $2, 'payment_verified', $3)`,
+      [orderId, sellerId, `Your EasyPaisa payment for order #${orderId} has been verified. Your order will be shipped soon.`]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment verified successfully. Order can now be shipped.',
+      data: updatedOrderResult.rows[0],
+    });
+  } catch (error) {
+    console.error('Error verifying EasyPaisa payment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+// Update Order Status (Seller Only - cancellation only)
+const updateOrderStatusBySeller = async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const sellerId = req.user.userId;
+    const { status } = req.body;
+
+    if (status !== 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Sellers can only cancel orders via this endpoint',
+      });
+    }
+
+    // Verify the order contains this seller's products
+    const orderQuery = `
+      SELECT o.id, o.status
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      LEFT JOIN stores s ON p.store_id = s.id
+      WHERE o.id = $1 AND s.owner_id = $2
+    `;
+
+    const orderResult = await query(orderQuery, [orderId, sellerId]);
+
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found or access denied',
+      });
+    }
+
+    const order = orderResult.rows[0];
+    const cancellableStatuses = ['pending', 'confirmed', 'awaiting_verification'];
+
+    if (!cancellableStatuses.includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot cancel order with status: ${order.status}`,
+      });
+    }
+
+    const client = await require('../config/db').pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Restore stock
+      const itemsResult = await client.query(
+        'SELECT product_id, quantity FROM order_items WHERE order_id = $1',
+        [orderId]
+      );
+
+      for (const item of itemsResult.rows) {
+        await client.query(
+          'UPDATE products SET stock = stock + $1 WHERE id = $2',
+          [item.quantity, item.product_id]
+        );
+      }
+
+      await client.query(
+        'UPDATE orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        ['cancelled', orderId]
+      );
+
+      await client.query('COMMIT');
+
+      res.status(200).json({
+        success: true,
+        message: 'Order cancelled successfully',
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error cancelling order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   getSellerOrders,
   getSellerOrderById,
@@ -821,4 +976,6 @@ module.exports = {
   markNotificationAsRead,
   getMonthlyRevenue,
   getSellerEarnings,
+  verifyEasypaisaPayment,
+  updateOrderStatusBySeller,
 };

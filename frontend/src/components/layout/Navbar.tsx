@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiShoppingCart, FiSearch, FiMenu, FiX, FiUser, FiLogOut, FiGrid, FiPackage } from 'react-icons/fi'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
@@ -9,7 +9,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
-import { mockCategories } from '@/data/mockData'
+import { api } from '@/lib/api'
+
+interface NavCategory {
+  id: number
+  name: string
+  slug: string
+  parent_id: number | null
+  sample_image: string | null
+}
 
 export function Navbar() {
   const { user, logout, isAuthenticated } = useAuth()
@@ -17,6 +25,17 @@ export function Navbar() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [categories, setCategories] = useState<NavCategory[]>([])
+
+  useEffect(() => {
+    api.get<{ success: boolean; data: NavCategory[] }>('/api/categories')
+      .then(res => {
+        if (res.success && res.data.length > 0) {
+          setCategories(res.data.filter(c => c.parent_id === null))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -129,22 +148,31 @@ export function Navbar() {
       </div>
 
       {/* Category nav */}
-      <div className="bg-blue-600 hidden md:block">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center gap-1 overflow-x-auto">
-            {mockCategories.slice(0, 7).map(cat => (
-              <Link
-                key={cat.id}
-                to={`/products?category=${cat.slug}`}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm text-blue-100 hover:text-white hover:bg-blue-700 rounded transition-colors whitespace-nowrap"
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.name}</span>
-              </Link>
-            ))}
+      {categories.length > 0 && (
+        <div className="bg-blue-600 hidden md:block">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {categories.slice(0, 7).map(cat => (
+                <Link
+                  key={cat.id}
+                  to={`/products?category=${cat.slug}`}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-blue-100 hover:text-white hover:bg-blue-700 rounded transition-colors whitespace-nowrap"
+                >
+                  {cat.sample_image && (
+                    <img
+                      src={cat.sample_image}
+                      alt={cat.name}
+                      className="w-5 h-5 rounded object-cover opacity-90"
+                      onError={e => { e.currentTarget.style.display = 'none' }}
+                    />
+                  )}
+                  <span>{cat.name}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Mobile menu */}
       {mobileOpen && (
@@ -155,19 +183,32 @@ export function Navbar() {
               <Button variant="outline" className="flex-1" asChild><Link to="/register">Register</Link></Button>
             </div>
           )}
-          <div className="grid grid-cols-4 gap-2">
-            {mockCategories.slice(0, 8).map(cat => (
-              <Link
-                key={cat.id}
-                to={`/products?category=${cat.slug}`}
-                onClick={() => setMobileOpen(false)}
-                className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-blue-50 text-center"
-              >
-                <span className="text-2xl">{cat.icon}</span>
-                <span className="text-xs text-slate-600">{cat.name}</span>
-              </Link>
-            ))}
-          </div>
+          {categories.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {categories.slice(0, 8).map(cat => (
+                <Link
+                  key={cat.id}
+                  to={`/products?category=${cat.slug}`}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-blue-50 text-center"
+                >
+                  {cat.sample_image ? (
+                    <img
+                      src={cat.sample_image}
+                      alt={cat.name}
+                      className="w-10 h-10 rounded-lg object-cover"
+                      onError={e => { e.currentTarget.style.display = 'none' }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-500 text-lg">
+                      🏷️
+                    </div>
+                  )}
+                  <span className="text-xs text-slate-600">{cat.name}</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </header>

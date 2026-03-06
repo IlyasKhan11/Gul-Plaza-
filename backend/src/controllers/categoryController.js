@@ -24,26 +24,34 @@ const categoryIdValidation = [
 const getAllCategories = async (req, res) => {
   try {
     const { parent_id } = req.query;
-    
+
     let categoriesQuery = `
-      SELECT 
+      SELECT
         c.id, c.name, c.slug, c.parent_id, c.created_at, c.updated_at,
-        p.name as parent_name
+        p.name as parent_name,
+        (
+          SELECT pi.image_url
+          FROM products prod
+          JOIN product_images pi ON pi.product_id = prod.id
+          WHERE prod.category_id = c.id AND prod.is_active = true
+          ORDER BY prod.id ASC
+          LIMIT 1
+        ) as sample_image
       FROM categories c
       LEFT JOIN categories p ON c.parent_id = p.id
     `;
-    
+
     const params = [];
-    
+
     if (parent_id) {
       categoriesQuery += ' WHERE c.parent_id = $1';
       params.push(parent_id);
     }
-    
+
     categoriesQuery += ' ORDER BY c.name ASC';
-    
+
     const categoriesResult = await query(categoriesQuery, params);
-    
+
     res.status(200).json({
       success: true,
       message: 'Categories retrieved successfully',

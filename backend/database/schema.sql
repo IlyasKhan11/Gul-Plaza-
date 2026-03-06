@@ -94,9 +94,9 @@ CREATE TABLE IF NOT EXISTS product_images (
 CREATE TABLE IF NOT EXISTS orders (
     id BIGSERIAL PRIMARY KEY,
     buyer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled')),
+    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'processing', 'awaiting_verification', 'paid', 'shipped', 'delivered', 'cancelled')),
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
-    payment_status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
+    payment_status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'verified', 'failed', 'refunded')),
     payment_method VARCHAR(50),
     currency VARCHAR(10) DEFAULT 'USD',
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,

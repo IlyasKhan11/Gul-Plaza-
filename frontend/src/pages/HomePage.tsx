@@ -3,15 +3,69 @@ import { FiArrowRight, FiShield, FiTruck, FiHeadphones, FiStar } from 'react-ico
 import { Button } from '@/components/ui/button'
 import { ProductCard } from '@/components/common/ProductCard'
 import { StoreCard } from '@/components/common/StoreCard'
-import { mockCategories, mockStores } from '@/data/mockData'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
 import type { Product } from '@/types'
 
+interface ApiCategory {
+  id: number
+  name: string
+  slug: string
+  parent_id: number | null
+  sample_image: string | null
+}
+
+interface ApiStore {
+  id: number
+  owner_id: number
+  name: string
+  logo_url: string | null
+  banner_url: string | null
+  description: string | null
+  product_count: number
+}
+
+const CATEGORY_ICONS: Record<string, string> = {
+  electronics: '📱',
+  fashion: '👗',
+  clothing: '👕',
+  'home-living': '🏠',
+  home: '🏠',
+  books: '📚',
+  sports: '⚽',
+  beauty: '💄',
+  groceries: '🛒',
+  food: '🛒',
+  toys: '🧸',
+  automotive: '🚗',
+  health: '💊',
+  jewelry: '💍',
+  furniture: '🛋️',
+  garden: '🌱',
+  music: '🎵',
+  tools: '🔧',
+  baby: '👶',
+  pets: '🐾',
+}
+
+function getCategoryIcon(name: string, slug: string): string {
+  const key = slug.toLowerCase()
+  if (CATEGORY_ICONS[key]) return CATEGORY_ICONS[key]
+  const nameKey = name.toLowerCase().replace(/\s+/g, '-')
+  if (CATEGORY_ICONS[nameKey]) return CATEGORY_ICONS[nameKey]
+  // partial match
+  for (const [k, icon] of Object.entries(CATEGORY_ICONS)) {
+    if (key.includes(k) || k.includes(key.split('-')[0])) return icon
+  }
+  return '🏷️'
+}
+
 export function HomePage() {
   const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<ApiCategory[]>([])
+  const [stores, setStores] = useState<ApiStore[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,6 +81,22 @@ export function HomePage() {
         setProducts([])
       })
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    api.get<{ success: boolean; data: ApiCategory[] }>('/api/categories')
+      .then(res => {
+        if (res.success && res.data.length > 0) {
+          setCategories(res.data.filter(c => c.parent_id === null))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    api.get<{ success: boolean; data: ApiStore[] }>('/api/sellers/stores?limit=6')
+      .then(res => { if (res.success) setStores(res.data) })
+      .catch(() => {})
   }, [])
 
   const featuredProducts = products.filter(p => p.isFeatured)
@@ -113,15 +183,23 @@ export function HomePage() {
             </Button>
           </div>
           <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3">
-            {mockCategories.map(cat => (
+            {categories.map(cat => (
               <Link
                 key={cat.id}
                 to={`/products?category=${cat.slug}`}
                 className="flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
               >
-                <span className="text-3xl">{cat.icon}</span>
+                {cat.sample_image ? (
+                  <img
+                    src={cat.sample_image}
+                    alt={cat.name}
+                    className="w-14 h-14 object-cover rounded-xl"
+                    onError={e => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'block') }}
+                  />
+                ) : (
+                  <span className="text-3xl">{getCategoryIcon(cat.name, cat.slug)}</span>
+                )}
                 <span className="text-xs font-medium text-slate-700 text-center group-hover:text-blue-600">{cat.name}</span>
-                <span className="text-xs text-slate-400">{cat.productCount}</span>
               </Link>
             ))}
           </div>
@@ -174,21 +252,41 @@ export function HomePage() {
       )}
 
       {/* Trending Stores */}
-      <section className="py-12 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">Trending Stores</h2>
-              <p className="text-slate-500 text-sm mt-1">Top-rated sellers with amazing products</p>
+      {stores.length > 0 && (
+        <section className="py-12 bg-slate-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Trending Stores</h2>
+                <p className="text-slate-500 text-sm mt-1">Top-rated sellers with amazing products</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {stores.map(store => (
+                <StoreCard key={store.id} store={{
+                  id: String(store.id),
+                  sellerId: String(store.owner_id),
+                  sellerName: store.name,
+                  name: store.name,
+                  slug: String(store.id),
+                  description: store.description || '',
+                  logo: store.logo_url || '/default-store-logo.png',
+                  banner: store.banner_url || '',
+                  contactEmail: '',
+                  whatsapp: '',
+                  isVerified: true,
+                  rating: 0,
+                  reviewCount: 0,
+                  productCount: store.product_count,
+                  isApproved: true,
+                  isBlocked: false,
+                  createdAt: '',
+                }} />
+              ))}
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockStores.map(store => (
-              <StoreCard key={store.id} store={store} />
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* All Products */}
       <section className="py-12 bg-white">

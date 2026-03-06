@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { FiShoppingCart, FiMessageCircle, FiChevronLeft, FiPackage, FiShield, FiTruck, FiZap, FiFlag } from 'react-icons/fi'
+import { FiShoppingCart, FiMessageCircle, FiChevronLeft, FiPackage, FiShield, FiTruck, FiZap, FiFlag, FiHeart } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -11,6 +11,7 @@ import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/api'
 import { ratingService, type ProductRatingSummary } from '@/services/ratingService'
+import { wishlistService } from '@/services/wishlistService'
 import type { Product } from '@/types'
 import { formatPrice } from '@/lib/utils'
 
@@ -51,6 +52,10 @@ export function ProductDetailPage() {
   const [reportError, setReportError] = useState<string | null>(null)
   const [reportSuccess, setReportSuccess] = useState(false)
 
+  // Wishlist state
+  const [saved, setSaved] = useState(false)
+  const [savingWishlist, setSavingWishlist] = useState(false)
+
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -75,13 +80,16 @@ export function ProductDetailPage() {
     
     // Fetch ratings
     ratingService.getProductRatings(Number(id))
-      .then(data => {
-        setRatingSummary(data.summary)
-      })
-      .catch(() => {
-        // Silently fail for ratings
-      })
-  }, [id])
+      .then(data => { setRatingSummary(data.summary) })
+      .catch(() => {})
+
+    // Check wishlist status for buyers
+    if (user?.role === 'buyer') {
+      wishlistService.check(Number(id))
+        .then(setSaved)
+        .catch(() => {})
+    }
+  }, [id, user])
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -119,6 +127,24 @@ export function ProductDetailPage() {
     if (!product) return
     for (let i = 0; i < qty; i++) addItem(product)
     navigate('/checkout')
+  }
+
+  const handleToggleWishlist = async () => {
+    if (savingWishlist) return
+    setSavingWishlist(true)
+    try {
+      if (saved) {
+        await wishlistService.remove(Number(id))
+        setSaved(false)
+      } else {
+        await wishlistService.add(Number(id))
+        setSaved(true)
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setSavingWishlist(false)
+    }
   }
 
   const openReport = () => {
@@ -197,7 +223,23 @@ export function ProductDetailPage() {
 
         {/* Details */}
         <div className="space-y-5">
-          <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
+            {user?.role === 'buyer' && (
+              <button
+                onClick={handleToggleWishlist}
+                disabled={savingWishlist}
+                title={saved ? 'Remove from saved' : 'Save product'}
+                className={`shrink-0 p-2 rounded-full border transition-colors ${
+                  saved
+                    ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-red-400 hover:border-red-200'
+                }`}
+              >
+                <FiHeart className={`h-5 w-5 ${saved ? 'fill-red-500' : ''}`} />
+              </button>
+            )}
+          </div>
 
           <div className="flex items-center gap-3 mt-2">
             <StarRating 

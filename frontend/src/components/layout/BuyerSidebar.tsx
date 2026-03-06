@@ -1,10 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { FiShoppingBag, FiUser, FiLogOut } from 'react-icons/fi'
+import { FiShoppingBag, FiUser, FiLogOut, FiHeart } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 
 const navItems = [
   { to: '/buyer/orders', icon: FiShoppingBag, label: 'My Orders' },
+  { to: '/buyer/wishlist', icon: FiHeart, label: 'Saved Products' },
   { to: '/buyer/profile', icon: FiUser, label: 'Profile Settings' },
 ]
 

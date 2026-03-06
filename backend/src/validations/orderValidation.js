@@ -201,6 +201,13 @@ const selectPaymentMethodSchema = Joi.object({
     .messages({
       'any.only': 'Payment method must be either COD, EASYPaisa, or DIRECT_SELLER',
       'any.required': 'Payment method is required'
+    }),
+  transaction_id: Joi.string()
+    .max(255)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Transaction ID cannot exceed 255 characters'
     })
 });
 

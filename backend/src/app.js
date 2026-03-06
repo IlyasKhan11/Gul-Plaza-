@@ -18,6 +18,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const ratingRoutes = require('./routes/ratingRoutes');
+const wishlistRoutes = require('./routes/wishlistRoutes');
 
 // Import middleware
 const { combinedLogger } = require('./middleware/loggingMiddleware');
@@ -210,6 +211,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api', reportRoutes);
 app.use('/api/ratings', ratingRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

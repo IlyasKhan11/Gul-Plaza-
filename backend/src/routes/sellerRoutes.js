@@ -7,6 +7,9 @@ const {
   updateStore,
   applyForSeller,
   getSellerDashboard,
+  getPublicStores,
+  getPublicStoreById,
+  getStoreContactInfo,
   updateSellerProfileValidation,
   createStoreValidation,
   updateStoreValidation,
@@ -57,6 +60,27 @@ router.get('/', (req, res) => {
     note: 'All endpoints require authentication. Some require seller role.',
   });
 });
+
+/**
+ * @route   GET /api/sellers/stores
+ * @desc    Get public list of active stores
+ * @access  Public
+ */
+router.get('/stores', getPublicStores);
+
+/**
+ * @route   GET /api/sellers/stores/:storeId
+ * @desc    Get a single store by ID
+ * @access  Public
+ */
+router.get('/stores/:storeId', getPublicStoreById);
+
+/**
+ * @route   GET /api/sellers/:sellerId/contact
+ * @desc    Get store contact info (public - used by checkout)
+ * @access  Public
+ */
+router.get('/:sellerId/contact', getStoreContactInfo);
 
 /**
  * @route   GET /api/sellers/dashboard

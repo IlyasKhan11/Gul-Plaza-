@@ -24,9 +24,8 @@ export const orderService = {
   async checkout(
     _items: { productId: number; quantity: number }[],
     paymentMethod: CheckoutPaymentMethod,
-    extra?: { 
-      transactionId?: string; 
-      screenshot?: File;
+    extra?: {
+      transactionId?: string;
       shipping_address?: string;
       shipping_city?: string;
       shipping_country?: string;
@@ -69,21 +68,12 @@ export const orderService = {
       shipping_full_name: extra?.shipping_full_name,
     })
     const order = orderRes.data
-    // Prepare payment payload
-    const paymentPayload: any = {
+    // Always send JSON — FormData cannot be serialized by api.post (uses JSON.stringify)
+    const paymentPayload: Record<string, string> = {
       payment_method: paymentMethod,
     }
     if (extra?.transactionId) paymentPayload.transaction_id = extra.transactionId
-    if (extra?.screenshot) {
-      // Use FormData for file upload
-      const formData = new FormData()
-      formData.append('payment_method', paymentMethod)
-      formData.append('transaction_id', extra.transactionId || '')
-      formData.append('screenshot', extra.screenshot)
-      await api.post(`/api/orders/${order.id}/select-payment`, formData)
-    } else {
-      await api.post(`/api/orders/${order.id}/select-payment`, paymentPayload)
-    }
+    await api.post(`/api/orders/${order.id}/select-payment`, paymentPayload)
     return order
   },
 
