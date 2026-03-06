@@ -52,7 +52,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
       {/* Top bar */}
       <div className="bg-blue-600 text-white text-xs py-1 text-center">
-        Free shipping on orders over Rs. 2,000 | Cash on Delivery Available
+        Cash on Delivery Available
       </div>
 
       {/* Main nav */}

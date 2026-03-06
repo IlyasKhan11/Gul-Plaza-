@@ -193,7 +193,7 @@ const getRatableOrders = async (req, res) => {
 
     // Get delivered orders with products that haven't been rated
     const ordersResult = await query(
-      `SELECT DISTINCT o.id as order_id, o.created_at as order_date, o.status as order_status,
+      `SELECT DISTINCT o.id as order_id, o.created_at as order_date, o.status as order_status, o.delivered_at,
               p.id as product_id, p.title as product_name, 
               (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY id ASC LIMIT 1) as primary_image
        FROM orders o
