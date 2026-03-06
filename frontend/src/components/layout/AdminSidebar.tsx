@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { FiGrid, FiUsers, FiGlobe, FiPackage, FiShoppingBag, FiCreditCard, FiShield, FiPercent, FiBriefcase, FiBarChart2, FiLogOut, FiTag } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
+import { NotificationBell } from '@/components/common/NotificationBell'
 
 const navItems = [
   { to: '/admin/dashboard', icon: FiGrid, label: 'Dashboard' },
@@ -32,14 +33,17 @@ export function AdminSidebar({ onLinkClick }: { onLinkClick?: () => void }) {
   return (
     <aside className="w-60 shrink-0 bg-slate-900 text-slate-300 flex flex-col h-full overflow-y-auto">
       <div className="px-4 py-3 border-b border-slate-700/60">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
-            <FiShield className="h-4 w-4 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+              <FiShield className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Admin Panel</p>
+              <p className="text-xs text-slate-500">Full control</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-bold text-white">Admin Panel</p>
-            <p className="text-xs text-slate-500">Full control</p>
-          </div>
+          <NotificationBell />
         </div>
       </div>
 

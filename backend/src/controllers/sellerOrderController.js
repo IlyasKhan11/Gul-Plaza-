@@ -5,6 +5,7 @@ const {
   VALIDATION_ERRORS
 } = require('../helpers/orderStateValidation');
 const whatsappService = require('../services/whatsappService');
+const notificationService = require('../services/notificationService');
 
 // Get Seller's Orders (orders containing seller's products)
 const getSellerOrders = async (req, res) => {
@@ -404,6 +405,31 @@ const shipOrderWithTracking = async (req, res) => {
         // Don't fail the transaction if WhatsApp fails
       }
       
+      // Get buyer info for real-time notification
+      const buyerInfoQuery = `SELECT buyer_id, (SELECT name FROM users WHERE id = orders.buyer_id) as buyer_name FROM orders WHERE id = $1`;
+      const buyerInfoResult = await client.query(buyerInfoQuery, [orderId]);
+      
+      if (buyerInfoResult.rows.length > 0) {
+        const buyerId = buyerInfoResult.rows[0].buyer_id;
+        const buyerName = buyerInfoResult.rows[0].buyer_name;
+        
+        // Send real-time notification to buyer
+        notificationService.sendToUser(buyerId, notificationService.NotificationEvents.ORDER_SHIPPED, {
+          orderId: orderId,
+          status: 'shipped',
+          courierName: courier_name,
+          trackingNumber: tracking_number,
+          message: `Your order #${orderId} has been shipped via ${courier_name}`
+        });
+        
+        // Notify admins about shipping
+        notificationService.sendToAdmins(notificationService.NotificationEvents.ORDER_STATUS_CHANGED, {
+          orderId: orderId,
+          status: 'shipped',
+          message: `Order #${orderId} has been shipped to ${buyerName}`
+        });
+      }
+      
       await client.query('COMMIT');
       
       res.status(200).json({
@@ -526,6 +552,29 @@ Rate your experience: https://gulplaza.com/feedback/${orderId}`;
       }
     } catch (whatsappError) {
       console.error('WhatsApp notification error:', whatsappError);
+    }
+
+    // Get buyer info for real-time notification
+    const buyerInfoQuery = `SELECT buyer_id, (SELECT name FROM users WHERE id = orders.buyer_id) as buyer_name FROM orders WHERE id = $1`;
+    const buyerInfoResult = await client.query(buyerInfoQuery, [orderId]);
+    
+    if (buyerInfoResult.rows.length > 0) {
+      const buyerId = buyerInfoResult.rows[0].buyer_id;
+      const buyerName = buyerInfoResult.rows[0].buyer_name;
+      
+      // Send real-time notification to buyer
+      notificationService.sendToUser(buyerId, notificationService.NotificationEvents.ORDER_DELIVERED, {
+        orderId: orderId,
+        status: 'delivered',
+        message: `Your order #${orderId} has been delivered!`
+      });
+      
+      // Notify admins about delivery
+      notificationService.sendToAdmins(notificationService.NotificationEvents.ORDER_STATUS_CHANGED, {
+        orderId: orderId,
+        status: 'delivered',
+        message: `Order #${orderId} has been delivered to ${buyerName}`
+      });
     }
 
     await client.query('COMMIT');

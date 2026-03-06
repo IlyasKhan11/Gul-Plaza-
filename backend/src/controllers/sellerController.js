@@ -1,5 +1,6 @@
 const { query } = require('../config/db');
 const { body, validationResult } = require('express-validator');
+const notificationService = require('../services/notificationService');
 
 // Validation rules for seller profile updates
 const updateSellerProfileValidation = [
@@ -389,6 +390,14 @@ const createStore = async (req, res) => {
     );
 
     const newStore = storeResult.rows[0];
+
+    // Notify admins of new seller application
+    notificationService.sendToAdmins(notificationService.NotificationEvents.NEW_SELLER_APPLICATION, {
+      storeId: newStore.id,
+      name: newStore.name,
+      ownerId: userId,
+      submittedAt: newStore.created_at,
+    });
 
     res.status(201).json({
       success: true,

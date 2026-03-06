@@ -418,6 +418,217 @@ const getReportStatistics = async (req, res) => {
   }
 };
 
+// Export Reports as CSV
+const exportReportsCSV = async (req, res) => {
+  try {
+    const { status } = req.query;
+    
+    let whereClause = '';
+    if (status && status !== 'all') {
+      whereClause = `WHERE pr.status = '${status}'`;
+    }
+    
+    const reportsQuery = `
+      SELECT 
+        pr.id,
+        pr.product_id,
+        p.title as product_title,
+        s.name as store_name,
+        u.name as reporter_name,
+        u.email as reporter_email,
+        pr.reason,
+        pr.description,
+        pr.status,
+        pr.admin_notes,
+        pr.created_at
+      FROM product_reports pr
+      LEFT JOIN products p ON pr.product_id = p.id
+      LEFT JOIN stores s ON p.store_id = s.id
+      LEFT JOIN users u ON pr.reporter_id = u.id
+      ${whereClause}
+      ORDER BY pr.created_at DESC
+    `;
+    
+    const reportsResult = await query(reportsQuery);
+    
+    const REASON_LABELS = {
+      inappropriate_content: 'Inappropriate Content',
+      fake_product: 'Fake Product',
+      misleading_description: 'Misleading Description',
+      spam: 'Spam',
+      copyright_violation: 'Copyright Violation',
+      other: 'Other'
+    };
+    
+    const STATUS_LABELS = {
+      pending: 'Pending',
+      under_review: 'Under Review',
+      resolved: 'Resolved',
+      dismissed: 'Dismissed'
+    };
+    
+    // Generate CSV
+    const headers = ['ID', 'Product', 'Store', 'Reporter', 'Email', 'Reason', 'Description', 'Status', 'Admin Notes', 'Date'];
+    const rows = reportsResult.rows.map(r => [
+      r.id,
+      r.product_title || 'N/A',
+      r.store_name || 'N/A',
+      r.reporter_name || 'N/A',
+      r.reporter_email || 'N/A',
+      REASON_LABELS[r.reason] || r.reason,
+      (r.description || '').replace(/,/g, ';'),
+      STATUS_LABELS[r.status] || r.status,
+      (r.admin_notes || '').replace(/,/g, ';'),
+      new Date(r.created_at).toLocaleDateString()
+    ]);
+    
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=product_reports.csv');
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting reports CSV:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Export Reports as PDF
+const exportReportsPDF = async (req, res) => {
+  try {
+    const { status } = req.query;
+    
+    let whereClause = '';
+    if (status && status !== 'all') {
+      whereClause = `WHERE pr.status = '${status}'`;
+    }
+    
+    const reportsQuery = `
+      SELECT 
+        pr.id,
+        pr.product_id,
+        p.title as product_title,
+        s.name as store_name,
+        u.name as reporter_name,
+        u.email as reporter_email,
+        pr.reason,
+        pr.description,
+        pr.status,
+        pr.admin_notes,
+        pr.created_at
+      FROM product_reports pr
+      LEFT JOIN products p ON pr.product_id = p.id
+      LEFT JOIN stores s ON p.store_id = s.id
+      LEFT JOIN users u ON pr.reporter_id = u.id
+      ${whereClause}
+      ORDER BY pr.created_at DESC
+    `;
+    
+    const reportsResult = await query(reportsQuery);
+    
+    const REASON_LABELS = {
+      inappropriate_content: 'Inappropriate Content',
+      fake_product: 'Fake Product',
+      misleading_description: 'Misleading Description',
+      spam: 'Spam',
+      copyright_violation: 'Copyright Violation',
+      other: 'Other'
+    };
+    
+    const STATUS_LABELS = {
+      pending: 'Pending',
+      under_review: 'Under Review',
+      resolved: 'Resolved',
+      dismissed: 'Dismissed'
+    };
+    
+    // Calculate stats
+    const totalReports = reportsResult.rows.length;
+    const pendingCount = reportsResult.rows.filter(r => r.status === 'pending').length;
+    const underReviewCount = reportsResult.rows.filter(r => r.status === 'under_review').length;
+    const resolvedCount = reportsResult.rows.filter(r => r.status === 'resolved').length;
+    const dismissedCount = reportsResult.rows.filter(r => r.status === 'dismissed').length;
+    
+    // Generate HTML for PDF
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Product Reports</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { color: #333; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+          th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .summary { margin-top: 20px; padding: 15px; background-color: #f9f9f9; }
+          .summary-grid { display: flex; gap: 20px; margin-bottom: 20px; }
+          .summary-item { padding: 10px; background: #fff; border: 1px solid #ddd; }
+          .status-pending { color: #f59e0b; }
+          .status-under_review { color: #3b82f6; }
+          .status-resolved { color: #10b981; }
+          .status-dismissed { color: #6b7280; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <h1>Product Reports</h1>
+        <p>Generated on: ${new Date().toLocaleDateString()}</p>
+        
+        <div class="summary-grid">
+          <div class="summary-item"><strong>Total:</strong> ${totalReports}</div>
+          <div class="summary-item"><strong>Pending:</strong> ${pendingCount}</div>
+          <div class="summary-item"><strong>Under Review:</strong> ${underReviewCount}</div>
+          <div class="summary-item"><strong>Resolved:</strong> ${resolvedCount}</div>
+          <div class="summary-item"><strong>Dismissed:</strong> ${dismissedCount}</div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Store</th>
+              <th>Reporter</th>
+              <th>Reason</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportsResult.rows.map(r => `
+              <tr>
+                <td>${r.product_title || 'N/A'}</td>
+                <td>${r.store_name || 'N/A'}</td>
+                <td>${r.reporter_name || 'N/A'}</td>
+                <td>${REASON_LABELS[r.reason] || r.reason}</td>
+                <td>${(r.description || '—').substring(0, 100)}${(r.description || '').length > 100 ? '...' : ''}</td>
+                <td class="status-${r.status}">${STATUS_LABELS[r.status] || r.status}</td>
+                <td>${new Date(r.created_at).toLocaleDateString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <script>window.print()</script>
+      </body>
+      </html>
+    `;
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', 'attachment; filename=product_reports.pdf.html');
+    res.send(html);
+  } catch (error) {
+    console.error('Error exporting reports PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   createProductReport,
   getProductReports,
@@ -426,4 +637,6 @@ module.exports = {
   getReportStatistics,
   createReportValidation,
   updateReportStatusValidation,
+  exportReportsCSV,
+  exportReportsPDF,
 };

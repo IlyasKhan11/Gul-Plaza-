@@ -1,5 +1,6 @@
 const { query } = require('../config/db');
 const { body, param, validationResult } = require('express-validator');
+const notificationService = require('../services/notificationService');
 
 // Validation rules for user blocking/unblocking
 const blockUserValidation = [
@@ -426,6 +427,13 @@ const approveSellerApplication = async (req, res) => {
 
       await query('COMMIT');
 
+      // Send notification to the seller
+      notificationService.sendToUser(store.user_id, notificationService.NotificationEvents.SELLER_APPLICATION_APPROVED, {
+        storeId: store.id,
+        storeName: store.name,
+        message: 'Your seller application has been approved!'
+      });
+
       res.status(200).json({
         success: true,
         message: 'Seller application approved successfully',
@@ -461,6 +469,16 @@ const rejectSellerApplication = async (req, res) => {
         message: 'Store application not found or already processed',
       });
     }
+
+    const deletedStore = result.rows[0];
+
+    // Send notification to the seller
+    notificationService.sendToUser(deletedStore.owner_id, notificationService.NotificationEvents.SELLER_APPLICATION_REJECTED, {
+      storeId: deletedStore.id,
+      storeName: deletedStore.name,
+      reason: reason || 'Application rejected by admin',
+      message: 'Your seller application has been rejected.'
+    });
 
     res.status(200).json({
       success: true,

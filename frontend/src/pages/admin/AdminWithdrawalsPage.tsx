@@ -1,36 +1,92 @@
-import { useState } from 'react'
-import { FiCheckCircle, FiXCircle, FiBriefcase } from 'react-icons/fi'
+import { useState, useEffect, useCallback } from 'react'
+import { FiCheckCircle, FiXCircle, FiBriefcase, FiRefreshCw, FiDownload } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { mockWithdrawals } from '@/data/mockData'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { adminService, type ApiWithdrawal } from '@/services/adminService'
 import { formatPrice, formatDate } from '@/lib/utils'
-import type { WithdrawalRequest } from '@/types'
 
 export function AdminWithdrawalsPage() {
-  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>(mockWithdrawals)
+  const [withdrawals, setWithdrawals] = useState<ApiWithdrawal[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState('all')
-  const [confirmAction, setConfirmAction] = useState<{ id: string; action: 'approved' | 'rejected' } | null>(null)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalWithdrawals, setTotalWithdrawals] = useState(0)
+  const [stats, setStats] = useState({ pending_count: 0, pending_amount: 0, approved_amount: 0 })
+  const [confirmAction, setConfirmAction] = useState<{ id: number; action: 'approved' | 'rejected' } | null>(null)
   const [successOpen, setSuccessOpen] = useState(false)
   const [lastAction, setLastAction] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
+
+  const fetchWithdrawals = useCallback(async (p: number, status: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await adminService.getWithdrawals({
+        page: p,
+        limit: 20,
+        status: status === 'all' ? undefined : status
+      })
+      setWithdrawals(data.withdrawals)
+      setStats(data.stats)
+      setTotalPages(data.pagination.total_pages)
+      setTotalWithdrawals(data.pagination.total_withdrawals)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load withdrawals')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchWithdrawals(1, 'all') }, [fetchWithdrawals])
+
+  function handleFilterChange(status: string) {
+    setFilter(status)
+    setPage(1)
+    fetchWithdrawals(1, status)
+  }
+
+  function changePage(newPage: number) {
+    setPage(newPage)
+    fetchWithdrawals(newPage, filter)
+  }
+
+  async function handleConfirm() {
+    if (!confirmAction) return
+    setActionLoading(true)
+    try {
+      if (confirmAction.action === 'approved') {
+        await adminService.approveWithdrawal(confirmAction.id)
+      } else {
+        await adminService.rejectWithdrawal(confirmAction.id)
+      }
+      setLastAction(confirmAction.action === 'approved' ? 'approved' : 'rejected')
+      setConfirmAction(null)
+      setSuccessOpen(true)
+      // Refresh the list
+      fetchWithdrawals(page, filter)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Action failed')
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   const filtered = filter === 'all' ? withdrawals : withdrawals.filter(w => w.status === filter)
 
-  const pending = withdrawals.filter(w => w.status === 'pending').length
-  const totalPending = withdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + w.amount, 0)
-  const totalApproved = withdrawals.filter(w => w.status === 'approved').reduce((s, w) => s + w.amount, 0)
-
-  function handleConfirm() {
-    if (!confirmAction) return
-    setWithdrawals(prev => prev.map(w =>
-      w.id === confirmAction.id ? { ...w, status: confirmAction.action } : w
-    ))
-    setLastAction(confirmAction.action === 'approved' ? 'approved' : 'rejected')
-    setConfirmAction(null)
-    setSuccessOpen(true)
-  }
+  const pending = stats.pending_count
+  const totalPending = stats.pending_amount
+  const totalApproved = stats.approved_amount
 
   const statusVariant = (s: string): 'warning' | 'success' | 'destructive' => {
     if (s === 'approved') return 'success'
@@ -45,6 +101,15 @@ export function AdminWithdrawalsPage() {
         <p className="text-slate-500 text-sm mt-1">Review and approve seller payout requests</p>
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <Button size="sm" variant="outline" onClick={() => fetchWithdrawals(page, filter)}>
+            <FiRefreshCw className="h-3.5 w-3.5 mr-1" /> Retry
+          </Button>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <Card>
@@ -52,7 +117,11 @@ export function AdminWithdrawalsPage() {
             <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center mb-3">
               <FiBriefcase className="h-5 w-5 text-amber-600" />
             </div>
-            <p className="text-2xl font-bold text-slate-900">{pending}</p>
+            {loading ? (
+              <div className="h-8 bg-slate-200 animate-pulse rounded w-16" />
+            ) : (
+              <p className="text-2xl font-bold text-slate-900">{pending}</p>
+            )}
             <p className="text-xs text-slate-500 mt-1">Pending Requests</p>
           </CardContent>
         </Card>
@@ -61,7 +130,11 @@ export function AdminWithdrawalsPage() {
             <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center mb-3">
               <FiBriefcase className="h-5 w-5 text-amber-600" />
             </div>
-            <p className="text-2xl font-bold text-slate-900">{formatPrice(totalPending)}</p>
+            {loading ? (
+              <div className="h-8 bg-slate-200 animate-pulse rounded w-24" />
+            ) : (
+              <p className="text-2xl font-bold text-slate-900">{formatPrice(totalPending)}</p>
+            )}
             <p className="text-xs text-slate-500 mt-1">Amount Pending</p>
           </CardContent>
         </Card>
@@ -70,7 +143,11 @@ export function AdminWithdrawalsPage() {
             <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mb-3">
               <FiCheckCircle className="h-5 w-5 text-green-600" />
             </div>
-            <p className="text-2xl font-bold text-slate-900">{formatPrice(totalApproved)}</p>
+            {loading ? (
+              <div className="h-8 bg-slate-200 animate-pulse rounded w-24" />
+            ) : (
+              <p className="text-2xl font-bold text-slate-900">{formatPrice(totalApproved)}</p>
+            )}
             <p className="text-xs text-slate-500 mt-1">Total Approved</p>
           </CardContent>
         </Card>
@@ -81,28 +158,51 @@ export function AdminWithdrawalsPage() {
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="text-base">Withdrawal List</CardTitle>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-36">
-                <SelectValue placeholder="Filter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={filter} onValueChange={handleFilterChange}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <FiDownload className="h-4 w-4 mr-1" /> Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => adminService.exportWithdrawalsCSV(filter === 'all' ? undefined : filter)}>
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => adminService.exportWithdrawalsPDF(filter === 'all' ? undefined : filter)}>
+                    Export as PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-12 bg-slate-100 animate-pulse rounded" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <p className="text-slate-400 text-sm py-8 text-center">No withdrawal requests</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200">
-                    <th className="text-left pb-3 text-slate-500 font-medium">Seller / FiGlobe</th>
+                    <th className="text-left pb-3 text-slate-500 font-medium">Seller / Store</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Amount</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Bank / Method</th>
                     <th className="text-left pb-3 text-slate-500 font-medium">Account</th>
@@ -115,13 +215,13 @@ export function AdminWithdrawalsPage() {
                   {filtered.map(w => (
                     <tr key={w.id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="py-3">
-                        <p className="font-medium text-slate-800">{w.storeName}</p>
-                        <p className="text-xs text-slate-500">{w.accountName}</p>
+                        <p className="font-medium text-slate-800">{w.store_name}</p>
+                        <p className="text-xs text-slate-500">{w.account_name}</p>
                       </td>
                       <td className="py-3 font-bold text-slate-900">{formatPrice(w.amount)}</td>
-                      <td className="py-3 text-slate-600">{w.bankName}</td>
-                      <td className="py-3 font-mono text-xs text-slate-500">{w.accountNumber}</td>
-                      <td className="py-3 text-slate-400 text-xs">{formatDate(w.createdAt)}</td>
+                      <td className="py-3 text-slate-600">{w.bank_name}</td>
+                      <td className="py-3 font-mono text-xs text-slate-500">{w.account_number}</td>
+                      <td className="py-3 text-slate-400 text-xs">{formatDate(w.created_at)}</td>
                       <td className="py-3">
                         <Badge variant={statusVariant(w.status)} className="capitalize">{w.status}</Badge>
                       </td>
@@ -132,7 +232,7 @@ export function AdminWithdrawalsPage() {
                               size="sm"
                               variant="outline"
                               className="text-green-600 border-green-300 hover:bg-green-50"
-                              onClick={() => setConfirmAction({ id: w.id, action: 'approved' })}
+                              onClick={() => setConfirmAction({ id: parseInt(w.id), action: 'approved' })}
                             >
                               <FiCheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
                             </Button>
@@ -140,7 +240,7 @@ export function AdminWithdrawalsPage() {
                               size="sm"
                               variant="outline"
                               className="text-red-500 border-red-200 hover:bg-red-50"
-                              onClick={() => setConfirmAction({ id: w.id, action: 'rejected' })}
+                              onClick={() => setConfirmAction({ id: parseInt(w.id), action: 'rejected' })}
                             >
                               <FiXCircle className="h-3.5 w-3.5 mr-1" /> Reject
                             </Button>
@@ -153,6 +253,20 @@ export function AdminWithdrawalsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+              <p className="text-xs text-slate-500">Page {page} of {totalPages}</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => changePage(page - 1)}>
+                  Previous
+                </Button>
+                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => changePage(page + 1)}>
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -181,8 +295,9 @@ export function AdminWithdrawalsPage() {
             <Button
               className={confirmAction?.action === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
               onClick={handleConfirm}
+              disabled={actionLoading}
             >
-              Confirm
+              {actionLoading ? 'Processing...' : 'Confirm'}
             </Button>
           </DialogFooter>
         </DialogContent>

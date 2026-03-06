@@ -1,10 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FiRefreshCw, FiFlag, FiEdit2 } from 'react-icons/fi'
+import { FiRefreshCw, FiFlag, FiEdit2, FiDownload } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { adminService, type ApiReport } from '@/services/adminService'
 import { formatDate } from '@/lib/utils'
 
@@ -116,6 +122,21 @@ export function AdminReportsPage() {
               <SelectItem value="dismissed">Dismissed</SelectItem>
             </SelectContent>
           </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <FiDownload className="h-4 w-4 mr-1" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => adminService.exportReportsCSV(statusFilter === 'all' ? undefined : statusFilter)}>
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => adminService.exportReportsPDF(statusFilter === 'all' ? undefined : statusFilter)}>
+                Export as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" size="sm" onClick={fetchReports}>
             <FiRefreshCw className="h-4 w-4" />
           </Button>

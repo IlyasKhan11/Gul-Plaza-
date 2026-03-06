@@ -23,6 +23,8 @@ const {
   getReportStatistics,
   getProductReports,
   updateReportStatus,
+  exportReportsCSV,
+  exportReportsPDF,
 } = require('../controllers/reportController');
 const {
   getAllOrders,
@@ -35,8 +37,22 @@ const {
   validateOrderId,
   validateUpdateOrderStatus,
 } = require('../validations/orderValidation');
+const {
+  getPlatformSettings,
+  updateCommissionRate,
+  getTransactions,
+  getCommissionsBySeller,
+  getWithdrawalRequests,
+  createWithdrawalRequest,
+  approveWithdrawal,
+  rejectWithdrawal,
+  exportTransactionsCSV,
+  exportTransactionsPDF,
+  exportWithdrawalsCSV,
+  exportWithdrawalsPDF
+} = require('../controllers/adminFinancialController');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { requireAdmin } = require('../middleware/roleMiddleware');
+const { requireAdmin, requireSeller } = require('../middleware/roleMiddleware');
 
 const router = express.Router();
 
@@ -218,6 +234,20 @@ router.get('/reports/product/:productId', authenticateToken, requireAdmin, admin
 router.put('/reports/:id/status', authenticateToken, requireAdmin, adminLimiter, updateReportStatus);
 
 /**
+ * @route   GET /api/admin/reports/export/csv
+ * @desc    Export reports as CSV
+ * @access  Private (Admin only)
+ */
+router.get('/reports/export/csv', authenticateToken, requireAdmin, exportReportsCSV);
+
+/**
+ * @route   GET /api/admin/reports/export/pdf
+ * @desc    Export reports as PDF
+ * @access  Private (Admin only)
+ */
+router.get('/reports/export/pdf', authenticateToken, requireAdmin, exportReportsPDF);
+
+/**
  * @route   GET /api/admin/seller-applications
  * @desc    Get pending seller applications
  * @access  Private (Admin only)
@@ -237,5 +267,93 @@ router.post('/seller-applications/:storeId/approve', authenticateToken, requireA
  * @access  Private (Admin only)
  */
 router.post('/seller-applications/:storeId/reject', authenticateToken, requireAdmin, adminLimiter, rejectSellerApplication);
+
+// Financial Management Routes
+
+/**
+ * @route   GET /api/admin/commissions/rate
+ * @desc    Get platform commission rate
+ * @access  Private (Admin only)
+ */
+router.get('/commissions/rate', authenticateToken, requireAdmin, adminLimiter, getPlatformSettings);
+
+/**
+ * @route   PUT /api/admin/commissions/rate
+ * @desc    Update platform commission rate
+ * @access  Private (Admin only)
+ */
+router.put('/commissions/rate', authenticateToken, requireAdmin, adminLimiter, updateCommissionRate);
+
+/**
+ * @route   GET /api/admin/transactions
+ * @desc    Get all transactions with commission data
+ * @access  Private (Admin only)
+ */
+router.get('/transactions', authenticateToken, requireAdmin, adminLimiter, getTransactions);
+
+/**
+ * @route   GET /api/admin/commissions/sellers
+ * @desc    Get commission breakdown by seller
+ * @access  Private (Admin only)
+ */
+router.get('/commissions/sellers', authenticateToken, requireAdmin, adminLimiter, getCommissionsBySeller);
+
+/**
+ * @route   GET /api/admin/withdrawals
+ * @desc    Get all withdrawal requests
+ * @access  Private (Admin only)
+ */
+router.get('/withdrawals', authenticateToken, requireAdmin, adminLimiter, getWithdrawalRequests);
+
+/**
+ * @route   POST /api/admin/withdrawals
+ * @desc    Create withdrawal request (seller only)
+ * @access  Private (Seller)
+ */
+router.post('/withdrawals', authenticateToken, requireSeller, createWithdrawalRequest);
+
+/**
+ * @route   POST /api/admin/withdrawals/:id/approve
+ * @desc    Approve withdrawal request
+ * @access  Private (Admin only)
+ */
+router.post('/withdrawals/:id/approve', authenticateToken, requireAdmin, adminLimiter, approveWithdrawal);
+
+/**
+ * @route   POST /api/admin/withdrawals/:id/reject
+ * @desc    Reject withdrawal request
+ * @access  Private (Admin only)
+ */
+router.post('/withdrawals/:id/reject', authenticateToken, requireAdmin, adminLimiter, rejectWithdrawal);
+
+// Export Routes
+
+/**
+ * @route   GET /api/admin/transactions/export/csv
+ * @desc    Export transactions as CSV
+ * @access  Private (Admin only)
+ */
+router.get('/transactions/export/csv', authenticateToken, requireAdmin, exportTransactionsCSV);
+
+/**
+ * @route   GET /api/admin/transactions/export/pdf
+ * @desc    Export transactions as PDF
+ * @access  Private (Admin only)
+ */
+router.get('/transactions/export/pdf', authenticateToken, requireAdmin, exportTransactionsPDF);
+
+/**
+ * @route   GET /api/admin/withdrawals/export/csv
+ * @desc    Export withdrawals as CSV
+ * @access  Private (Admin only)
+ */
+router.get('/withdrawals/export/csv', authenticateToken, requireAdmin, exportWithdrawalsCSV);
+
+/**
+ * @route   GET /api/admin/withdrawals/export/pdf
+ * @desc    Export withdrawals as PDF
+ * @access  Private (Admin only)
+ */
+router.get('/withdrawals/export/pdf', authenticateToken, requireAdmin, exportWithdrawalsPDF);
 
 module.exports = router;

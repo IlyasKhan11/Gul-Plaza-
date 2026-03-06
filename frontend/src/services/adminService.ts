@@ -106,6 +106,58 @@ export interface DashboardStats {
   low_stock_products_count: number
 }
 
+// Commission types
+export interface ApiCommissionRate {
+  commission_rate: number
+}
+
+export interface ApiTransaction {
+  id: string
+  order_id: number
+  amount: number
+  commission: number
+  seller_share: number
+  status: 'pending' | 'released' | 'withdrawn'
+  created_at: string
+  store_name: string | null
+  seller_id: number
+}
+
+export interface ApiTransactionTotals {
+  total_commission: number
+  released_commission: number
+  pending_commission: number
+  seller_payouts: number
+}
+
+export interface ApiSellerCommission {
+  store_id: number
+  store_name: string
+  seller_name: string | null
+  order_count: number
+  total_gmv: number
+  total_commission: number
+  commission_rate: number
+}
+
+export interface ApiWithdrawal {
+  id: string
+  seller_id: string
+  store_name: string | null
+  amount: number
+  bank_name: string
+  account_number: string
+  account_name: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+}
+
+export interface ApiWithdrawalStats {
+  pending_count: number
+  pending_amount: number
+  approved_amount: number
+}
+
 interface Pagination {
   current_page: number
   total_pages: number
@@ -266,5 +318,118 @@ export const adminService = {
       `/api/products?${qs.toString()}`
     )
     return res.data
+  },
+
+  // Commissions
+  async getCommissionRate(): Promise<ApiCommissionRate> {
+    const res = await api.get<ApiResp<ApiCommissionRate>>('/api/admin/commissions/rate')
+    return res.data
+  },
+
+  async updateCommissionRate(rate: number): Promise<ApiCommissionRate> {
+    const res = await api.put<ApiResp<ApiCommissionRate>>('/api/admin/commissions/rate', { rate })
+    return res.data
+  },
+
+  // Transactions
+  async getTransactions(params?: {
+    page?: number
+    limit?: number
+    status?: string
+  }): Promise<{
+    transactions: ApiTransaction[]
+    totals: ApiTransactionTotals
+    pagination: Pagination & { total_transactions: number }
+  }> {
+    const qs = new URLSearchParams()
+    if (params?.page) qs.set('page', String(params.page))
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.status) qs.set('status', params.status)
+    const res = await api.get<ApiResp<{
+      transactions: ApiTransaction[]
+      totals: ApiTransactionTotals
+      pagination: Pagination & { total_transactions: number }
+    }>>(`/api/admin/transactions?${qs.toString()}`)
+    return res.data
+  },
+
+  // Commissions by Seller
+  async getSellerCommissions(params?: {
+    page?: number
+    limit?: number
+  }): Promise<{
+    sellers: ApiSellerCommission[]
+    pagination: Pagination & { total_sellers: number }
+  }> {
+    const qs = new URLSearchParams()
+    if (params?.page) qs.set('page', String(params.page))
+    if (params?.limit) qs.set('limit', String(params.limit))
+    const res = await api.get<ApiResp<{
+      sellers: ApiSellerCommission[]
+      pagination: Pagination & { total_sellers: number }
+    }>>(`/api/admin/commissions/sellers?${qs.toString()}`)
+    return res.data
+  },
+
+  // Withdrawals
+  async getWithdrawals(params?: {
+    page?: number
+    limit?: number
+    status?: string
+  }): Promise<{
+    withdrawals: ApiWithdrawal[]
+    stats: ApiWithdrawalStats
+    pagination: Pagination & { total_withdrawals: number }
+  }> {
+    const qs = new URLSearchParams()
+    if (params?.page) qs.set('page', String(params.page))
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.status) qs.set('status', params.status)
+    const res = await api.get<ApiResp<{
+      withdrawals: ApiWithdrawal[]
+      stats: ApiWithdrawalStats
+      pagination: Pagination & { total_withdrawals: number }
+    }>>(`/api/admin/withdrawals?${qs.toString()}`)
+    return res.data
+  },
+
+  async approveWithdrawal(id: number): Promise<void> {
+    await api.post(`/api/admin/withdrawals/${id}/approve`)
+  },
+
+  async rejectWithdrawal(id: number, reason?: string): Promise<void> {
+    await api.post(`/api/admin/withdrawals/${id}/reject`, { reason })
+  },
+
+  // Export functions
+  exportTransactionsCSV(status?: string): void {
+    const url = status ? `/api/admin/transactions/export/csv?status=${status}` : '/api/admin/transactions/export/csv'
+    window.open(url, '_blank')
+  },
+
+  exportTransactionsPDF(status?: string): void {
+    const url = status ? `/api/admin/transactions/export/pdf?status=${status}` : '/api/admin/transactions/export/pdf'
+    window.open(url, '_blank')
+  },
+
+  exportWithdrawalsCSV(status?: string): void {
+    const url = status ? `/api/admin/withdrawals/export/csv?status=${status}` : '/api/admin/withdrawals/export/csv'
+    window.open(url, '_blank')
+  },
+
+  exportWithdrawalsPDF(status?: string): void {
+    const url = status ? `/api/admin/withdrawals/export/pdf?status=${status}` : '/api/admin/withdrawals/export/pdf'
+    window.open(url, '_blank')
+  },
+
+  // Reports Export
+  exportReportsCSV(status?: string): void {
+    const url = status ? `/api/admin/reports/export/csv?status=${status}` : '/api/admin/reports/export/csv'
+    window.open(url, '_blank')
+  },
+
+  exportReportsPDF(status?: string): void {
+    const url = status ? `/api/admin/reports/export/pdf?status=${status}` : '/api/admin/reports/export/pdf'
+    window.open(url, '_blank')
   },
 }
