@@ -1,9 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FiPackage, FiRefreshCw, FiStar } from 'react-icons/fi'
+import { FiPackage, FiRefreshCw, FiStar, FiSearch, FiX } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { sellerService, type BuyerOrder } from '@/services/sellerService'
 import { ratingService } from '@/services/ratingService'
 import { formatPrice, formatDate } from '@/lib/utils'
@@ -28,6 +36,15 @@ export function BuyerOrdersPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [filteredOrders, setFilteredOrders] = useState<BuyerOrder[]>([])
+  
+  // Order detail dialog state
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<BuyerOrder | null>(null)
   
   // Rating state
   const [ratableProducts, setRatableProducts] = useState<{[key: string]: boolean}>({})
@@ -58,6 +75,35 @@ export function BuyerOrdersPage() {
   useEffect(() => {
     fetchOrders(1)
   }, [fetchOrders])
+
+  // Filter orders based on search and status
+  useEffect(() => {
+    let filtered = [...orders]
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(order => {
+        const orderId = String(order.id).toLowerCase()
+        const storeName = (order.store_name || '').toLowerCase()
+        const productNames = order.items?.map((item: any) => (item.title || '').toLowerCase()).join(' ') || ''
+        return orderId.includes(query) || storeName.includes(query) || productNames.includes(query)
+      })
+    }
+    
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(order => order.status === statusFilter)
+    }
+    
+    setFilteredOrders(filtered)
+  }, [orders, searchQuery, statusFilter])
+
+  // Handle view order details
+  const handleViewOrder = (order: BuyerOrder) => {
+    setSelectedOrder(order)
+    setDetailDialogOpen(true)
+  }
 
   // Fetch ratable products when orders are loaded
   useEffect(() => {
@@ -160,118 +206,133 @@ export function BuyerOrdersPage() {
         </Card>
       ) : (
         <>
-          <div className="space-y-4">
-            {orders.map(order => (
-              <Card key={order.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-mono text-slate-400">#{order.id}</span>
-                        <Badge variant={statusVariant(order.status)} className="capitalize">
-                          {order.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-slate-500 mt-1">{formatDate(order.created_at)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-slate-900 text-lg">Total: {formatPrice(parseFloat(order.total_amount))}</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {order.buyer_name && (
-                    <p className="text-sm text-slate-600 mb-1">
-                      <span className="font-medium">Buyer:</span> {order.buyer_name} {order.buyer_phone && `(${order.buyer_phone})`}
-                    </p>
-                  )}
-                  {order.store_name && (
-                    <p className="text-sm text-slate-600 mb-1">
-                      <span className="font-medium">Store:</span> {order.store_name}
-                    </p>
-                  )}
-                  {order.items && order.items.length > 0 && (
-                    <div className="mb-2">
-                      <p className="text-sm text-slate-600 mb-2">
-                        <span className="font-medium">Products:</span>{' '}
-                      </p>
-                      <div className="space-y-2">
-                        {order.items.map((item: any, idx: number) => (
-                          <div key={idx} className="flex items-start justify-between bg-slate-50 rounded-lg p-2">
-                            <div className="flex items-start gap-3 flex-1">
+          {/* Search and Filter Bar */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="relative flex-1">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search orders by ID, store, or product..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <FiX className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="shipped">Shipped</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Results count */}
+          {(searchQuery || statusFilter !== 'all') && (
+            <p className="text-sm text-slate-500 mb-3">
+              Showing {filteredOrders.length} of {orders.length} orders
+            </p>
+          )}
+
+          {/* Table Layout */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-700/50">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order ID</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Store</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Products</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {filteredOrders.map(order => (
+                    <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-mono text-slate-600 dark:text-slate-300">#{order.id}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">{formatDate(order.created_at)}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm text-slate-600 dark:text-slate-300">{order.store_name || '-'}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1">
+                          {order.items && order.items.slice(0, 2).map((item: any, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2">
                               {item.product_image ? (
-                                <img src={item.product_image} alt="" className="w-12 h-12 rounded-lg object-cover bg-white shrink-0" />
+                                <img src={item.product_image} alt="" className="w-8 h-8 rounded object-cover bg-slate-100" />
                               ) : (
-                                <div className="w-12 h-12 rounded-lg bg-slate-200 shrink-0 flex items-center justify-center">
-                                  <FiPackage className="h-5 w-5 text-slate-400" />
+                                <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center">
+                                  <FiPackage className="h-4 w-4 text-slate-400" />
                                 </div>
                               )}
-                              <div>
-                                <p className="text-sm font-medium text-slate-800">{item.title}</p>
-                                {item.store_name && (
-                                  <p className="text-xs text-slate-500 mt-0.5">
-                                    <span className="font-medium">Store:</span> {item.store_name}
-                                  </p>
-                                )}
-                                <p className="text-xs text-slate-500 mt-0.5">
-                                  Qty: {item.quantity} × {formatPrice(item.price_at_purchase || item.price || 0)}
-                                </p>
-                              </div>
+                              <span className="text-xs text-slate-600 dark:text-slate-300 truncate max-w-[150px]">{item.title}</span>
+                              <span className="text-xs text-slate-400">x{item.quantity}</span>
                             </div>
-                            {/* Rate Product button for delivered orders */}
-                            {order.status === 'delivered' && (
-                              <div className="ml-2">
-                                {(() => {
-                                  const key = `${order.id}-${item.product_id}`
-                                  const canRate = ratableProducts[key]
-                                  
-                                  return canRate !== undefined ? (
-                                    <Button
-                                      size="sm"
-                                      variant={canRate ? "default" : "outline"}
-                                      className="h-7 text-xs"
-                                      onClick={() => handleOpenRating(
-                                        item.product_id,
-                                        item.title,
-                                        item.store_name || 'Unknown Store',
-                                        Number(order.id)
-                                      )}
-                                    >
-                                      <FiStar className="h-3 w-3 mr-1" />
-                                      {canRate ? 'Rate' : 'Rated'}
-                                    </Button>
-                                  ) : null
-                                })()}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {order.shipping_address && order.shipping_city && (
-                    <p className="text-sm text-slate-500 mt-2">
-                      <span className="font-medium">Shipping:</span> {order.shipping_address}, {order.shipping_city}
-                    </p>
-                  )}
-                  {order.courier_name && order.tracking_number && (
-                    <p className="text-sm text-slate-500 mt-2">
-                      <span className="font-medium">Tracking:</span> {order.courier_name} - {order.tracking_number}
-                    </p>
-                  )}
-                  {order.transaction_id && (
-                    <p className="text-sm text-slate-500 mt-2">
-                      <span className="font-medium">Transaction ID:</span> {order.transaction_id}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                          ))}
+                          {order.items && order.items.length > 2 && (
+                            <span className="text-xs text-slate-400">+{order.items.length - 2} more items</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{formatPrice(parseFloat(order.total_amount))}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge variant={statusVariant(order.status)} className="capitalize text-xs">
+                          {order.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleViewOrder(order)}>
+                            View
+                          </Button>
+                          {order.status === 'delivered' && order.items && order.items.length > 0 && order.items.some((item: any) => {
+                            const key = `${order.id}-${item.product_id}`
+                            return ratableProducts[key]
+                          }) && (
+                            <Button size="sm" variant="default" className="bg-yellow-500 hover:bg-yellow-600" onClick={() => {
+                              const item = order.items![0]
+                              if (item && item.product_id) {
+                                handleOpenRating(item.product_id, item.title || 'Product', item.store_name || 'Unknown Store', Number(order.id))
+                              }
+                            }}>
+                              <FiStar className="h-3 w-3 mr-1" /> Rate
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-slate-500">Page {page} of {totalPages}</p>
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-slate-500">Showing {orders.length} of {totalOrders} orders</p>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => changePage(page - 1)}>Previous</Button>
                 <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => changePage(page + 1)}>Next</Button>
@@ -291,6 +352,90 @@ export function BuyerOrdersPage() {
           onSuccess={handleRatingSuccess}
         />
       )}
+
+      {/* Order Detail Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Order Details
+              <Badge variant={selectedOrder ? statusVariant(selectedOrder.status) : 'outline'} className="capitalize">
+                {selectedOrder?.status}
+              </Badge>
+            </DialogTitle>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-4">
+              {/* Order Info */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div>
+                  <p className="text-xs text-slate-500">Order ID</p>
+                  <p className="text-sm font-mono font-medium">#{selectedOrder.id}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Date</p>
+                  <p className="text-sm font-medium">{formatDate(selectedOrder.created_at)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Store</p>
+                  <p className="text-sm font-medium">{selectedOrder.store_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Total</p>
+                  <p className="text-sm font-bold">{formatPrice(parseFloat(selectedOrder.total_amount))}</p>
+                </div>
+              </div>
+
+              {/* Shipping Info */}
+              {selectedOrder.shipping_address && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Shipping Address</p>
+                  <p className="text-sm">{selectedOrder.shipping_address}, {selectedOrder.shipping_city}</p>
+                </div>
+              )}
+
+              {/* Tracking Info */}
+              {selectedOrder.courier_name && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Tracking</p>
+                  <p className="text-sm">{selectedOrder.courier_name} - {selectedOrder.tracking_number}</p>
+                </div>
+              )}
+
+              {/* Transaction ID */}
+              {selectedOrder.transaction_id && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Transaction ID</p>
+                  <p className="text-sm font-mono">{selectedOrder.transaction_id}</p>
+                </div>
+              )}
+
+              {/* Products */}
+              <div>
+                <p className="text-xs text-slate-500 mb-2">Products</p>
+                <div className="space-y-2">
+                  {selectedOrder.items?.map((item: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      {item.product_image ? (
+                        <img src={item.product_image} alt="" className="w-14 h-14 rounded-lg object-cover bg-white" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-lg bg-slate-200 flex items-center justify-center">
+                          <FiPackage className="h-6 w-6 text-slate-400" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{item.title}</p>
+                        <p className="text-xs text-slate-500">Qty: {item.quantity} × {formatPrice(item.price_at_purchase || item.price || 0)}</p>
+                      </div>
+                      <p className="text-sm font-bold">{formatPrice((item.price_at_purchase || item.price || 0) * item.quantity)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
