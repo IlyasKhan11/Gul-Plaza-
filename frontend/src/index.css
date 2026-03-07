@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   --color-primary: #1e293b;
   --color-primary-foreground: #ffffff;
@@ -48,6 +50,16 @@ body {
   color: #0f172a;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dark body {
+  background-color: #020617;
+  color: #f1f5f9;
+}
+
+.dark {
+  color-scheme: dark;
 }
 
 #root {

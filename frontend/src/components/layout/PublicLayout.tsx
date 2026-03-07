@@ -19,7 +19,7 @@ export function PublicLayout() {
   }, [location.pathname])
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-slate-950">
       <Navbar />
       <main className="flex-1">
         <Outlet />

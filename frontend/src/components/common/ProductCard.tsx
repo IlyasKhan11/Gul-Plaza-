@@ -22,15 +22,25 @@ export function ProductCard({ product }: ProductCardProps) {
   const [saved, setSaved] = useState(false)
   const [savingWishlist, setSavingWishlist] = useState(false)
 
+  // Defensive: Ensure all values are properly typed
+  const safePrice = typeof product.price === 'number' && product.price > 0 ? product.price : 0
+  const safeOriginalPrice = typeof product.originalPrice === 'number' && product.originalPrice > 0 ? product.originalPrice : 0
+  const safeStock = typeof product.stock === 'number' && product.stock >= 0 ? product.stock : 0
+  const safeName = typeof product.name === 'string' ? product.name : ''
+  const safeStoreName = typeof product.storeName === 'string' ? product.storeName : ''
+  const safeImages = Array.isArray(product.images) && product.images.length > 0 ? product.images : []
+  // Convert product.id to number for wishlist service
+  const safeId = typeof product.id === 'string' ? parseInt(product.id, 10) : (typeof product.id === 'number' ? product.id : 0)
+
   // Defensive: Only calculate discount if originalPrice is a valid number > 0
-  const discount = (typeof product.originalPrice === 'number' && product.originalPrice > 0)
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const discount = (safeOriginalPrice > 0)
+    ? Math.round(((safeOriginalPrice - safePrice) / safeOriginalPrice) * 100)
     : 0
 
   useEffect(() => {
     if (!isBuyer || !user) return
-    wishlistService.check(product.id).then(setSaved).catch(() => {})
-  }, [product.id, isBuyer, user])
+    wishlistService.check(safeId).then(setSaved).catch(() => {})
+  }, [safeId, isBuyer, user])
 
   async function toggleWishlist(e: React.MouseEvent) {
     e.preventDefault()
@@ -38,10 +48,10 @@ export function ProductCard({ product }: ProductCardProps) {
     setSavingWishlist(true)
     try {
       if (saved) {
-        await wishlistService.remove(product.id)
+        await wishlistService.remove(safeId)
         setSaved(false)
       } else {
-        await wishlistService.add(product.id)
+        await wishlistService.add(safeId)
         setSaved(true)
       }
     } catch {}
@@ -53,8 +63,8 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="relative overflow-hidden bg-slate-50 aspect-square">
         <Link to={`/products/${product.id}`}>
           <img
-            src={product.images[0]}
-            alt={typeof product.name === 'string' ? product.name : ''}
+            src={safeImages[0] || ''}
+            alt={safeName}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </Link>
@@ -75,18 +85,18 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
       <CardContent className="p-4">
         <Link to={`/stores/${product.storeId}`} className="text-xs text-blue-600 hover:underline font-medium">
-          {typeof product.storeName === 'string' ? product.storeName : ''}
+          {safeStoreName}
         </Link>
         <Link to={`/products/${product.id}`}>
           <h3 className="mt-1 text-sm font-medium text-slate-800 line-clamp-2 hover:text-blue-600 transition-colors leading-snug">
-            {typeof product.name === 'string' ? product.name : ''}
+            {safeName}
           </h3>
         </Link>
-        <StarRating rating={product.rating} reviewCount={product.reviewCount} className="mt-2" />
+        <StarRating rating={product.rating || 0} reviewCount={product.reviewCount || 0} className="mt-2" />
         <div className="mt-2 flex items-center gap-2">
-          <span className="text-base font-bold text-slate-900">{formatPrice(product.price)}</span>
-          {product.originalPrice && (
-            <span className="text-sm text-slate-400 line-through">{formatPrice(product.originalPrice)}</span>
+          <span className="text-base font-bold text-slate-900">{formatPrice(safePrice)}</span>
+          {safeOriginalPrice > 0 && (
+            <span className="text-sm text-slate-400 line-through">{formatPrice(safeOriginalPrice)}</span>
           )}
         </div>
         {isBuyer ? (
@@ -94,10 +104,10 @@ export function ProductCard({ product }: ProductCardProps) {
             size="sm"
             className="mt-3 w-full"
             onClick={() => addItem(product, 1)}
-            disabled={product.stock === 0}
+            disabled={safeStock === 0}
           >
             <FiShoppingCart className="h-4 w-4" />
-            {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+            {safeStock === 0 ? 'Out of Stock' : 'Add to Cart'}
           </Button>
         ) : (
           <p className="mt-3 text-xs text-center text-slate-400">Only buyers can add to cart</p>

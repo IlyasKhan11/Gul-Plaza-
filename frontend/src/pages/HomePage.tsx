@@ -164,7 +164,7 @@ export function HomePage() {
       </section>
 
       {/* Trust Badges */}
-      <section className="bg-white border-b border-slate-100">
+      <section className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <div className="grid grid-cols-3 gap-4">
             {[
@@ -173,12 +173,12 @@ export function HomePage() {
               { icon: FiHeadphones, title: '24/7 Support', desc: 'Always here to help' },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                  <Icon className="h-5 w-5 text-blue-600" />
+                <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+                  <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="hidden sm:block">
-                  <p className="font-semibold text-sm text-slate-900">{title}</p>
-                  <p className="text-xs text-slate-500">{desc}</p>
+                  <p className="font-semibold text-sm text-slate-900 dark:text-slate-100">{title}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{desc}</p>
                 </div>
               </div>
             ))}
@@ -187,10 +187,10 @@ export function HomePage() {
       </section>
 
       {/* Categories */}
-      <section className="py-12 bg-slate-50">
+      <section className="py-12 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-slate-900">Shop by Category</h2>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Shop by Category</h2>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/products" className="text-blue-600">View All <FiArrowRight className="h-4 w-4 ml-1" /></Link>
             </Button>
@@ -200,7 +200,7 @@ export function HomePage() {
               <Link
                 key={cat.id}
                 to={`/products?category=${cat.slug}`}
-                className="flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
+                className="flex flex-col items-center gap-2 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all group"
               >
                 {cat.sample_image ? (
                   <img
@@ -212,7 +212,7 @@ export function HomePage() {
                 ) : (
                   <span className="text-3xl">{getCategoryIcon(cat.name, cat.slug)}</span>
                 )}
-                <span className="text-xs font-medium text-slate-700 text-center group-hover:text-blue-600">{cat.name}</span>
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300 text-center group-hover:text-blue-600 dark:group-hover:text-blue-400">{cat.name}</span>
               </Link>
             ))}
           </div>
@@ -220,12 +220,12 @@ export function HomePage() {
       </section>
 
       {/* Featured Products */}
-      <section className="py-12 bg-white">
+      <section className="py-12 bg-white dark:bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Featured Products</h2>
-              <p className="text-slate-500 text-sm mt-1">Hand-picked products just for you</p>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Featured Products</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Hand-picked products just for you</p>
             </div>
             <Button variant="outline" size="sm" asChild>
               <Link to="/products">See All <FiArrowRight className="h-4 w-4 ml-1" /></Link>
@@ -254,7 +254,7 @@ export function HomePage() {
 
       {/* Promo Banner - Only show for non-seller users */}
       {(!user || user.role === 'buyer') && (
-        <section className="py-8 bg-gradient-to-r from-orange-50 to-amber-50">
+        <section className="py-8 bg-gradient-to-r from-orange-50 to-amber-50 dark:bg-none dark:bg-slate-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="bg-gradient-to-r from-orange-400 to-amber-500 rounded-2xl p-8 md:p-12 text-white text-center">
               <h2 className="text-3xl font-bold mb-2">Become a Seller Today</h2>
@@ -269,12 +269,12 @@ export function HomePage() {
 
       {/* Trending Stores */}
       {stores.length > 0 && (
-        <section className="py-12 bg-slate-50">
+        <section className="py-12 bg-slate-50 dark:bg-slate-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Trending Stores</h2>
-                <p className="text-slate-500 text-sm mt-1">Top-rated sellers with amazing products</p>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Trending Stores</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Top-rated sellers with amazing products</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -305,10 +305,10 @@ export function HomePage() {
       )}
 
       {/* All Products */}
-      {(loading || moreProducts.length > 0) && <section className="py-12 bg-white">
+      {(loading || moreProducts.length > 0) && <section className="py-12 bg-white dark:bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-slate-900">More Products</h2>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">More Products</h2>
             <Button variant="outline" size="sm" asChild>
               <Link to="/products">View All</Link>
             </Button>

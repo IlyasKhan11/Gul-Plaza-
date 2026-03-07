@@ -61,21 +61,27 @@ export function CartPage() {
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Cart Items */}
         <div className="lg:col-span-3 space-y-3">
-          {items.map(({ product, quantity }) => (
+          {items.map(({ product, quantity }) => {
+            // Defensive checks
+            const safePrice = typeof product.price === 'number' ? product.price : 0
+            const safeStock = typeof product.stock === 'number' ? product.stock : 0
+            const safeImages = Array.isArray(product.images) && product.images.length > 0 ? product.images : []
+            
+            return (
             <div key={product.id} className="bg-white rounded-xl border border-slate-200 p-4 flex gap-4 shadow-sm hover:shadow-md transition-shadow">
               <Link to={`/products/${product.id}`} className="shrink-0">
                 <img
-                  src={product.images[0]}
-                  alt={product.name}
+                  src={safeImages[0] || ''}
+                  alt={product.name || ''}
                   className="w-20 h-20 rounded-xl object-cover bg-slate-100 border border-slate-100"
                 />
               </Link>
               <div className="flex-1 min-w-0">
                 <Link to={`/products/${product.id}`}>
-                  <h3 className="font-semibold text-slate-800 text-sm hover:text-blue-600 transition-colors line-clamp-2 leading-snug">{product.name}</h3>
+                  <h3 className="font-semibold text-slate-800 text-sm hover:text-blue-600 transition-colors line-clamp-2 leading-snug">{product.name || ''}</h3>
                 </Link>
-                <p className="text-xs text-blue-600 font-medium mt-1">{product.storeName}</p>
-                <p className="text-xs text-slate-400 mt-0.5">Unit price: {formatPrice(product.price)}</p>
+                <p className="text-xs text-blue-600 font-medium mt-1">{product.storeName || ''}</p>
+                <p className="text-xs text-slate-400 mt-0.5">Unit price: {formatPrice(safePrice)}</p>
 
                 <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
                   {/* Quantity control */}
@@ -89,7 +95,7 @@ export function CartPage() {
                     <span className="w-9 text-center text-sm font-bold text-slate-900">{quantity}</span>
                     <button
                       onClick={() => updateQuantity(product.id, quantity + 1)}
-                      disabled={quantity >= product.stock}
+                      disabled={quantity >= safeStock}
                       className="w-8 h-8 flex items-center justify-center hover:bg-green-50 hover:text-green-600 text-slate-600 transition-colors disabled:opacity-30"
                     >
                       <FiPlus className="h-3.5 w-3.5" />
@@ -97,7 +103,7 @@ export function CartPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-slate-900 text-base">{formatPrice(product.price * quantity)}</span>
+                    <span className="font-bold text-slate-900 text-base">{formatPrice(safePrice * quantity)}</span>
                     <button
                       onClick={() => removeItem(product.id)}
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
@@ -108,7 +114,8 @@ export function CartPage() {
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
 
           <Link to="/products" className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium py-2 px-1">
             ← Continue Shopping

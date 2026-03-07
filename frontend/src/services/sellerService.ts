@@ -213,8 +213,8 @@ export const sellerService = {
 
   // Send WhatsApp message to buyer
   async sendWhatsAppMessage(orderId: number, message: string): Promise<{ success: boolean; messageId?: string }> {
-    const res = await api.post(`/api/seller/orders/${orderId}/whatsapp`, { message })
-    return res.data
+    const res = await api.post<{ success: boolean; messageId?: string }>(`/api/seller/orders/${orderId}/whatsapp`, { message })
+    return res
   },
 
   // Verify EasyPaisa payment (awaiting_verification → paid)

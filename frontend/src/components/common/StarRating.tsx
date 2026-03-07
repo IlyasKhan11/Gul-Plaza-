@@ -11,7 +11,9 @@ interface StarRatingProps {
 }
 
 export function StarRating({ rating, reviewCount, size = 'sm', className, interactive = false, onChange }: StarRatingProps) {
+  // Defensive: Handle null, undefined, or non-numeric ratings
   const safeRating = typeof rating === 'number' && !isNaN(rating) ? rating : 0
+  const safeReviewCount = typeof reviewCount === 'number' && reviewCount >= 0 ? reviewCount : 0
   const sizeClasses = { sm: 'h-3.5 w-3.5', md: 'h-4 w-4', lg: 'h-5 w-5' }
   const textClasses = { sm: 'text-xs', md: 'text-sm', lg: 'text-base' }
 
@@ -37,8 +39,8 @@ export function StarRating({ rating, reviewCount, size = 'sm', className, intera
         ))}
       </div>
       <span className={cn('font-medium text-slate-700', textClasses[size])}>{safeRating.toFixed(1)}</span>
-      {reviewCount !== undefined && (
-        <span className={cn('text-slate-400', textClasses[size])}>({reviewCount})</span>
+      {safeReviewCount > 0 && (
+        <span className={cn('text-slate-400', textClasses[size])}>({safeReviewCount})</span>
       )}
     </div>
   )

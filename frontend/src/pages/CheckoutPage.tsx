@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   FiCheckCircle, FiShoppingBag,
   FiCreditCard, FiAlertCircle, FiLoader,
-  FiMapPin, FiPhone, FiMessageCircle,
+  FiMapPin, FiPhone, FiMessageCircle, FiShield,
 } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { useCart } from '@/context/CartContext'
 import { orderService, type CheckoutPaymentMethod, type CreatedOrder } from '@/services/orderService'
 import { sellerService } from '@/services/sellerService'
+import { api } from '@/lib/api'
 import { formatPrice, cn } from '@/lib/utils'
 
 type Stage = 'form' | 'success'
@@ -59,7 +60,23 @@ export function CheckoutPage() {
   // Seller contact info fetched from backend
   const [sellerContacts, setSellerContacts] = useState<Record<string, { contact_phone: string | null; contact_email: string | null }>>({})
 
-  const grandTotal = total
+  // Server-verified total — fetched from backend to prevent price manipulation
+  const [serverTotal, setServerTotal] = useState<number | null>(null)
+  const [serverTotalLoading, setServerTotalLoading] = useState(false)
+
+  const grandTotal = serverTotal ?? total
+
+  // Fetch server-computed cart total on mount
+  useEffect(() => {
+    if (items.length === 0) return
+    setServerTotalLoading(true)
+    api.get<{ success: boolean; data: { subtotal: string; total_items: number } }>('/api/cart/summary')
+      .then(res => {
+        if (res.success) setServerTotal(parseFloat(res.data.subtotal))
+      })
+      .catch(() => {})
+      .finally(() => setServerTotalLoading(false))
+  }, [items])
 
   // Get unique sellers from cart items
   const getSellers = () => {
@@ -228,8 +245,8 @@ export function CheckoutPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Checkout</h1>
-        <p className="text-slate-500 mt-1">Select your payment method and place your order</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Checkout</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">Select your payment method and place your order</p>
       </div>
 
       <div className="grid lg:grid-cols-5 gap-6">
@@ -328,7 +345,7 @@ export function CheckoutPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-sm text-slate-600 mb-3">
+              <div className="text-sm text-slate-600 dark:text-slate-400 mb-3">
                 Contact sellers directly on WhatsApp for payment details and order confirmation
               </div>
               {getSellers().map((seller) => {
@@ -338,11 +355,11 @@ export function CheckoutPage() {
                   ? `https://wa.me/${phone.replace(/[^\d]/g, '')}?text=Hi! I placed an order from your store. Please confirm.`
                   : null
                 return (
-                  <div key={seller.id} className="border rounded-lg p-4 bg-slate-50">
+                  <div key={seller.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 bg-slate-50 dark:bg-slate-800">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <h4 className="font-semibold text-slate-900">{seller.name}</h4>
-                        <p className="text-sm text-slate-600">Products: {seller.products.length}</p>
+                        <h4 className="font-semibold text-slate-900 dark:text-slate-100">{seller.name}</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Products: {seller.products.length}</p>
                       </div>
                       {waLink ? (
                         <a
@@ -358,7 +375,7 @@ export function CheckoutPage() {
                         <span className="text-xs text-slate-400">Contact via order confirmation</span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500 space-y-0.5">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 space-y-0.5">
                       {phone ? (
                         <p>📱 {phone}</p>
                       ) : (
@@ -408,17 +425,17 @@ export function CheckoutPage() {
                   className={cn(
                     'w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all',
                     paymentMethod === option.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800'
                   )}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-900">{option.label}</p>
-                    <p className="text-sm text-slate-500 mt-0.5">{option.desc}</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">{option.label}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{option.desc}</p>
                   </div>
                   <div className={cn(
                     'w-4 h-4 rounded-full border-2 shrink-0 mt-1 flex items-center justify-center',
-                    paymentMethod === option.id ? 'border-blue-500 bg-blue-500' : 'border-slate-300'
+                    paymentMethod === option.id ? 'border-blue-500 bg-blue-500' : 'border-slate-300 dark:border-slate-600'
                   )}>
                     {paymentMethod === option.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
@@ -438,7 +455,7 @@ export function CheckoutPage() {
                       <label className="block text-sm font-medium text-slate-700 mb-1">Transaction ID <span className="text-red-500">*</span></label>
                       <input
                         type="text"
-                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-base"
+                        className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={transactionId}
                         onChange={e => setTransactionId(e.target.value)}
                         placeholder="Enter EasyPaisa Transaction ID"
@@ -498,13 +515,25 @@ export function CheckoutPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-slate-600">
                     <span>Subtotal</span>
-                    <span>{formatPrice(total)}</span>
+                    <span>{serverTotalLoading ? '…' : formatPrice(grandTotal)}</span>
                   </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex justify-between items-center">
-                  <span className="font-bold text-slate-900">Total</span>
-                  <span className="text-xl font-bold text-blue-700">{formatPrice(grandTotal)}</span>
+                  <div>
+                    <span className="font-bold text-slate-900">Total</span>
+                    {serverTotal !== null && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <FiShield className="h-3 w-3 text-green-600" />
+                        <span className="text-[10px] text-green-700 font-medium">Server-verified price</span>
+                      </div>
+                    )}
+                  </div>
+                  {serverTotalLoading ? (
+                    <FiLoader className="h-5 w-5 animate-spin text-blue-500" />
+                  ) : (
+                    <span className="text-xl font-bold text-blue-700">{formatPrice(grandTotal)}</span>
+                  )}
                 </div>
 
                 {error && (

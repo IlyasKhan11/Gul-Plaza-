@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiShoppingCart, FiSearch, FiMenu, FiX, FiUser, FiLogOut, FiGrid, FiPackage } from 'react-icons/fi'
+import { FiShoppingCart, FiSearch, FiMenu, FiX, FiUser, FiLogOut, FiGrid, FiPackage, FiSun, FiMoon } from 'react-icons/fi'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
+import { useTheme } from '@/context/ThemeContext'
 import { api } from '@/lib/api'
 
 interface NavCategory {
@@ -22,6 +23,7 @@ interface NavCategory {
 export function Navbar() {
   const { user, logout, isAuthenticated } = useAuth()
   const { itemCount } = useCart()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -49,9 +51,9 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm">
       {/* Top bar */}
-      <div className="bg-blue-600 text-white text-xs py-1 text-center">
+      <div className="bg-blue-600 dark:bg-slate-800 text-white text-xs py-1 text-center">
         Cash on Delivery Available
       </div>
 
@@ -63,7 +65,7 @@ export function Navbar() {
             <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 w-auto rounded-lg object-contain" />
           </Link>
 
-          {/* FiSearch */}
+          {/* Search */}
           <form onSubmit={handleSearch} className="flex-1 flex items-center gap-2 max-w-2xl">
             <div className="relative flex-1">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -79,6 +81,17 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="text-slate-500 dark:text-slate-400"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? <FiSun className="h-4.5 w-4.5" /> : <FiMoon className="h-4.5 w-4.5" />}
+            </Button>
+
             {/* Cart — only visible to buyers and guests */}
             {(!user || user.role === 'buyer') && (
               <Link to="/cart" className="relative">
@@ -106,8 +119,8 @@ export function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
-                    <div className="font-semibold text-slate-900">{user.name}</div>
-                    <div className="text-xs text-slate-500">{user.email}</div>
+                    <div className="font-semibold text-slate-900 dark:text-slate-100">{user.name}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{user.email}</div>
                     <Badge variant="info" className="mt-1 capitalize">{user.role}</Badge>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -122,7 +135,7 @@ export function Navbar() {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { logout(); navigate('/') }} className="text-red-600">
+                  <DropdownMenuItem onClick={async () => { await logout(); navigate('/') }} className="text-red-600">
                     <FiLogOut className="h-4 w-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
@@ -149,14 +162,14 @@ export function Navbar() {
 
       {/* Category nav */}
       {categories.length > 0 && (
-        <div className="bg-blue-600 hidden md:block">
+        <div className="bg-blue-600 dark:bg-slate-800 hidden md:block">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex items-center gap-1 overflow-x-auto">
               {categories.slice(0, 7).map(cat => (
                 <Link
                   key={cat.id}
                   to={`/products?category=${cat.slug}`}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-blue-100 hover:text-white hover:bg-blue-700 rounded transition-colors whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-blue-100 dark:text-slate-300 hover:text-white dark:hover:text-white hover:bg-blue-700 dark:hover:bg-slate-700 rounded transition-colors whitespace-nowrap"
                 >
                   {cat.sample_image && (
                     <img
@@ -176,7 +189,7 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="sm:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-3">
+        <div className="sm:hidden border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-4 space-y-3">
           {!isAuthenticated && (
             <div className="flex gap-2">
               <Button className="flex-1" asChild><Link to="/login">Login</Link></Button>
@@ -190,7 +203,7 @@ export function Navbar() {
                   key={cat.id}
                   to={`/products?category=${cat.slug}`}
                   onClick={() => setMobileOpen(false)}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-blue-50 text-center"
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-center"
                 >
                   {cat.sample_image ? (
                     <img
@@ -200,11 +213,11 @@ export function Navbar() {
                       onError={e => { e.currentTarget.style.display = 'none' }}
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-500 text-lg">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-slate-700 flex items-center justify-center text-blue-500 text-lg">
                       🏷️
                     </div>
                   )}
-                  <span className="text-xs text-slate-600">{cat.name}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400">{cat.name}</span>
                 </Link>
               ))}
             </div>

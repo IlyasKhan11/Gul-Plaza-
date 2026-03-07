@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function ProductCardSkeleton() {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
       {/* Image */}
       <Skeleton className="w-full aspect-square rounded-none" />
       <div className="p-4 space-y-2">

@@ -1,7 +1,9 @@
 import { Badge } from '@/components/ui/badge'
 import type { OrderStatus } from '@/types'
 
-const statusConfig: Record<OrderStatus, { label: string; variant: 'warning' | 'info' | 'default' | 'success' | 'destructive' | 'secondary' | 'outline' }> = {
+type StatusConfig = { label: string; variant: 'warning' | 'info' | 'default' | 'success' | 'destructive' | 'secondary' | 'outline' }
+
+const statusConfig: Record<OrderStatus, StatusConfig> = {
   pending: { label: 'Pending', variant: 'warning' },
   confirmed: { label: 'Confirmed', variant: 'info' },
   processing: { label: 'Processing', variant: 'info' },
@@ -10,8 +12,14 @@ const statusConfig: Record<OrderStatus, { label: string; variant: 'warning' | 'i
   cancelled: { label: 'Cancelled', variant: 'destructive' },
 }
 
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  const fallback = { label: 'Unknown', variant: 'outline' }
-  const { label, variant } = statusConfig[status] || fallback
-  return <Badge variant={variant}>{label}</Badge>
+export function OrderStatusBadge({ status }: { status?: OrderStatus | string | null | undefined }) {
+  // Defensive: Handle null, undefined, or unknown status
+  const fallback: StatusConfig = { label: 'Unknown', variant: 'outline' }
+  
+  let config: StatusConfig = fallback
+  if (status && typeof status === 'string' && status in statusConfig) {
+    config = statusConfig[status as OrderStatus]
+  }
+  
+  return <Badge variant={config.variant}>{config.label}</Badge>
 }

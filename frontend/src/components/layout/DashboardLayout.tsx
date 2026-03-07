@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Component, type ReactNode } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
-import { FiLogOut, FiBell, FiHome, FiShoppingBag, FiBriefcase, FiCheckCircle, FiInfo, FiCheck, FiMenu, FiX } from 'react-icons/fi'
+import { FiLogOut, FiBell, FiHome, FiShoppingBag, FiBriefcase, FiCheckCircle, FiInfo, FiCheck, FiMenu, FiX, FiSun, FiMoon } from 'react-icons/fi'
 import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 import { SellerSidebar } from './SellerSidebar'
 import { AdminSidebar } from './AdminSidebar'
 import { BuyerSidebar } from './BuyerSidebar'
@@ -39,8 +40,8 @@ class PageErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
           <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
             <span className="text-2xl">⚠</span>
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Something went wrong</h2>
-          <p className="text-slate-500 text-sm mb-1 max-w-md">{this.state.error.message}</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Something went wrong</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mb-1 max-w-md">{this.state.error.message}</p>
           <button
             onClick={() => this.setState({ error: null })}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
@@ -63,6 +64,7 @@ const typeIcon = (type: ApiNotification['type']) => {
 
 export function DashboardLayout() {
   const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -118,9 +120,9 @@ export function DashboardLayout() {
   const closeSidebar = () => setSidebarOpen(false)
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
       {/* Top header */}
-      <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-5 sticky top-0 z-40 shadow-sm">
+      <header className="h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 sm:px-5 sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Hamburger — mobile only */}
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(v => !v)}>
@@ -130,7 +132,7 @@ export function DashboardLayout() {
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
             <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-8 w-auto rounded-md object-contain" />
           </Link>
-          <div className="h-5 w-px bg-slate-200 hidden sm:block" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
           <Badge variant={roleColor} className="capitalize text-xs hidden sm:inline-flex">{user?.role} Dashboard</Badge>
         </div>
 
@@ -139,11 +141,22 @@ export function DashboardLayout() {
             <Link to="/"><FiHome className="h-4 w-4" /> Home</Link>
           </Button>
 
+          {/* Theme toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <FiSun className="h-4 w-4" /> : <FiMoon className="h-4 w-4" />}
+          </Button>
+
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
-                <FiBell className="h-4.5 w-4.5 text-slate-500" />
+                <FiBell className="h-4.5 w-4.5 text-slate-500 dark:text-slate-400" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -152,10 +165,10 @@ export function DashboardLayout() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
                 <div className="flex items-center gap-2">
-                  <FiBell className="h-4 w-4 text-slate-600" />
-                  <span className="font-semibold text-slate-900 text-sm">Notifications</span>
+                  <FiBell className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Notifications</span>
                   {unreadCount > 0 && (
                     <span className="bg-red-100 text-red-600 text-xs font-bold px-1.5 py-0.5 rounded-full">{unreadCount}</span>
                   )}
@@ -166,28 +179,28 @@ export function DashboardLayout() {
                   </button>
                 )}
               </div>
-              <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-50">
+              <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-50 dark:divide-slate-700">
                 {notifications.length === 0 ? (
                   <div className="py-10 text-center text-slate-400 text-sm">
-                    <FiBell className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                    <FiBell className="h-8 w-8 mx-auto mb-2 text-slate-200 dark:text-slate-600" />
                     No notifications
                   </div>
                 ) : (
                   notifications.map(n => (
                     <button
                       key={n.id}
-                      className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex gap-3 items-start ${!n.is_read ? 'bg-blue-50/60' : ''}`}
+                      className={`w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors flex gap-3 items-start ${!n.is_read ? 'bg-blue-50/60 dark:bg-blue-900/20' : ''}`}
                       onClick={() => { markRead(n.id); if (n.link) navigate(n.link) }}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                        n.type === 'order' ? 'bg-blue-100' : n.type === 'withdrawal' ? 'bg-amber-100' : n.type === 'approval' ? 'bg-green-100' : 'bg-slate-100'
+                        n.type === 'order' ? 'bg-blue-100 dark:bg-blue-900/40' : n.type === 'withdrawal' ? 'bg-amber-100 dark:bg-amber-900/40' : n.type === 'approval' ? 'bg-green-100 dark:bg-green-900/40' : 'bg-slate-100 dark:bg-slate-700'
                       }`}>
                         {typeIcon(n.type)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm leading-snug ${!n.is_read ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>{n.title}</p>
-                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
-                        <p className="text-[11px] text-slate-400 mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                        <p className={`text-sm leading-snug ${!n.is_read ? 'font-semibold text-slate-900 dark:text-slate-100' : 'font-medium text-slate-700 dark:text-slate-300'}`}>{n.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{n.message}</p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{new Date(n.created_at).toLocaleString()}</p>
                       </div>
                       {!n.is_read && <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
                     </button>
@@ -195,29 +208,29 @@ export function DashboardLayout() {
                 )}
               </div>
               {notifications.length > 0 && (
-                <div className="border-t border-slate-100 px-4 py-2.5 text-center">
-                  <span className="text-xs text-slate-400">{notifications.length} total notifications</span>
+                <div className="border-t border-slate-100 dark:border-slate-700 px-4 py-2.5 text-center">
+                  <span className="text-xs text-slate-400 dark:text-slate-500">{notifications.length} total notifications</span>
                 </div>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex items-center gap-2 pl-1 sm:pl-2 border-l border-slate-200">
-            <Avatar className="h-8 w-8 border-2 border-slate-100">
+          <div className="flex items-center gap-2 pl-1 sm:pl-2 border-l border-slate-200 dark:border-slate-700">
+            <Avatar className="h-8 w-8 border-2 border-slate-100 dark:border-slate-700">
               <AvatarImage src={user?.avatar} />
               <AvatarFallback className="text-sm font-bold">{user?.name?.[0]}</AvatarFallback>
             </Avatar>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-slate-800 leading-none">{user?.name}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{user?.email}</p>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-none">{user?.name}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{user?.email}</p>
             </div>
           </div>
 
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { logout(); navigate('/') }}
-            className="text-red-500 hover:text-red-600 hover:bg-red-50 gap-1.5"
+            onClick={async () => { await logout(); navigate('/') }}
+            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 gap-1.5"
           >
             <FiLogOut className="h-4 w-4" />
             <span className="hidden sm:inline">Logout</span>

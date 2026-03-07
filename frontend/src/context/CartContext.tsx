@@ -17,8 +17,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
 
   useEffect(() => {
-    const stored = localStorage.getItem('gul_plaza_cart')
-    if (stored) setItems(JSON.parse(stored) as CartItem[])
+    try {
+      const stored = localStorage.getItem('gul_plaza_cart')
+      if (!stored) return
+      const parsed = JSON.parse(stored)
+      if (!Array.isArray(parsed)) return
+      // Validate each cart item — discard anything malformed
+      const valid: CartItem[] = parsed.filter((item: unknown) => {
+        if (!item || typeof item !== 'object') return false
+        const i = item as Record<string, unknown>
+        if (!i.product || typeof i.product !== 'object') return false
+        const p = i.product as Record<string, unknown>
+        const price = Number(p.price)
+        const stock = Number(p.stock)
+        const qty = Number(i.quantity)
+        return (
+          typeof p.id === 'string' &&
+          isFinite(price) && price > 0 &&
+          isFinite(qty) && qty > 0 && Number.isInteger(qty) &&
+          isFinite(stock) && stock >= 0
+        )
+      }).map((item: CartItem) => ({
+        product: item.product,
+        quantity: Math.min(Math.max(1, Math.trunc(item.quantity)), Math.max(1, item.product.stock ?? 1)),
+      }))
+      setItems(valid)
+    } catch {
+      localStorage.removeItem('gul_plaza_cart')
+    }
   }, [])
 
   useEffect(() => {
@@ -46,7 +72,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   function updateQuantity(productId: string, quantity: number) {
     if (quantity <= 0) return removeItem(productId)
     setItems(prev =>
-      prev.map(i => (i.product.id === productId ? { ...i, quantity } : i))
+      prev.map(i => {
+        if (i.product.id !== productId) return i
+        const maxQty = i.product.stock ?? 1
+        return { ...i, quantity: Math.min(Math.trunc(quantity), maxQty) }
+      })
     )
   }
 

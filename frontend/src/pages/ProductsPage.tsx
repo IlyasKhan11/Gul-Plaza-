@@ -94,16 +94,16 @@ export function ProductsPage() {
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar Filter */}
         <aside className={`md:w-56 shrink-0 space-y-6 ${showFilters ? 'block' : 'hidden md:block'}`}>
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-5">
-            <h3 className="font-semibold text-slate-900">Filters</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 space-y-5">
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Filters</h3>
 
             {/* Category */}
             <div className="space-y-2">
-              <Label className="text-xs uppercase text-slate-400 tracking-wide">Category</Label>
+              <Label className="text-xs uppercase text-slate-400 dark:text-slate-500 tracking-wide">Category</Label>
               <div className="space-y-1">
                 <button
                   onClick={() => setSelectedCategory('all')}
-                  className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${selectedCategory === 'all' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
+                  className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${selectedCategory === 'all' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                 >
                   All Categories
                 </button>
@@ -113,9 +113,8 @@ export function ProductsPage() {
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.slug)}
-                    className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors flex items-center gap-2 ${selectedCategory === cat.slug ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors flex items-center gap-2 ${selectedCategory === cat.slug ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                   >
-                    {/* If your backend returns an icon field, show it. Otherwise, remove this span or use a default icon. */}
                     {cat.icon && <span>{cat.icon}</span>}
                     <span>{cat.name}</span>
                   </button>
@@ -125,7 +124,7 @@ export function ProductsPage() {
 
             {/* Price Range */}
             <div className="space-y-3">
-              <Label className="text-xs uppercase text-slate-400 tracking-wide">Price Range</Label>
+              <Label className="text-xs uppercase text-slate-400 dark:text-slate-500 tracking-wide">Price Range</Label>
               <Slider
                 min={0}
                 max={150000}
@@ -133,7 +132,7 @@ export function ProductsPage() {
                 value={priceRange}
                 onValueChange={setPriceRange}
               />
-              <div className="flex items-center justify-between text-xs text-slate-600">
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                 <span>{formatPrice(priceRange[0])}</span>
                 <span>{formatPrice(priceRange[1])}</span>
               </div>
@@ -141,18 +140,18 @@ export function ProductsPage() {
 
             {/* Minimum Rating */}
             <div className="space-y-2">
-              <Label className="text-xs uppercase text-slate-400 tracking-wide">Min. Rating</Label>
+              <Label className="text-xs uppercase text-slate-400 dark:text-slate-500 tracking-wide">Min. Rating</Label>
               <div className="flex items-center gap-1">
                 {[0, 1, 2, 3, 4].map(star => (
                   <button
                     key={star}
                     onClick={() => setMinRating(minRating === star + 1 ? 0 : star + 1)}
-                    className={`p-1 rounded transition-colors ${minRating >= star + 1 ? 'text-amber-400' : 'text-slate-300 hover:text-slate-400'}`}
+                    className={`p-1 rounded transition-colors ${minRating >= star + 1 ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600 hover:text-slate-400'}`}
                   >
                     <FiStar className={`h-4 w-4 ${minRating >= star + 1 ? 'fill-amber-400' : ''}`} />
                   </button>
                 ))}
-                {minRating > 0 && <span className="text-xs text-slate-500 ml-1">{minRating}+</span>}
+                {minRating > 0 && <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">{minRating}+</span>}
               </div>
             </div>
 
@@ -190,7 +189,7 @@ export function ProductsPage() {
             </div>
           </div>
 
-          {!loading && <p className="text-sm text-slate-500 mb-4">{filtered.length} products found</p>}
+          {!loading && <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{filtered.length} products found</p>}
 
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -201,15 +200,15 @@ export function ProductsPage() {
               <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                 <FiPackage className="h-7 w-7 text-red-400" />
               </div>
-              <p className="text-slate-700 font-medium mb-1">Failed to load products</p>
+              <p className="text-slate-700 dark:text-slate-300 font-medium mb-1">Failed to load products</p>
               <p className="text-sm text-slate-400">{error}</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-20">
-              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
                 <FiPackage className="h-7 w-7 text-slate-400" />
               </div>
-              <p className="text-slate-700 font-medium mb-1">No products found</p>
+              <p className="text-slate-700 dark:text-slate-300 font-medium mb-1">No products found</p>
               <p className="text-sm text-slate-400">Try adjusting your filters or search term</p>
               <Button variant="outline" size="sm" className="mt-4" onClick={() => { setSelectedCategory('all'); setPriceRange([0, 150000]); setSearch(''); setMinRating(0) }}>
                 Clear all filters

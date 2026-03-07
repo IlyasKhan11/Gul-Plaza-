@@ -28,14 +28,17 @@ function Label({ className, children }: { className?: string; children: React.Re
   return <span className={`text-sm font-medium text-slate-700 ${className ?? ''}`}>{children}</span>
 }
 
+// Extend the Product type to include API response fields
+// Use any for images to handle both string[] and object[] formats from API
+interface ApiProduct extends Product {
+  store_name?: string;
+  store_description?: string;
+  store_id?: string;
+  category_name?: string;
+  images?: any;
+}
+
 export function ProductDetailPage() {
-  // Payment UI state
-  const [paymentMethod, setPaymentMethod] = useState('')
-  const [transactionId, setTransactionId] = useState('')
-  const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null)
-  const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
-  const [paymentSuccess, setPaymentSuccess] = useState(false)
   const { id } = useParams()
   const navigate = useNavigate()
   const { addItem } = useCart()
@@ -56,7 +59,7 @@ export function ProductDetailPage() {
   const [saved, setSaved] = useState(false)
   const [savingWishlist, setSavingWishlist] = useState(false)
 
-  const [product, setProduct] = useState<Product | null>(null)
+  const [product, setProduct] = useState<ApiProduct | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [ratingSummary, setRatingSummary] = useState<ProductRatingSummary | null>(null)
@@ -66,14 +69,14 @@ export function ProductDetailPage() {
     if (!id) return
     setLoading(true)
     
-    // Fetch product
-    api.get<{ data: Product }>(`/api/products/${id}`)
+    // Fetch product - the API returns { success, message, data: product }
+    api.get<{ success: boolean; data: Product }>(`/api/products/${id}`)
       .then(res => {
-        setProduct(res.data)
+        setProduct(res.data) // res.data is the product
         setError(null)
       })
       .catch(err => {
-        setError(err.message)
+        setError(err.message || 'Failed to load product')
         setProduct(null)
       })
       .finally(() => setLoading(false))
@@ -155,6 +158,18 @@ export function ProductDetailPage() {
     setReportOpen(true)
   }
 
+  // Get the image URL - FIXED: Handle API image structure
+  const getImageUrl = (image: any): string => {
+    if (!image) return '/placeholder.png'
+    if (typeof image === 'string') return image
+    if (image.image_url) {
+      // If it's a relative path, make sure it starts with /
+      const url = image.image_url.startsWith('/') ? image.image_url : `/${image.image_url}`
+      return url
+    }
+    return '/placeholder.png'
+  }
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
@@ -181,6 +196,11 @@ export function ProductDetailPage() {
 
   const whatsappUrl = '#'
 
+  // FIXED: Use the correct store info from API
+  const storeName = product.store_name || product.storeName || 'Unknown Store'
+  const storeId = product.store_id || product.storeId
+  const storeDescription = product.store_description || ''
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       {/* Breadcrumb */}
@@ -191,30 +211,40 @@ export function ProductDetailPage() {
         <span>/</span>
         <Link to="/products" className="hover:text-blue-600">Products</Link>
         <span>/</span>
-        <span className="text-slate-700 truncate max-w-xs">{product.name}</span>
+        <span className="text-slate-700 truncate max-w-xs">{product.title || product.name}</span>
       </div>
 
       <div className="grid md:grid-cols-2 gap-10">
-        {/* Images */}
+        {/* Images - FIXED: Handle API image structure */}
         <div className="space-y-3">
           <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50 border border-slate-200">
             <img 
-              src={product.images?.[selectedImage] ?? product.primary_image ?? ''} 
-              alt={product.name} 
-              className="w-full h-full object-cover" 
+              src={product.images?.length ? getImageUrl(product.images[selectedImage]) : '/placeholder.png'}
+              alt={product.title || product.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/placeholder.png'
+              }}
             />
           </div>
           {product.images && product.images.length > 1 && (
-            <div className="flex gap-2">
-              {product.images.map((img, idx) => (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {product.images.map((img: any, idx: number) => (
                 <button
-                  key={idx}
+                  key={img.id || idx}
                   onClick={() => setSelectedImage(idx)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-colors ${
                     selectedImage === idx ? 'border-blue-500' : 'border-slate-200 hover:border-slate-400'
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <img 
+                    src={getImageUrl(img)} 
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.png'
+                    }}
+                  />
                 </button>
               ))}
             </div>
@@ -224,7 +254,7 @@ export function ProductDetailPage() {
         {/* Details */}
         <div className="space-y-5">
           <div className="flex items-start justify-between gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{product.title || product.name}</h1>
             {user?.role === 'buyer' && (
               <button
                 onClick={handleToggleWishlist}
@@ -254,7 +284,7 @@ export function ProductDetailPage() {
 
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-bold text-slate-900">{formatPrice(Number(product.price))}</span>
-            {product.originalPrice && (
+            {product.originalPrice && Number(product.originalPrice) > 0 && (
               <>
                 <span className="text-xl text-slate-400 line-through">{formatPrice(Number(product.originalPrice))}</span>
                 <Badge className="bg-red-500 border-0 text-white">-{discount}%</Badge>
@@ -276,6 +306,7 @@ export function ProductDetailPage() {
               <button 
                 onClick={() => setQty(q => Math.max(1, q - 1))} 
                 className="px-4 py-2 hover:bg-red-50 hover:text-red-600 text-slate-700 font-bold transition-colors"
+                disabled={product.stock === 0}
               >
                 −
               </button>
@@ -283,6 +314,7 @@ export function ProductDetailPage() {
               <button 
                 onClick={() => setQty(q => Math.min(product.stock ?? 1, q + 1))} 
                 className="px-4 py-2 hover:bg-green-50 hover:text-green-600 text-slate-700 font-bold transition-colors"
+                disabled={product.stock === 0 || qty >= (product.stock || 0)}
               >
                 +
               </button>
@@ -294,7 +326,7 @@ export function ProductDetailPage() {
             <div className="space-y-2">
               <div className="flex gap-3 flex-wrap">
                 <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.stock === 0}>
-                  <FiShoppingCart className="h-5 w-5" />
+                  <FiShoppingCart className="h-5 w-5 mr-2" />
                   Add to Cart
                 </Button>
                 <Button 
@@ -304,7 +336,7 @@ export function ProductDetailPage() {
                   onClick={handleBuyNow} 
                   disabled={product.stock === 0}
                 >
-                  <FiZap className="h-5 w-5" />
+                  <FiZap className="h-5 w-5 mr-2" />
                   Buy Now
                 </Button>
               </div>
@@ -314,120 +346,9 @@ export function ProductDetailPage() {
                 className="w-full border-green-500 text-green-700 hover:bg-green-50"
                 onClick={() => window.open(whatsappUrl, '_blank')}
               >
-                <FiMessageCircle className="h-5 w-5" />
+                <FiMessageCircle className="h-5 w-5 mr-2" />
                 WhatsApp Seller
               </Button>
-
-              {/* Payment Method Section - Card Style */}
-              <div className="mt-8">
-                <h3 className="font-semibold text-lg text-slate-900 mb-4">Payment Method</h3>
-                <div className="flex flex-col gap-4">
-                  <label
-                    className={`border rounded-xl p-4 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-blue-500 bg-white shadow' : 'border-slate-200 bg-slate-50'}`}
-                    onClick={() => setPaymentMethod('cod')}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-semibold text-lg text-slate-900">Cash on Delivery</span>
-                        <div className="text-slate-500 text-sm mt-1">Pay in cash when your order arrives. The seller will confirm before shipping.</div>
-                      </div>
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="cod"
-                        checked={paymentMethod === 'cod'}
-                        onChange={() => setPaymentMethod('cod')}
-                        className="h-5 w-5 accent-blue-500"
-                      />
-                    </div>
-                  </label>
-                  <label
-                    className={`border rounded-xl p-4 cursor-pointer transition-colors ${paymentMethod === 'easypaisa' ? 'border-blue-500 bg-white shadow' : 'border-slate-200 bg-slate-50'}`}
-                    onClick={() => setPaymentMethod('easypaisa')}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-semibold text-lg text-slate-900">Easypaisa / Bank Transfer</span>
-                        <div className="text-slate-500 text-sm mt-1">Transfer via Easypaisa or bank. Admin will verify your payment and notify the seller.</div>
-                      </div>
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="easypaisa"
-                        checked={paymentMethod === 'easypaisa'}
-                        onChange={() => setPaymentMethod('easypaisa')}
-                        className="h-5 w-5 accent-blue-500"
-                      />
-                    </div>
-                  </label>
-                </div>
-                {/* Show fields only for Easypaisa/Bank Transfer */}
-                {paymentMethod === 'easypaisa' && (
-                  <div className="space-y-3 border border-blue-100 rounded-xl p-4 bg-blue-50 mt-4">
-                    <div>
-                      <label className="text-sm font-medium text-slate-700">Transaction ID *</label>
-                      <input
-                        type="text"
-                        value={transactionId}
-                        onChange={e => setTransactionId(e.target.value)}
-                        className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                        placeholder="Enter EasyPaisa or bank transaction ID"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700">Payment Screenshot *</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={e => {
-                          if (e.target.files && e.target.files[0]) {
-                            setPaymentScreenshot(e.target.files[0])
-                          } else {
-                            setPaymentScreenshot(null)
-                          }
-                        }}
-                        className="mt-1 w-full"
-                        required
-                        key={paymentSuccess ? Math.random() : 'file'}
-                      />
-                      {paymentScreenshot && (
-                        <div className="mt-2 text-xs text-slate-600">Selected file: {paymentScreenshot.name}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {paymentError && (
-                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 mt-2">{paymentError}</p>
-                )}
-                {paymentSuccess && (
-                  <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded px-3 py-2 mt-2">Payment details submitted!</p>
-                )}
-                <Button
-                  size="lg"
-                  className="mt-4 w-full"
-                  disabled={paymentSubmitting || !paymentMethod || (paymentMethod === 'easypaisa' && (!transactionId || !paymentScreenshot))}
-                  onClick={() => {
-                    setPaymentError(null)
-                    setPaymentSuccess(false)
-                    setPaymentSubmitting(true)
-                    setTimeout(() => {
-                      if (!paymentMethod) {
-                        setPaymentError('Please select a payment method.')
-                      } else if (paymentMethod === 'easypaisa' && (!transactionId || !paymentScreenshot)) {
-                        setPaymentError('Please provide transaction ID and screenshot.')
-                      } else {
-                        setPaymentSuccess(true)
-                        setTransactionId('')
-                        setPaymentScreenshot(null)
-                      }
-                      setPaymentSubmitting(false)
-                    }, 1200)
-                  }}
-                >
-                  {paymentSubmitting ? 'Submitting...' : 'Submit Payment Details'}
-                </Button>
-              </div>
             </div>
           ) : (
             <div className="space-y-2">
@@ -440,7 +361,7 @@ export function ProductDetailPage() {
                 className="w-full border-green-500 text-green-700 hover:bg-green-50"
                 onClick={() => window.open(whatsappUrl, '_blank')}
               >
-                <FiMessageCircle className="h-5 w-5" />
+                <FiMessageCircle className="h-5 w-5 mr-2" />
                 WhatsApp Seller
               </Button>
             </div>
@@ -480,28 +401,34 @@ export function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Store Card */}
-          <div className="border border-slate-200 rounded-xl p-4 flex items-start gap-3 bg-slate-50/50 shadow-sm">
-            <div className="w-12 h-12 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-400">
-              <span className="text-lg font-bold">{product.storeName?.charAt(0) ?? '?'}</span>
+          {/* Store Card - FIXED: Use correct API fields */}
+          {storeId && (
+            <div className="border border-slate-200 rounded-xl p-4 flex items-start gap-3 bg-slate-50/50 shadow-sm">
+              <div className="w-12 h-12 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-400">
+                <span className="text-lg font-bold">{storeName?.charAt(0) ?? '?'}</span>
+              </div>
+              <div className="flex-1">
+                <Link to={`/stores/${storeId}`} className="font-semibold text-slate-900 hover:text-blue-600 text-sm">
+                  {storeName}
+                </Link>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{storeDescription}</p>
+              </div>
+              <Button size="sm" variant="outline" asChild>
+                <Link to={`/stores/${storeId}`}>Visit</Link>
+              </Button>
             </div>
-            <div className="flex-1">
-              <Link to={`/stores/${product.storeId}`} className="font-semibold text-slate-900 hover:text-blue-600 text-sm">
-                {product.storeName}
-              </Link>
-              <p className="text-xs text-slate-500 mt-1 line-clamp-2">{product.store_description}</p>
-            </div>
-            <Button size="sm" variant="outline" asChild>
-              <Link to={`/stores/${product.storeId}`}>Visit</Link>
-            </Button>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Reviews section */}
       <div className="mt-12">
         <h2 className="text-xl font-bold text-slate-900 mb-6">Customer Reviews</h2>
-        <p className="text-slate-400 text-sm">No reviews yet. Be the first to review!</p>
+        {ratingSummary && ratingSummary.total_reviews > 0 ? (
+          <div>{/* Add your reviews list component here */}</div>
+        ) : (
+          <p className="text-slate-400 text-sm">No reviews yet. Be the first to review!</p>
+        )}
       </div>
 
       {/* Report Dialog */}
