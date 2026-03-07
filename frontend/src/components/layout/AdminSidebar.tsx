@@ -2,7 +2,6 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { FiGrid, FiUsers, FiGlobe, FiPackage, FiShoppingBag, FiCreditCard, FiShield, FiPercent, FiBriefcase, FiBarChart2, FiLogOut, FiTag } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
-import { NotificationBell } from '@/components/common/NotificationBell'
 
 const navItems = [
   { to: '/admin/dashboard', icon: FiGrid, label: 'Dashboard' },
@@ -43,7 +42,6 @@ export function AdminSidebar({ onLinkClick }: { onLinkClick?: () => void }) {
               <p className="text-xs text-slate-500">Full control</p>
             </div>
           </div>
-          <NotificationBell />
         </div>
       </div>
 

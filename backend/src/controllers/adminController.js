@@ -371,7 +371,7 @@ const getSellerApplications = async (req, res) => {
       SELECT s.*, u.name as owner_name, u.email as owner_email
       FROM stores s
       JOIN users u ON s.owner_id = u.id
-      WHERE s.is_active = false
+      WHERE s.is_approved = false AND s.is_active = false
       ORDER BY s.created_at DESC
     `);
 
@@ -413,9 +413,9 @@ const approveSellerApplication = async (req, res) => {
     await query('BEGIN');
 
     try {
-      // Activate the store
+      // Activate and approve the store
       await query(
-        'UPDATE stores SET is_active = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+        'UPDATE stores SET is_active = true, is_approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
         [storeId]
       );
 

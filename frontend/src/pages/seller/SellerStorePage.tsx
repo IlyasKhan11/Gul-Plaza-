@@ -103,11 +103,7 @@ export function SellerStorePage() {
             {store ? 'Manage your store profile' : 'Create your store to start selling'}
           </p>
         </div>
-        {store && (
-          <Button onClick={openCreate} variant="outline" size="sm">
-            <FiPlusCircle className="h-4 w-4 mr-1" /> New Store
-          </Button>
-        )}
+
       </div>
 
       {error && (

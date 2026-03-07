@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiEdit2, FiCheckCircle, FiPhone, FiMapPin, FiGlobe, FiClock } from 'react-icons/fi'
+import { FiEdit2, FiCheckCircle, FiPhone, FiMapPin, FiGlobe, FiClock, FiTrash2 } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,7 +12,6 @@ import { AlertModal } from '@/components/ui/alert-modal'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { sellerService } from '@/services/sellerService'
-import { mockStores } from '@/data/mockData'
 import { generateId } from '@/lib/utils'
 import type { Store } from '@/types'
 
@@ -40,14 +39,40 @@ export function BuyerProfilePage() {
   const [storeForm, setStoreForm] = useState(emptyStoreForm)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [pendingStore, setPendingStore] = useState<Store | null>(
-    () => mockStores.find(s => s.sellerId === user?.id) ?? null
-  )
+  const [pendingStore, setPendingStore] = useState<Store | null>(null)
   const [appliedOpen, setAppliedOpen] = useState(false)
   const [alertMsg, setAlertMsg] = useState('')
+  const [withdrawing, setWithdrawing] = useState(false)
   const [searchParams] = useSearchParams()
 
   const { setUser } = useAuth() as any
+
+  // Fetch real pending application from API on mount
+  useEffect(() => {
+    if (!user) return
+    sellerService.checkApplication().then(app => {
+      if (app) {
+        setPendingStore({
+          id: app.id.toString(),
+          sellerId: user.id,
+          sellerName: user.name,
+          name: app.name,
+          slug: '',
+          description: app.description || '',
+          logo: '',
+          banner: '',
+          contactEmail: app.contact_email || '',
+          whatsapp: app.contact_phone || '',
+          rating: 0,
+          reviewCount: 0,
+          productCount: 0,
+          isApproved: false,
+          isBlocked: false,
+          createdAt: app.created_at,
+        })
+      }
+    }).catch(() => {})
+  }, [user])
 
   // Auto-open seller application if coming from "Start Selling" button
   useEffect(() => {
@@ -120,6 +145,19 @@ export function BuyerProfilePage() {
       setError(err.message || 'Failed to submit seller application')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleWithdraw() {
+    if (!pendingStore) return
+    setWithdrawing(true)
+    try {
+      await sellerService.withdrawApplication()
+      setPendingStore(null)
+    } catch (err: any) {
+      setAlertMsg(err.message || 'Failed to withdraw application')
+    } finally {
+      setWithdrawing(false)
     }
   }
 
@@ -229,13 +267,25 @@ export function BuyerProfilePage() {
             <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
               <FiClock className="h-5 w-5 text-amber-600" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="font-semibold text-slate-900 text-sm">Seller Application Pending</p>
               <p className="text-xs text-slate-500 mt-0.5">
                 Your store <span className="font-medium text-slate-700">"{pendingStore.name}"</span> has been submitted and is awaiting admin approval. You'll be notified once it's reviewed.
               </p>
             </div>
-            <Badge variant="warning" className="shrink-0 ml-auto">Pending</Badge>
+            <div className="flex items-center gap-2 shrink-0 ml-auto">
+              <Badge variant="warning">Pending</Badge>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                onClick={handleWithdraw}
+                disabled={withdrawing}
+              >
+                <FiTrash2 className="h-3.5 w-3.5 mr-1" />
+                {withdrawing ? 'Withdrawing...' : 'Withdraw'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -289,28 +339,6 @@ export function BuyerProfilePage() {
                 className="mt-1"
                 rows={3}
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="slogo">Logo URL</Label>
-                <Input
-                  id="slogo"
-                  value={storeForm.logo}
-                  onChange={e => setStoreForm(f => ({ ...f, logo: e.target.value }))}
-                  placeholder="https://..."
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="sbanner">Banner URL</Label>
-                <Input
-                  id="sbanner"
-                  value={storeForm.banner}
-                  onChange={e => setStoreForm(f => ({ ...f, banner: e.target.value }))}
-                  placeholder="https://..."
-                  className="mt-1"
-                />
-              </div>
             </div>
             <div>
               <Label htmlFor="semail">Contact Email</Label>

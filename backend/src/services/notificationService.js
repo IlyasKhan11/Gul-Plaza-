@@ -117,6 +117,31 @@ async function notifyAllBuyers(type, title, message, link = null) {
   }
 }
 
+// Save notification to DB for all admins + push SSE to connected admins
+async function saveNotificationForAdmins(type, title, message, link = null) {
+  try {
+    const result = await query(
+      `INSERT INTO notifications (user_id, type, title, message, link)
+       SELECT id, $1, $2, $3, $4 FROM users WHERE role = 'admin'
+       RETURNING id, user_id, type, title, message, link, is_read, created_at`,
+      [type, title, message, link]
+    );
+    const payload = JSON.stringify({
+      event: 'notification',
+      data: { type, title, message, link, is_read: false, created_at: new Date().toISOString() },
+      timestamp: new Date().toISOString(),
+    });
+    clients.forEach((client) => {
+      if (client.userId === 'admin') {
+        client.res.write(`data: ${payload}\n\n`);
+      }
+    });
+    return result.rows;
+  } catch (err) {
+    console.error('Failed to save admin notifications:', err);
+  }
+}
+
 // Get connected client count
 function getConnectedCount() {
   return clients.size;
@@ -126,6 +151,7 @@ module.exports = {
   NotificationEvents,
   addClient,
   saveNotification,
+  saveNotificationForAdmins,
   sendToUser,
   sendToAdmins,
   broadcast,

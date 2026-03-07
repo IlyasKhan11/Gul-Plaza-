@@ -110,7 +110,7 @@ const getSellerProfile = async (req, res) => {
     const storeResult = await query(
       `SELECT id, name, logo_url, banner_url, description, 
               contact_email, contact_phone, address, city, country, postal_code,
-              business_license, tax_id, store_settings, is_active, created_at, updated_at
+              business_license, tax_id, store_settings, is_active, is_approved, created_at, updated_at
        FROM stores WHERE owner_id = $1`,
       [userId]
     );
@@ -161,6 +161,7 @@ const getSellerProfile = async (req, res) => {
           tax_id: store.tax_id,
           store_settings: store.store_settings || {},
           is_active: store.is_active,
+          is_approved: store.is_approved,
           created_at: store.created_at,
           updated_at: store.updated_at,
         } : null,
@@ -363,13 +364,13 @@ const createStore = async (req, res) => {
       });
     }
 
-    // Create new store
+    // Create new store — seller is already approved, mark store active and approved
     const storeResult = await query(
       `INSERT INTO stores 
        (owner_id, name, logo_url, banner_url, description, 
         contact_email, contact_phone, address, city, country, postal_code,
-        business_license, tax_id, store_settings)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        business_license, tax_id, store_settings, is_active, is_approved)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, true)
        RETURNING *`,
       [
         userId,
@@ -391,13 +392,13 @@ const createStore = async (req, res) => {
 
     const newStore = storeResult.rows[0];
 
-    // Notify admins of new seller application
-    notificationService.sendToAdmins(notificationService.NotificationEvents.NEW_SELLER_APPLICATION, {
-      storeId: newStore.id,
-      name: newStore.name,
-      ownerId: userId,
-      submittedAt: newStore.created_at,
-    });
+    // Notify admins — persist to DB + push SSE
+    await notificationService.saveNotificationForAdmins(
+      'approval',
+      'New Seller Application',
+      `${newStore.name} has submitted a store application and is awaiting your review.`,
+      '/admin/sellers'
+    );
 
     res.status(201).json({
       success: true,
@@ -654,6 +655,49 @@ const applyForSeller = async (req, res) => {
   }
 };
 
+// Check if a buyer has a pending seller application
+const checkApplication = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const result = await query(
+      `SELECT id, name, description, contact_email, contact_phone, is_active, is_approved, created_at
+       FROM stores WHERE owner_id = $1 AND is_active = false AND is_approved = false`,
+      [userId]
+    );
+    res.status(200).json({
+      success: true,
+      data: { application: result.rows[0] || null },
+    });
+  } catch (error) {
+    console.error('Error checking application:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Withdraw a pending seller application (buyer only, not yet approved)
+const withdrawApplication = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const result = await query(
+      `DELETE FROM stores WHERE owner_id = $1 AND is_active = false AND is_approved = false RETURNING id, name`,
+      [userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No pending application found to withdraw',
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Seller application withdrawn successfully',
+    });
+  } catch (error) {
+    console.error('Error withdrawing application:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 // Get seller dashboard statistics
 const getSellerDashboard = async (req, res) => {
   try {
@@ -863,6 +907,8 @@ module.exports = {
   createStore,
   updateStore,
   applyForSeller,
+  checkApplication,
+  withdrawApplication,
   getSellerDashboard,
   getPublicStores,
   getPublicStoreById,

@@ -102,6 +102,15 @@ export const sellerService = {
     return res.data
   },
 
+
+  async checkApplication(): Promise<SellerStore | null> {
+    const res = await api.get<{ success: boolean; data: { application: SellerStore | null } }>('/api/sellers/apply')
+    return res.data.application
+  },
+
+  async withdrawApplication(): Promise<void> {
+    await api.delete('/api/sellers/apply')
+  },
   async applyForSeller(data: {
     name: string
     description?: string

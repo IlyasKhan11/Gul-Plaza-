@@ -6,6 +6,8 @@ const {
   createStore,
   updateStore,
   applyForSeller,
+  checkApplication,
+  withdrawApplication,
   getSellerDashboard,
   getPublicStores,
   getPublicStoreById,
@@ -95,6 +97,8 @@ router.get('/dashboard', authenticateToken, requireSeller, getSellerDashboard);
  * @access  Private (Non-seller users only)
  */
 router.post('/apply', authenticateToken, applyForSellerValidation, applyForSeller);
+router.get('/apply', authenticateToken, checkApplication);
+router.delete('/apply', authenticateToken, withdrawApplication);
 
 /**
  * @route   GET /api/sellers/profile

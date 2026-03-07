@@ -248,7 +248,7 @@ const createProduct = async (req, res) => {
 
     // Get seller's store
     const storeResult = await query(
-      'SELECT id, name FROM stores WHERE owner_id = $1 LIMIT 1',
+      'SELECT id, name, is_active, is_approved FROM stores WHERE owner_id = $1 LIMIT 1',
       [sellerId]
     );
 
@@ -261,9 +261,8 @@ const createProduct = async (req, res) => {
 
     const storeId = storeResult.rows[0].id;
     const storeName = storeResult.rows[0].name;
-    const storeActive = storeResult.rows[0].is_active;
 
-    if (!storeActive) {
+    if (!storeResult.rows[0].is_active || !storeResult.rows[0].is_approved) {
       return res.status(403).json({
         success: false,
         message: 'Your store is pending admin approval. You cannot create products until your store is approved.',
