@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { adminService, type ApiWithdrawal } from '@/services/adminService'
+import { AlertModal } from '@/components/ui/alert-modal'
 import { formatPrice, formatDate } from '@/lib/utils'
 
 export function AdminWithdrawalsPage() {
@@ -27,6 +28,7 @@ export function AdminWithdrawalsPage() {
   const [successOpen, setSuccessOpen] = useState(false)
   const [lastAction, setLastAction] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
+  const [alertMsg, setAlertMsg] = useState('')
 
   const fetchWithdrawals = useCallback(async (p: number, status: string) => {
     setLoading(true)
@@ -76,7 +78,7 @@ export function AdminWithdrawalsPage() {
       // Refresh the list
       fetchWithdrawals(page, filter)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Action failed')
+      setAlertMsg(err instanceof Error ? err.message : 'Action failed')
     } finally {
       setActionLoading(false)
     }
@@ -302,6 +304,8 @@ export function AdminWithdrawalsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertModal open={!!alertMsg} message={alertMsg} onClose={() => setAlertMsg('')} />
 
       {/* Success Dialog */}
       <Dialog open={successOpen} onOpenChange={setSuccessOpen}>

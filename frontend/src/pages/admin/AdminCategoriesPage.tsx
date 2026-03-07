@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { adminService, type ApiCategory } from '@/services/adminService'
+import { AlertModal } from '@/components/ui/alert-modal'
 import { formatDate } from '@/lib/utils'
 
 function toSlug(name: string) {
@@ -26,6 +27,7 @@ export function AdminCategoriesPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [formError, setFormError] = useState<string | null>(null)
+  const [alertMsg, setAlertMsg] = useState('')
 
   const fetchCategories = useCallback(async () => {
     setLoading(true)
@@ -103,7 +105,7 @@ export function AdminCategoriesPage() {
       setCategories(prev => prev.filter(c => c.id !== deleteId))
       setDeleteId(null)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete category')
+      setAlertMsg(err instanceof Error ? err.message : 'Failed to delete category')
     } finally {
       setDeleting(false)
     }
@@ -253,6 +255,8 @@ export function AdminCategoriesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertModal open={!!alertMsg} message={alertMsg} onClose={() => setAlertMsg('')} />
 
       {/* Delete Confirmation */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

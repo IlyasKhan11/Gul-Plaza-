@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { adminService, type ApiSeller } from '@/services/adminService'
+import { AlertModal } from '@/components/ui/alert-modal'
 import { formatDate } from '@/lib/utils'
 
 export function AdminSellersPage() {
@@ -16,6 +17,7 @@ export function AdminSellersPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalSellers, setTotalSellers] = useState(0)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [alertMsg, setAlertMsg] = useState('')
 
   const fetchSellers = useCallback(async (p: number, q: string) => {
     setLoading(true)
@@ -52,7 +54,7 @@ export function AdminSellersPage() {
         prev.map(s => s.id === seller.id ? { ...s, is_blocked: !s.is_blocked } : s)
       )
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Action failed')
+      setAlertMsg(err instanceof Error ? err.message : 'Action failed')
     } finally {
       setActionLoading(null)
     }
@@ -159,6 +161,7 @@ export function AdminSellersPage() {
           )}
         </>
       )}
+      <AlertModal open={!!alertMsg} message={alertMsg} onClose={() => setAlertMsg('')} />
     </div>
   )
 }

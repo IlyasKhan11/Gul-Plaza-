@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { FiPackage, FiClock, FiCheck, FiTruck, FiX, FiLoader, FiMessageSquare } from 'react-icons/fi'
+import { FiPackage, FiClock, FiCheck, FiTruck, FiX, FiLoader, FiMessageSquare, FiSearch, FiEye, FiFilter, FiUser, FiPhone, FiMapPin, FiCreditCard } from 'react-icons/fi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useAuth } from '@/context/AuthContext'
 import { sellerService } from '@/services/sellerService'
@@ -18,10 +19,19 @@ export function SellerOrdersPage() {
   const [error, setError] = useState<string | null>(null)
   const [processing, setProcessing] = useState<number | null>(null)
   
+  // Search, filter and pagination
+  const [search, setSearch] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalOrders, setTotalOrders] = useState(0)
+  const limit = 15
+  
   // Modal states
   const [showShipModal, setShowShipModal] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showErrorModal, setShowErrorModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [courierName, setCourierName] = useState('')
@@ -32,8 +42,15 @@ export function SellerOrdersPage() {
     setLoading(true)
     setError(null)
     try {
-      const result = await sellerService.getOrders()
+      const result = await sellerService.getOrders({
+        page,
+        limit,
+        search: search || undefined,
+        status: filterStatus === 'all' ? undefined : filterStatus,
+      })
       setOrders(result.orders || [])
+      setTotalPages(result.pagination?.total_pages || 1)
+      setTotalOrders(result.pagination?.total_orders || 0)
     } catch (err: any) {
       setError(err.message || 'Failed to load orders')
     } finally {
@@ -43,7 +60,18 @@ export function SellerOrdersPage() {
 
   useEffect(() => {
     fetchOrders()
-  }, [user?.id])
+  }, [user?.id, page, filterStatus])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setPage(1)
+    fetchOrders()
+  }
+
+  const handleStatusFilter = (value: string) => {
+    setFilterStatus(value)
+    setPage(1)
+  }
 
   const handleConfirm = async (orderId: number) => {
     setProcessing(orderId)
@@ -221,8 +249,39 @@ export function SellerOrdersPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Recent Orders</CardTitle>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <CardTitle>Orders</CardTitle>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Select value={filterStatus} onValueChange={handleStatusFilter}>
+              <SelectTrigger className="w-full sm:w-44">
+                <FiFilter className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="awaiting_verification">Awaiting Verification</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="shipped">Shipped</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <form onSubmit={handleSearch} className="flex gap-2 flex-1 sm:flex-initial">
+              <div className="relative flex-1 sm:w-56">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by order ID, name, phone..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button type="submit" variant="outline">Search</Button>
+            </form>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -256,85 +315,120 @@ export function SellerOrdersPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {orders.map(order => {
-                const actions = getAvailableActions(order)
-                return (
-                  <div key={order.id} className="border-b border-slate-100 pb-4 mb-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-semibold text-slate-900">Order #{order.id}</span>
-                        <span className="ml-2 text-xs text-slate-500">{formatDate(order.created_at || order.createdAt)}</span>
-                      </div>
-                      <OrderStatusBadge status={order.status} />
-                    </div>
-                    <div className="mt-2 text-sm text-slate-700">
-                      <span className="font-medium">Buyer:</span> {order.buyer_name || order.buyerName} ({order.buyer_phone || order.buyerPhone})
-                    </div>
-                    {order.store_name && (
-                      <div className="mt-1 text-sm text-slate-700">
-                        <span className="font-medium">Store:</span> {order.store_name}
-                      </div>
-                    )}
-                    {order.items && order.items.length > 0 && (
-                      <div className="mt-1 text-sm text-slate-700">
-                        <span className="font-medium">Products:</span>{' '}
-                        {order.items.map((item: any, idx: number) => (
-                          <span key={idx}>
-                            {item.title} x{item.quantity}
-                            {idx < order.items.length - 1 ? ', ' : ''}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="mt-1 text-sm text-slate-700">
-                      <span className="font-medium">Total:</span> {formatPrice(order.total_amount || order.totalAmount)}
-                    </div>
-                    {order.payment_method && (
-                      <div className="mt-1 text-sm text-slate-600">
-                        <span className="font-medium">Payment:</span> {order.payment_method}
-                      </div>
-                    )}
-                    {order.shipping_address && (
-                      <div className="mt-1 text-sm text-slate-600">
-                        <span className="font-medium">Shipping:</span> {order.shipping_address}, {order.shipping_city}
-                      </div>
-                    )}
-                    {order.tracking_number && (
-                      <div className="mt-1 text-sm text-slate-600">
-                        <span className="font-medium">Tracking:</span> {order.courier_name} - {order.tracking_number}
-                      </div>
-                    )}
-                    {order.transaction_id && (
-                      <div className="mt-1 text-sm text-slate-600">
-                        <span className="font-medium">Transaction ID:</span> {order.transaction_id}
-                      </div>
-                    )}
-                    {actions.length > 0 && (
-                      <div className="mt-3 flex gap-2">
-                        {actions.map((action, idx) => (
-                          <Button
-                            key={idx}
-                            size="sm"
-                            variant={action.variant}
-                            onClick={action.handler}
-                            disabled={processing === order.id}
-                          >
-                            {processing === order.id ? (
-                              <FiLoader className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <action.icon className="h-4 w-4 mr-1" />
-                                {action.label}
-                              </>
-                            )}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Order</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Buyer</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Products</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Payment</th>
+                    <th className="text-right py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map(order => {
+                    const actions = getAvailableActions(order)
+                    return (
+                      <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-3 px-2">
+                          <div className="font-semibold text-slate-900">#{order.id}</div>
+                          <div className="text-xs text-slate-500">{formatDate(order.created_at || order.createdAt)}</div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="text-sm text-slate-900">{order.buyer_name || order.buyerName}</div>
+                          <div className="text-xs text-slate-500">{order.buyer_phone || order.buyerPhone}</div>
+                        </td>
+                        <td className="py-3 px-2">
+                          {order.items && order.items.length > 0 ? (
+                            <div className="space-y-1.5">
+                              {order.items.slice(0, 2).map((item: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  {item.product_image || item.image ? (
+                                    <img
+                                      src={item.product_image || item.image}
+                                      alt={item.title}
+                                      className="w-8 h-8 rounded object-cover shrink-0 bg-slate-100"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center shrink-0">
+                                      <FiPackage className="h-3.5 w-3.5 text-slate-400" />
+                                    </div>
+                                  )}
+                                  <span className="text-sm text-slate-700 truncate max-w-[120px]">
+                                    {item.title} <span className="text-slate-400">x{item.quantity}</span>
+                                  </span>
+                                </div>
+                              ))}
+                              {order.items.length > 2 && (
+                                <div className="text-xs text-slate-500 pl-10">+{order.items.length - 2} more</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-slate-500">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="font-semibold text-slate-900">{formatPrice(order.total_amount || order.totalAmount)}</span>
+                        </td>
+                        <td className="py-3 px-2">
+                          <OrderStatusBadge status={order.status} />
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="text-sm text-slate-600 capitalize">{order.payment_method || '—'}</div>
+                          <div className="text-xs text-slate-500">{order.payment_status || order.paymentStatus || '—'}</div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedOrder(order)
+                                setShowViewModal(true)
+                              }}
+                              className="h-8"
+                            >
+                              <FiEye className="h-3.5 w-3.5 mr-1" />
+                              View
+                            </Button>
+                            {actions.map((action, idx) => (
+                              <Button
+                                key={idx}
+                                size="sm"
+                                variant={action.variant}
+                                onClick={action.handler}
+                                disabled={processing === order.id}
+                                className="h-8"
+                              >
+                                {processing === order.id ? (
+                                  <FiLoader className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <action.icon className="h-3.5 w-3.5 mr-1" />
+                                    {action.label}
+                                  </>
+                                )}
+                              </Button>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                  <p className="text-xs text-slate-500">Showing {orders.length} of {totalOrders} orders</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
+                    <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
                   </div>
-                )
-              })}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -427,6 +521,161 @@ export function SellerOrdersPage() {
               Cancel Order
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Order Details Modal */}
+      <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0">
+          {selectedOrder && (
+            <>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 text-white flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Order</p>
+                    <h2 className="text-lg font-bold leading-tight">#{selectedOrder.id}</h2>
+                  </div>
+                  <div className="h-8 w-px bg-slate-600" />
+                  <div>
+                    <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Date</p>
+                    <p className="text-sm font-medium">{formatDate(selectedOrder.created_at || selectedOrder.createdAt)}</p>
+                  </div>
+                </div>
+                <OrderStatusBadge status={selectedOrder.status} />
+              </div>
+
+              <div className="max-h-[68vh] overflow-y-auto">
+                {/* Buyer + Payment row */}
+                <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
+                  {/* Buyer */}
+                  <div className="px-5 py-4">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <FiUser className="h-3.5 w-3.5" /> Buyer
+                    </p>
+                    <div className="space-y-1.5">
+                      <p className="font-semibold text-slate-900 text-sm">{selectedOrder.buyer_name || selectedOrder.buyerName || 'N/A'}</p>
+                      {(selectedOrder.buyer_phone || selectedOrder.buyerPhone) && (
+                        <p className="text-sm text-slate-500 flex items-center gap-1.5">
+                          <FiPhone className="h-3 w-3 shrink-0" />
+                          {selectedOrder.buyer_phone || selectedOrder.buyerPhone}
+                        </p>
+                      )}
+                      {(selectedOrder.shipping_address || selectedOrder.shippingAddress) && (
+                        <p className="text-sm text-slate-500 flex items-start gap-1.5">
+                          <FiMapPin className="h-3 w-3 shrink-0 mt-0.5" />
+                          <span className="leading-snug">
+                            {[
+                              selectedOrder.shipping_address || selectedOrder.shippingAddress,
+                              selectedOrder.shipping_city,
+                              selectedOrder.shipping_country,
+                            ].filter(Boolean).join(', ')}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Payment */}
+                  <div className="px-5 py-4">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <FiCreditCard className="h-3.5 w-3.5" /> Payment
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">Method</span>
+                        <span className="text-sm font-medium text-slate-900 capitalize">{selectedOrder.payment_method || selectedOrder.paymentMethod || '—'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">Status</span>
+                        <span className={`text-sm font-medium capitalize ${
+                          (selectedOrder.payment_status || selectedOrder.paymentStatus) === 'verified'
+                            ? 'text-green-600'
+                            : (selectedOrder.payment_status || selectedOrder.paymentStatus) === 'failed'
+                            ? 'text-red-600'
+                            : 'text-amber-600'
+                        }`}>
+                          {selectedOrder.payment_status || selectedOrder.paymentStatus || '—'}
+                        </span>
+                      </div>
+                      {(selectedOrder.courier_name || selectedOrder.courierName) && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-500">Courier</span>
+                          <span className="text-sm font-medium text-slate-900">{selectedOrder.courier_name || selectedOrder.courierName}</span>
+                        </div>
+                      )}
+                      {(selectedOrder.tracking_number || selectedOrder.trackingNumber) && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-500">Tracking</span>
+                          <span className="text-sm font-medium text-slate-900 font-mono">{selectedOrder.tracking_number || selectedOrder.trackingNumber}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Products table */}
+                <div className="px-5 py-4">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <FiPackage className="h-3.5 w-3.5" /> Products
+                  </p>
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="text-left text-xs text-slate-400 font-medium pb-2 w-10"></th>
+                          <th className="text-left text-xs text-slate-400 font-medium pb-2">Item</th>
+                          <th className="text-center text-xs text-slate-400 font-medium pb-2 w-16">Qty</th>
+                          <th className="text-right text-xs text-slate-400 font-medium pb-2 w-28">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {selectedOrder.items.map((item: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-slate-50/60">
+                            <td className="py-2.5 pr-2">
+                              {item.image || item.product_image ? (
+                                <img
+                                  src={item.image || item.product_image}
+                                  alt={item.title || item.name}
+                                  className="w-10 h-10 rounded-lg object-cover bg-slate-100"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                                  <FiPackage className="h-4 w-4 text-slate-400" />
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-2.5 pr-4">
+                              <p className="text-sm font-medium text-slate-900 truncate max-w-[200px]">{item.title || item.name || 'Product'}</p>
+                            </td>
+                            <td className="py-2.5 text-center">
+                              <span className="text-sm text-slate-600">×{item.quantity || 1}</span>
+                            </td>
+                            <td className="py-2.5 text-right">
+                              <span className="text-sm font-semibold text-slate-900">
+                                {formatPrice((item.price || item.unit_price || 0) * (item.quantity || 1))}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="text-sm text-slate-400 text-center py-4">No products found</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-slate-100 px-6 py-4 bg-slate-50 flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm text-slate-500 font-medium">Total</span>
+                  <span className="text-2xl font-bold text-slate-900">{formatPrice(selectedOrder.total_amount || selectedOrder.totalAmount)}</span>
+                </div>
+                <Button onClick={() => setShowViewModal(false)} className="px-6">Close</Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { adminService, type ApiUser } from '@/services/adminService'
+import { AlertModal } from '@/components/ui/alert-modal'
 import { formatDate } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -18,6 +19,7 @@ export function AdminUsersPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [alertMsg, setAlertMsg] = useState('')
 
   const fetchUsers = useCallback(async (p: number, q: string) => {
     setLoading(true)
@@ -52,7 +54,7 @@ export function AdminUsersPage() {
       }
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_blocked: !u.is_blocked } : u))
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Action failed')
+      setAlertMsg(err instanceof Error ? err.message : 'Action failed')
     } finally {
       setActionLoading(null)
     }
@@ -222,6 +224,7 @@ export function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
+      <AlertModal open={!!alertMsg} message={alertMsg} onClose={() => setAlertMsg('')} />
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { AlertModal } from '@/components/ui/alert-modal'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { sellerService } from '@/services/sellerService'
@@ -43,6 +44,7 @@ export function BuyerProfilePage() {
     () => mockStores.find(s => s.sellerId === user?.id) ?? null
   )
   const [appliedOpen, setAppliedOpen] = useState(false)
+  const [alertMsg, setAlertMsg] = useState('')
   const [searchParams] = useSearchParams()
 
   const { setUser } = useAuth() as any
@@ -61,7 +63,7 @@ export function BuyerProfilePage() {
       // Only send real phone number, not masked
       const payload = { ...form, phone: form.phone }
       if (!payload.phone || payload.phone.includes('*')) {
-        alert('Please enter your real phone number.');
+        setAlertMsg('Please enter your real phone number.');
         return;
       }
       const updated = await import('@/services/authService').then(m => m.authService.updateUserProfile(payload))
@@ -363,6 +365,8 @@ export function BuyerProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertModal open={!!alertMsg} message={alertMsg} onClose={() => setAlertMsg('')} />
     </div>
   )
 }

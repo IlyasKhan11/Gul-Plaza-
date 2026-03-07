@@ -175,7 +175,7 @@ export const sellerService = {
   },
 
   // Orders (seller)
-  async getOrders(params?: { page?: number; status?: string; limit?: number }): Promise<{
+  async getOrders(params?: { page?: number; status?: string; limit?: number; search?: string }): Promise<{
     orders: SellerOrder[]
     pagination: Pagination & { total_orders: number }
   }> {
@@ -183,6 +183,7 @@ export const sellerService = {
     if (params?.page) qs.set('page', String(params.page))
     if (params?.limit) qs.set('limit', String(params.limit))
     if (params?.status) qs.set('status', params.status)
+    if (params?.search) qs.set('search', params.search)
     const res = await api.get<{
       success: boolean
       message?: string

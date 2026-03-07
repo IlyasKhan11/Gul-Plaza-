@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { AlertModal } from '@/components/ui/alert-modal'
 import { sellerService, type SellerStore } from '@/services/sellerService'
 
 const emptyForm = { store_name: '', description: '', contact_email: '', contact_phone: '' }
@@ -21,6 +22,7 @@ export function SellerStorePage() {
   const [successOpen, setSuccessOpen] = useState(false)
   const [successTitle, setSuccessTitle] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [alertMsg, setAlertMsg] = useState('')
 
   async function loadProfile() {
     setLoading(true)
@@ -78,7 +80,7 @@ export function SellerStorePage() {
       setDialogOpen(false)
       setSuccessOpen(true)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save store')
+      setAlertMsg(err instanceof Error ? err.message : 'Failed to save store')
     } finally {
       setSaving(false)
     }
@@ -234,6 +236,8 @@ export function SellerStorePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertModal open={!!alertMsg} message={alertMsg} onClose={() => setAlertMsg('')} />
     </div>
   )
 }

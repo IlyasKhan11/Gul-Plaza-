@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { FiPlus, FiEdit2, FiTrash2, FiPackage, FiX, FiCheckCircle, FiSearch, FiRefreshCw, FiUpload, FiEye } from 'react-icons/fi'
+import { FiPlus, FiEdit2, FiTrash2, FiPackage, FiX, FiCheckCircle, FiSearch, FiRefreshCw, FiUpload, FiEye, FiClock } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { sellerService, type SellerProduct, type ApiCategory } from '@/services/sellerService'
+import { AlertModal } from '@/components/ui/alert-modal'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -39,6 +40,9 @@ export function SellerProductsPage() {
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [successMsg, setSuccessMsg] = useState('')
+  const [storeApproved, setStoreApproved] = useState<boolean | null>(null)
+  const [storeName, setStoreName] = useState('')
+  const [alertMsg, setAlertMsg] = useState('')
 
   const fetchProducts = useCallback(async (p: number, q: string) => {
     setLoading(true)
@@ -61,6 +65,12 @@ export function SellerProductsPage() {
     sellerService.getCategories()
       .then(res => setCategories(Array.isArray(res) ? res : []))
       .catch(() => setCategories([]))
+    sellerService.getProfile()
+      .then(res => {
+        setStoreApproved(res.store?.is_active ?? false)
+        setStoreName(res.store?.name ?? '')
+      })
+      .catch(() => setStoreApproved(null))
   }, [fetchProducts])
 
   function handleSearch(e: React.FormEvent) {
@@ -121,7 +131,7 @@ export function SellerProductsPage() {
         if (last?.startsWith('blob:')) URL.revokeObjectURL(last)
         return prev.slice(0, -1)
       })
-      alert(err instanceof Error ? err.message : 'Failed to upload image')
+      setAlertMsg(err instanceof Error ? err.message : 'Failed to upload image')
     } finally {
       setUploadingImage(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -140,7 +150,7 @@ export function SellerProductsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!editProduct && !form.category_id) {
-      alert('Please select a category')
+      setAlertMsg('Please select a category')
       return
     }
     setSaving(true)
@@ -169,7 +179,7 @@ export function SellerProductsPage() {
       closeForm()
       fetchProducts(page, search)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save product')
+      setAlertMsg(err instanceof Error ? err.message : 'Failed to save product')
     } finally {
       setSaving(false)
     }
@@ -184,7 +194,7 @@ export function SellerProductsPage() {
       setTotalProducts(t => t - 1)
       setDeleteId(null)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete product')
+      setAlertMsg(err instanceof Error ? err.message : 'Failed to delete product')
     } finally {
       setDeleting(false)
     }
@@ -199,10 +209,24 @@ export function SellerProductsPage() {
           <h1 className="text-2xl font-bold text-slate-900">My Products</h1>
           <p className="text-slate-500 text-sm mt-1">{totalProducts} products in your store</p>
         </div>
-        <Button onClick={openAdd}>
+        <Button onClick={openAdd} disabled={storeApproved === false}>
           <FiPlus className="h-4 w-4 mr-1" /> Add Product
         </Button>
       </div>
+
+      {storeApproved === false && (
+        <div className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+            <FiClock className="h-5 w-5 text-amber-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-slate-900 text-sm">Store Pending Approval</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {storeName ? `"${storeName}" is` : 'Your store is'} awaiting admin approval. Product listing will be enabled once approved.
+            </p>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
@@ -560,6 +584,8 @@ export function SellerProductsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertModal open={!!alertMsg} message={alertMsg} onClose={() => setAlertMsg('')} />
 
       {/* Success Dialog */}
       <Dialog open={!!successMsg} onOpenChange={() => setSuccessMsg('')}>

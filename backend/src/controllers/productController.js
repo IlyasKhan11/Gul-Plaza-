@@ -1,5 +1,6 @@
 const { query } = require('../config/db');
 const { body, param, validationResult } = require('express-validator');
+const notificationService = require('../services/notificationService');
 
 // Validation rules for product creation
 const createProductValidation = [
@@ -247,7 +248,7 @@ const createProduct = async (req, res) => {
 
     // Get seller's store
     const storeResult = await query(
-      'SELECT id FROM stores WHERE owner_id = $1 LIMIT 1',
+      'SELECT id, name FROM stores WHERE owner_id = $1 LIMIT 1',
       [sellerId]
     );
 
@@ -259,6 +260,15 @@ const createProduct = async (req, res) => {
     }
 
     const storeId = storeResult.rows[0].id;
+    const storeName = storeResult.rows[0].name;
+    const storeActive = storeResult.rows[0].is_active;
+
+    if (!storeActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your store is pending admin approval. You cannot create products until your store is approved.',
+      });
+    }
 
     // Verify category exists
     const categoryResult = await query('SELECT id FROM categories WHERE id = $1', [category_id]);
@@ -301,6 +311,13 @@ const createProduct = async (req, res) => {
        GROUP BY p.id`,
       [productId]
     );
+
+    notificationService.notifyAllBuyers(
+      'new_product',
+      'New Product Available',
+      `${storeName} just listed "${title}" — check it out!`,
+      `/products/${productId}`
+    ).catch(() => {});
 
     res.status(201).json({
       success: true,

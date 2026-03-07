@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { FiX, FiChevronLeft, FiImage, FiUpload } from 'react-icons/fi'
+import { FiX, FiChevronLeft, FiImage, FiUpload, FiClock } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -129,6 +129,39 @@ export function SellerAddProductPage() {
             <p className="text-slate-500 mb-4">You need to create a store first before adding products.</p>
             <Button asChild>
               <Link to="/seller/store">Create Store</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!sellerStore.is_active) {
+    return (
+      <div className="max-w-2xl space-y-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to="/seller/products"><FiChevronLeft className="h-5 w-5" /></Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Add New Product</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Fill in the product details below</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
+              <FiClock className="h-8 w-8 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Store Pending Approval</h3>
+              <p className="text-slate-500 text-sm mt-1 max-w-sm mx-auto">
+                Your store <span className="font-medium text-slate-700">"{sellerStore.name}"</span> is currently under review.
+                You will be able to add products once an admin approves your store.
+              </p>
+            </div>
+            <Button variant="outline" asChild>
+              <Link to="/seller/store">View Store Details</Link>
             </Button>
           </CardContent>
         </Card>

@@ -25,9 +25,9 @@ const NotificationEvents = {
 };
 
 // Add a new SSE client connection
-function addClient(userId, res) {
+function addClient(userId, res, role = 'buyer') {
   const clientId = `${userId}_${Date.now()}`;
-  clients.set(clientId, { userId, res });
+  clients.set(clientId, { userId, role, res });
 
   res.on('close', () => {
     clients.delete(clientId);
@@ -94,6 +94,29 @@ function broadcast(event, data) {
   });
 }
 
+// Notify all buyers — batch insert to DB + push SSE to connected buyers
+async function notifyAllBuyers(type, title, message, link = null) {
+  try {
+    await query(
+      `INSERT INTO notifications (user_id, type, title, message, link)
+       SELECT id, $1, $2, $3, $4 FROM users WHERE role = 'buyer'`,
+      [type, title, message, link]
+    );
+    const payload = JSON.stringify({
+      event: 'notification',
+      data: { type, title, message, link, is_read: false, created_at: new Date().toISOString() },
+      timestamp: new Date().toISOString(),
+    });
+    clients.forEach((client) => {
+      if (client.role === 'buyer') {
+        client.res.write(`data: ${payload}\n\n`);
+      }
+    });
+  } catch (err) {
+    console.error('Failed to notify all buyers:', err);
+  }
+}
+
 // Get connected client count
 function getConnectedCount() {
   return clients.size;
@@ -106,5 +129,6 @@ module.exports = {
   sendToUser,
   sendToAdmins,
   broadcast,
+  notifyAllBuyers,
   getConnectedCount,
 };

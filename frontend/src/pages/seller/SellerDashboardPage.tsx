@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiDollarSign, FiPackage, FiShoppingBag, FiBriefcase, FiTrendingUp, FiGlobe, FiArrowRight, FiRefreshCw } from 'react-icons/fi'
+import { FiDollarSign, FiPackage, FiShoppingBag, FiBriefcase, FiTrendingUp, FiGlobe, FiArrowRight, FiRefreshCw, FiClock } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -101,6 +101,24 @@ export function SellerDashboardPage() {
         </div>
       ) : (
         <>
+          {/* Store Pending Approval Banner */}
+          {storeProfile?.store && !storeProfile.store.is_active && (
+            <div className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                <FiClock className="h-5 w-5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-900 text-sm">Store Pending Approval</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Your store <span className="font-medium text-slate-700">"{storeProfile.store.name}"</span> is under review. You can add products and receive orders once an admin approves it.
+                </p>
+              </div>
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/seller/store">View Store</Link>
+              </Button>
+            </div>
+          )}
+
           {/* Store Setup Banner */}
           {!storeProfile?.store && (
             <div className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">

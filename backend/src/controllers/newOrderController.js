@@ -1,6 +1,7 @@
 const OrderService = require('../services/orderService');
 const { query } = require('../config/db');
 const whatsappService = require('../services/whatsappService');
+const notificationService = require('../services/notificationService');
 const {
   isValidStatusTransition,
   getStatusAfterPaymentSelection,
@@ -67,12 +68,21 @@ const createOrder = async (req, res) => {
       return sum + (parseFloat(item.price) * item.quantity);
     }, 0);
     
+    // Collect unique sellers for notifications after commit
+    const sellerMap = new Map(); // sellerId -> { title, quantity }
+    for (const item of cartResult.rows) {
+      if (!sellerMap.has(item.seller_id)) {
+        sellerMap.set(item.seller_id, []);
+      }
+      sellerMap.get(item.seller_id).push({ title: item.title, quantity: item.quantity });
+    }
+
     // Start transaction
     const client = await require('../config/db').pool.connect();
-    
+
     try {
       await client.query('BEGIN');
-      
+
       // Create order with shipping information
       const createOrderQuery = `
         INSERT INTO orders (
@@ -148,7 +158,19 @@ const createOrder = async (req, res) => {
       await client.query('DELETE FROM cart WHERE user_id = $1', [userId]);
       
       await client.query('COMMIT');
-      
+
+      // Notify each seller via notifications table + SSE
+      for (const [sellerId, items] of sellerMap) {
+        const itemsSummary = items.map(i => `${i.title} (x${i.quantity})`).join(', ');
+        notificationService.saveNotification(
+          sellerId,
+          notificationService.NotificationEvents.NEW_ORDER,
+          'New Order Received',
+          `Order #${newOrder.id} placed by ${req.user.name}: ${itemsSummary}`,
+          `/seller/orders`
+        ).catch(() => {});
+      }
+
       res.status(201).json({
         success: true,
         message: 'Order created successfully. Please select a payment method.',

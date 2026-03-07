@@ -11,7 +11,7 @@ const notificationService = require('../services/notificationService');
 const getSellerOrders = async (req, res) => {
   try {
     const sellerId = req.user.userId;
-    const { page = 1, limit = 20, status } = req.query;
+    const { page = 1, limit = 20, status, search } = req.query;
     
     // Convert and validate pagination parameters
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -25,6 +25,18 @@ const getSellerOrders = async (req, res) => {
     if (status) {
       conditions.push(`o.status = $${paramIndex}`);
       params.push(status);
+      paramIndex++;
+    }
+
+    // Add search functionality
+    if (search) {
+      conditions.push(`(
+        CAST(o.id AS TEXT) ILIKE $${paramIndex} OR
+        u.name ILIKE $${paramIndex} OR
+        u.phone ILIKE $${paramIndex} OR
+        u.email ILIKE $${paramIndex}
+      )`);
+      params.push(`%${search}%`);
       paramIndex++;
     }
     
@@ -60,9 +72,14 @@ const getSellerOrders = async (req, res) => {
     if (orderIds.length > 0) {
       // Get items for these orders
       const itemsQuery = `
-        SELECT 
+        SELECT
           oi.order_id,
-          JSON_AGG(JSON_BUILD_OBJECT('title', p.title, 'quantity', oi.quantity, 'price', oi.price_at_purchase)) as items
+          JSON_AGG(JSON_BUILD_OBJECT(
+            'title', p.title,
+            'quantity', oi.quantity,
+            'price', oi.price_at_purchase,
+            'product_image', (SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY id ASC LIMIT 1)
+          )) as items
         FROM order_items oi
         JOIN products p ON oi.product_id = p.id
         WHERE oi.order_id = ANY($1)

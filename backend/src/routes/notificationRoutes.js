@@ -35,7 +35,7 @@ router.get('/sse', authenticateSSE, requireAnyRole, (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   const userId = req.user.role === 'admin' ? 'admin' : req.user.userId;
-  notificationService.addClient(userId, res);
+  notificationService.addClient(userId, res, req.user.role);
 
   res.write(`data: ${JSON.stringify({ event: 'connected', data: { message: 'Connected to notifications' }, timestamp: new Date().toISOString() })}\n\n`);
 
