@@ -61,14 +61,18 @@ export function CartPage() {
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Cart Items */}
         <div className="lg:col-span-3 space-y-3">
-          {items.map(({ product, quantity }) => {
-            // Defensive checks
-            const safePrice = typeof product.price === 'number' ? product.price : 0
-            const safeStock = typeof product.stock === 'number' ? product.stock : 0
+          {items.map(({ product, quantity, variantId, variantLabel }) => {
+            const safePrice = variantId
+              ? (product.variants?.find(v => v.id === variantId)?.price ?? Number(product.price))
+              : (typeof product.price === 'number' ? product.price : Number(product.price))
+            const safeStock = variantId
+              ? (product.variants?.find(v => v.id === variantId)?.stock ?? product.stock ?? 0)
+              : (typeof product.stock === 'number' ? product.stock : 0)
             const safeImages = Array.isArray(product.images) && product.images.length > 0 ? product.images : []
-            
+            const key = `${product.id}:${variantId ?? 'none'}`
+
             return (
-            <div key={product.id} className="bg-white rounded-xl border border-slate-200 p-4 flex gap-4 shadow-sm hover:shadow-md transition-shadow">
+            <div key={key} className="bg-white rounded-xl border border-slate-200 p-4 flex gap-4 shadow-sm hover:shadow-md transition-shadow">
               <Link to={`/products/${product.id}`} className="shrink-0">
                 <img
                   src={safeImages[0] || ''}
@@ -81,20 +85,23 @@ export function CartPage() {
                   <h3 className="font-semibold text-slate-800 text-sm hover:text-blue-600 transition-colors line-clamp-2 leading-snug">{product.name || ''}</h3>
                 </Link>
                 <p className="text-xs text-blue-600 font-medium mt-1">{product.storeName || ''}</p>
+                {variantLabel && (
+                  <span className="inline-block mt-1 text-xs bg-slate-100 text-slate-600 rounded px-2 py-0.5">{variantLabel}</span>
+                )}
                 <p className="text-xs text-slate-400 mt-0.5">Unit price: {formatPrice(safePrice)}</p>
 
                 <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
                   {/* Quantity control */}
                   <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden">
                     <button
-                      onClick={() => updateQuantity(product.id, quantity - 1)}
+                      onClick={() => updateQuantity(product.id, quantity - 1, variantId)}
                       className="w-8 h-8 flex items-center justify-center hover:bg-red-50 hover:text-red-600 text-slate-600 transition-colors"
                     >
                       <FiMinus className="h-3.5 w-3.5" />
                     </button>
                     <span className="w-9 text-center text-sm font-bold text-slate-900">{quantity}</span>
                     <button
-                      onClick={() => updateQuantity(product.id, quantity + 1)}
+                      onClick={() => updateQuantity(product.id, quantity + 1, variantId)}
                       disabled={quantity >= safeStock}
                       className="w-8 h-8 flex items-center justify-center hover:bg-green-50 hover:text-green-600 text-slate-600 transition-colors disabled:opacity-30"
                     >
@@ -105,7 +112,7 @@ export function CartPage() {
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-slate-900 text-base">{formatPrice(safePrice * quantity)}</span>
                     <button
-                      onClick={() => removeItem(product.id)}
+                      onClick={() => removeItem(product.id, variantId)}
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
                     >
                       <FiTrash2 className="h-4 w-4" />

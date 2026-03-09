@@ -46,6 +46,7 @@ export function ProductDetailPage() {
   const isBuyer = !user || user.role === 'buyer'
   const [selectedImage, setSelectedImage] = useState(0)
   const [qty, setQty] = useState(1)
+  const [selectedVariantId, setSelectedVariantId] = useState<number | undefined>(undefined)
 
   // Report dialog state
   const [reportOpen, setReportOpen] = useState(false)
@@ -120,15 +121,23 @@ export function ProductDetailPage() {
     }
   }
 
+  const selectedVariant = product?.variants?.find(v => v.id === selectedVariantId)
+
   const handleAddToCart = () => {
     if (!product) return
-    for (let i = 0; i < qty; i++) addItem(product)
+    const label = selectedVariant
+      ? selectedVariant.options.map(o => o.value).join(' / ')
+      : undefined
+    addItem(product, qty, selectedVariantId, label)
     navigate('/cart')
   }
 
   const handleBuyNow = () => {
     if (!product) return
-    for (let i = 0; i < qty; i++) addItem(product)
+    const label = selectedVariant
+      ? selectedVariant.options.map(o => o.value).join(' / ')
+      : undefined
+    addItem(product, qty, selectedVariantId, label)
     navigate('/checkout')
   }
 
@@ -188,11 +197,6 @@ export function ProductDetailPage() {
       </div>
     )
   }
-
-  // Use product fields directly from API response
-  const discount = product.originalPrice && Number(product.originalPrice) > 0
-    ? Math.round(((Number(product.originalPrice) - Number(product.price)) / Number(product.originalPrice)) * 100)
-    : 0
 
   const whatsappUrl = '#'
 
@@ -283,16 +287,87 @@ export function ProductDetailPage() {
           </div>
 
           <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-bold text-slate-900">{formatPrice(Number(product.price))}</span>
-            {product.originalPrice && Number(product.originalPrice) > 0 && (
-              <>
-                <span className="text-xl text-slate-400 line-through">{formatPrice(Number(product.originalPrice))}</span>
-                <Badge className="bg-red-500 border-0 text-white">-{discount}%</Badge>
-              </>
-            )}
+            <span className="text-3xl font-bold text-slate-900">
+              {formatPrice(selectedVariant ? selectedVariant.price : Number(product.price))}
+            </span>
           </div>
 
           <Separator />
+
+          {/* Variant selector */}
+          {product.variants && product.variants.length > 0 && (() => {
+            // Group options by type across all variants
+            const colorMap: Record<string, number[]> = {}
+            const sizeMap: Record<string, number[]> = {}
+            for (const v of product.variants) {
+              for (const o of v.options) {
+                if (o.type === 'color') {
+                  if (!colorMap[o.value]) colorMap[o.value] = []
+                  colorMap[o.value].push(v.id)
+                } else if (o.type === 'size') {
+                  if (!sizeMap[o.value]) sizeMap[o.value] = []
+                  sizeMap[o.value].push(v.id)
+                }
+              }
+            }
+            const colors = Object.keys(colorMap)
+            const sizes = Object.keys(sizeMap)
+            return (
+              <div className="space-y-3">
+                {colors.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 mb-2">Color</p>
+                    <div className="flex flex-wrap gap-2">
+                      {colors.map(color => {
+                        const vId = colorMap[color][0]
+                        const isSelected = selectedVariantId === vId
+                        return (
+                          <button
+                            key={color}
+                            onClick={() => setSelectedVariantId(isSelected ? undefined : vId)}
+                            className={`px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition-colors ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-slate-200 hover:border-slate-400 text-slate-700'
+                            }`}
+                          >
+                            {color}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+                {sizes.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 mb-2">Size</p>
+                    <div className="flex flex-wrap gap-2">
+                      {sizes.map(size => {
+                        const vId = sizeMap[size][0]
+                        const isSelected = selectedVariantId === vId
+                        const variant = product.variants?.find(v => v.id === vId)
+                        const outOfStock = variant && variant.stock === 0
+                        return (
+                          <button
+                            key={size}
+                            disabled={!!outOfStock}
+                            onClick={() => setSelectedVariantId(isSelected ? undefined : vId)}
+                            className={`px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-slate-200 hover:border-slate-400 text-slate-700'
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           <div>
             <h3 className="font-semibold text-slate-900 mb-2">Description</h3>
@@ -300,26 +375,34 @@ export function ProductDetailPage() {
           </div>
 
           {/* Quantity */}
-          <div className="flex items-center gap-3">
-            <Label className="font-medium text-slate-700">Quantity:</Label>
-            <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden">
-              <button 
-                onClick={() => setQty(q => Math.max(1, q - 1))} 
-                className="px-4 py-2 hover:bg-red-50 hover:text-red-600 text-slate-700 font-bold transition-colors"
-                disabled={product.stock === 0}
-              >
-                −
-              </button>
-              <span className="px-5 py-2 text-sm font-bold text-slate-900 border-x-2 border-slate-200">{qty}</span>
-              <button 
-                onClick={() => setQty(q => Math.min(product.stock ?? 1, q + 1))} 
-                className="px-4 py-2 hover:bg-green-50 hover:text-green-600 text-slate-700 font-bold transition-colors"
-                disabled={product.stock === 0 || qty >= (product.stock || 0)}
-              >
-                +
-              </button>
-            </div>
-          </div>
+          {(() => {
+            const stockToUse = selectedVariant ? selectedVariant.stock : (product.stock ?? 0)
+            return (
+              <div className="flex items-center gap-3">
+                <Label className="font-medium text-slate-700">Quantity:</Label>
+                <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setQty(q => Math.max(1, q - 1))}
+                    className="px-4 py-2 hover:bg-red-50 hover:text-red-600 text-slate-700 font-bold transition-colors"
+                    disabled={stockToUse === 0}
+                  >
+                    −
+                  </button>
+                  <span className="px-5 py-2 text-sm font-bold text-slate-900 border-x-2 border-slate-200">{qty}</span>
+                  <button
+                    onClick={() => setQty(q => Math.min(stockToUse, q + 1))}
+                    className="px-4 py-2 hover:bg-green-50 hover:text-green-600 text-slate-700 font-bold transition-colors"
+                    disabled={stockToUse === 0 || qty >= stockToUse}
+                  >
+                    +
+                  </button>
+                </div>
+                {selectedVariant && (
+                  <span className="text-xs text-slate-400">{selectedVariant.stock} in stock</span>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Actions */}
           {isBuyer ? (

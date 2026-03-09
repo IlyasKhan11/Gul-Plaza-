@@ -428,6 +428,13 @@ export const adminService = {
     window.open(url, '_blank')
   },
 
+  async getMonthlyRevenue(months = 12): Promise<Array<{ month: string; month_key: string; order_count: number; revenue: number }>> {
+    const res = await api.get<{ success: boolean; data: Array<{ month: string; month_key: string; order_count: number; revenue: number }> }>(
+      `/api/admin/dashboard/monthly-revenue?months=${months}`
+    )
+    return res.data
+  },
+
   exportReportsPDF(status?: string): void {
     const url = status ? `/api/admin/reports/export/pdf?status=${status}` : '/api/admin/reports/export/pdf'
     window.open(url, '_blank')

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { sellerService, type SellerProduct, type ApiCategory } from '@/services/sellerService'
+import { sellerService, type SellerProduct, type ApiCategory, type SellerVariant, type SellerVariantOption } from '@/services/sellerService'
 import { AlertModal } from '@/components/ui/alert-modal'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -43,6 +43,58 @@ export function SellerProductsPage() {
   const [storeApproved, setStoreApproved] = useState<boolean | null>(null)
   const [storeName, setStoreName] = useState('')
   const [alertMsg, setAlertMsg] = useState('')
+  const [variants, setVariants] = useState<SellerVariant[]>([])
+  const [newVariantPrice, setNewVariantPrice] = useState('')
+  const [newVariantStock, setNewVariantStock] = useState('')
+  const [newVariantOptions, setNewVariantOptions] = useState<SellerVariantOption[]>([])
+  const [newOptionType, setNewOptionType] = useState<'color' | 'size'>('color')
+  const [newOptionValue, setNewOptionValue] = useState('')
+
+  const SIZE_PRESETS: Record<string, string[]> = {
+    clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+    shoes: ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'],
+    kids: ['2-3Y', '4-5Y', '6-7Y', '8-9Y', '10-11Y', '12-13Y'],
+  }
+  const COLOR_PRESETS = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Orange', 'Pink', 'Purple', 'Brown', 'Gray', 'Navy', 'Beige']
+
+  const selectedCategoryName = categories.find(c => String(c.id) === form.category_id)?.name?.toLowerCase() ?? ''
+  const sizePreset = selectedCategoryName.includes('shoe') || selectedCategoryName.includes('footwear')
+    ? SIZE_PRESETS.shoes
+    : selectedCategoryName.includes('kid') || selectedCategoryName.includes('children')
+    ? SIZE_PRESETS.kids
+    : SIZE_PRESETS.clothing
+
+  function addOptionToNew() {
+    if (!newOptionValue.trim()) return
+    setNewVariantOptions(prev => [...prev, { type: newOptionType, value: newOptionValue.trim() }])
+    setNewOptionValue('')
+  }
+
+  function addVariantToList() {
+    const price = Number(newVariantPrice)
+    const stock = Number(newVariantStock)
+    if (!price || !stock || newVariantOptions.length === 0) {
+      setAlertMsg('Fill in variant price, stock, and at least one option (color or size).')
+      return
+    }
+    setVariants(prev => [...prev, { price, stock, options: newVariantOptions }])
+    setNewVariantPrice('')
+    setNewVariantStock('')
+    setNewVariantOptions([])
+  }
+
+  function removeVariant(idx: number) {
+    setVariants(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function resetVariantState() {
+    setVariants([])
+    setNewVariantPrice('')
+    setNewVariantStock('')
+    setNewVariantOptions([])
+    setNewOptionType('color')
+    setNewOptionValue('')
+  }
 
   const fetchProducts = useCallback(async (p: number, q: string) => {
     setLoading(true)
@@ -87,6 +139,7 @@ export function SellerProductsPage() {
   function openAdd() {
     setForm(emptyForm)
     setImagePreviewUrls([])
+    resetVariantState()
     setAddOpen(true)
   }
 
@@ -107,6 +160,7 @@ export function SellerProductsPage() {
     setAddOpen(false)
     setEditProduct(null)
     setForm(emptyForm)
+    resetVariantState()
     setImagePreviewUrls(prev => {
       prev.forEach(url => { if (url.startsWith('blob:')) URL.revokeObjectURL(url) })
       return []
@@ -163,6 +217,7 @@ export function SellerProductsPage() {
           stock: Number(form.stock),
           category_id: form.category_id ? Number(form.category_id) : undefined,
           images: form.images,
+          ...(variants.length > 0 ? { variants } : {}),
         })
         setSuccessMsg('Product updated successfully!')
       } else {
@@ -173,6 +228,7 @@ export function SellerProductsPage() {
           stock: Number(form.stock),
           category_id: Number(form.category_id),
           images: form.images.length > 0 ? form.images : [],
+          ...(variants.length > 0 ? { variants } : {}),
         })
         setSuccessMsg('Product added successfully!')
       }
@@ -471,6 +527,103 @@ export function SellerProductsPage() {
                 </div>
               )}
             </div>
+            {/* Variant Builder */}
+            <div className="border border-slate-200 rounded-xl p-4 space-y-3 bg-slate-50/50">
+              <p className="text-sm font-semibold text-slate-700">Variants (Colors / Sizes)</p>
+
+              {/* Added variants list */}
+              {variants.length > 0 && (
+                <div className="space-y-2">
+                  {variants.map((v, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {v.options.map((o, oi) => (
+                          <span key={oi} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">{o.type}: {o.value}</span>
+                        ))}
+                        <span className="text-slate-500 text-xs">Rs. {v.price} · Stock: {v.stock}</span>
+                      </div>
+                      <button type="button" onClick={() => removeVariant(idx)} className="text-red-400 hover:text-red-600 ml-2">
+                        <FiX className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* New variant options */}
+              {newVariantOptions.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {newVariantOptions.map((o, i) => (
+                    <span key={i} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs">{o.type}: {o.value}</span>
+                  ))}
+                </div>
+              )}
+
+              {/* Option type + value */}
+              <div className="flex gap-2">
+                <select
+                  value={newOptionType}
+                  onChange={e => setNewOptionType(e.target.value as 'color' | 'size')}
+                  className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
+                >
+                  <option value="color">Color</option>
+                  <option value="size">Size</option>
+                </select>
+                <input
+                  value={newOptionValue}
+                  onChange={e => setNewOptionValue(e.target.value)}
+                  placeholder={newOptionType === 'color' ? 'e.g. Red' : 'e.g. M'}
+                  className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5"
+                />
+                <Button type="button" size="sm" variant="outline" onClick={addOptionToNew}>+ Option</Button>
+              </div>
+
+              {/* Preset buttons */}
+              {newOptionType === 'size' && (
+                <div className="flex flex-wrap gap-1">
+                  {sizePreset.map(s => (
+                    <button key={s} type="button"
+                      onClick={() => setNewOptionValue(s)}
+                      className="text-xs px-2 py-1 border border-slate-200 rounded hover:bg-blue-50 hover:border-blue-300">
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {newOptionType === 'color' && (
+                <div className="flex flex-wrap gap-1">
+                  {COLOR_PRESETS.map(c => (
+                    <button key={c} type="button"
+                      onClick={() => setNewOptionValue(c)}
+                      className="text-xs px-2 py-1 border border-slate-200 rounded hover:bg-blue-50 hover:border-blue-300">
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Variant price + stock */}
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number" min="1"
+                  value={newVariantPrice}
+                  onChange={e => setNewVariantPrice(e.target.value)}
+                  placeholder="Variant price (Rs.)"
+                  className="text-sm border border-slate-200 rounded-lg px-3 py-1.5"
+                />
+                <input
+                  type="number" min="0"
+                  value={newVariantStock}
+                  onChange={e => setNewVariantStock(e.target.value)}
+                  placeholder="Variant stock"
+                  className="text-sm border border-slate-200 rounded-lg px-3 py-1.5"
+                />
+              </div>
+              <Button type="button" size="sm" variant="outline" className="w-full" onClick={addVariantToList}>
+                + Add Variant
+              </Button>
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
               <Button type="submit" disabled={saving}>

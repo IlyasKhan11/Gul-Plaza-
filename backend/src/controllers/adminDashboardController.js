@@ -198,11 +198,46 @@ const getLowStockProducts = async (req, res) => {
   }
 };
 
+// Get monthly platform revenue for the past N months
+const getMonthlyRevenue = async (req, res) => {
+  try {
+    const months = Math.min(Math.max(parseInt(req.query.months) || 12, 1), 24);
+
+    const revenueQuery = `
+      SELECT
+        TO_CHAR(DATE_TRUNC('month', created_at), 'Mon') AS month_name,
+        TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month_key,
+        COUNT(*)::int AS order_count,
+        COALESCE(SUM(total_amount), 0)::float AS revenue
+      FROM orders
+      WHERE created_at >= DATE_TRUNC('month', NOW() - INTERVAL '1 month' * ($1 - 1))
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY DATE_TRUNC('month', created_at) ASC
+    `;
+
+    const result = await query(revenueQuery, [months]);
+
+    res.status(200).json({
+      success: true,
+      data: result.rows.map(row => ({
+        month: row.month_name,
+        month_key: row.month_key,
+        order_count: row.order_count,
+        revenue: row.revenue,
+      })),
+    });
+  } catch (error) {
+    console.error('Error getting monthly revenue:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getDashboardSummary,
   getSalesReport,
   getTopProducts,
   getLowStockProducts,
+  getMonthlyRevenue,
   dashboardSummaryValidation,
   salesReportValidation,
 };

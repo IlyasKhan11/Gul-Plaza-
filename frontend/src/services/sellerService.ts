@@ -29,6 +29,17 @@ export interface SellerStore {
   created_at: string
 }
 
+export interface SellerVariantOption {
+  type: 'color' | 'size'
+  value: string
+}
+
+export interface SellerVariant {
+  price: number
+  stock: number
+  options: SellerVariantOption[]
+}
+
 export interface SellerProduct {
   id: number
   title: string
@@ -40,6 +51,7 @@ export interface SellerProduct {
   primary_image: string | null
   created_at: string
   updated_at?: string
+  variant_count?: number
 }
 
 export interface SellerOrder {
@@ -159,6 +171,7 @@ export const sellerService = {
     stock: number
     category_id: number
     images?: string[]
+    variants?: SellerVariant[]
   }): Promise<SellerProduct> {
     const res = await api.post<ApiResp<SellerProduct>>('/api/products', data)
     return res.data
@@ -166,7 +179,7 @@ export const sellerService = {
 
   async updateProduct(
     productId: number,
-    data: { title?: string; description?: string; price?: number; stock?: number; category_id?: number; is_active?: boolean; images?: string[] }
+    data: { title?: string; description?: string; price?: number; stock?: number; category_id?: number; is_active?: boolean; images?: string[]; variants?: SellerVariant[] }
   ): Promise<SellerProduct> {
     const res = await api.put<ApiResp<SellerProduct>>(`/api/products/${productId}`, data)
     return res.data

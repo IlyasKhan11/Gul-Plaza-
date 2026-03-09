@@ -64,6 +64,7 @@ export interface Product {
   isFeatured?: boolean
   createdAt?: string
   store_description?: string // <-- Add this for backend compatibility
+  variants?: ProductVariant[]
 }
 
 export interface Review {
@@ -77,9 +78,24 @@ export interface Review {
   createdAt: string
 }
 
+export interface VariantOption {
+  type: string
+  value: string
+}
+
+export interface ProductVariant {
+  id: number
+  price: number
+  stock: number
+  is_active: boolean
+  options: VariantOption[]
+}
+
 export interface CartItem {
   product: Product
   quantity: number
+  variantId?: number
+  variantLabel?: string
 }
 
 export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'

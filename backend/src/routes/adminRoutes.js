@@ -15,6 +15,7 @@ const {
   getSalesReport,
   getTopProducts,
   getLowStockProducts,
+  getMonthlyRevenue,
   dashboardSummaryValidation,
   salesReportValidation,
 } = require('../controllers/adminDashboardController');
@@ -195,6 +196,7 @@ router.get('/dashboard/sales-report', authenticateToken, requireAdmin, salesRepo
  * @access  Private (Admin only)
  */
 router.get('/dashboard/top-products', authenticateToken, requireAdmin, getTopProducts);
+router.get('/dashboard/monthly-revenue', authenticateToken, requireAdmin, getMonthlyRevenue);
 
 /**
  * @route   GET /api/admin/products/low-stock

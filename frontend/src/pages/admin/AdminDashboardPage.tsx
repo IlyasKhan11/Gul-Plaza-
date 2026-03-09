@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { adminService, type DashboardStats, type ApiSellerApplication } from '@/services/adminService'
-import { mockAdminSalesData } from '@/data/mockData'
 import { formatPrice } from '@/lib/utils'
 
 export function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [sellerApplications, setSellerApplications] = useState<ApiSellerApplication[]>([])
+  const [monthlyRevenue, setMonthlyRevenue] = useState<Array<{ month: string; revenue: number; order_count: number }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -18,12 +18,14 @@ export function AdminDashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const [data, applications] = await Promise.all([
+      const [data, applications, revenue] = await Promise.all([
         adminService.getStats(),
-        adminService.getSellerApplications()
+        adminService.getSellerApplications(),
+        adminService.getMonthlyRevenue(12),
       ])
       setStats(data)
       setSellerApplications(applications)
+      setMonthlyRevenue(revenue)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load stats')
     } finally {
@@ -109,7 +111,7 @@ export function AdminDashboardPage() {
             ))}
       </div>
 
-      {/* Revenue Chart (static mock data until we build a time-series endpoint) */}
+      {/* Revenue Chart */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -117,15 +119,19 @@ export function AdminDashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {monthlyRevenue.length === 0 && !loading ? (
+            <p className="text-sm text-slate-400 text-center py-10">No revenue data yet.</p>
+          ) : (
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={mockAdminSalesData}>
+            <BarChart data={monthlyRevenue}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(v) => [`Rs. ${Number(v).toLocaleString()}`, 'Revenue']} />
-              <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} maxBarSize={60} />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
