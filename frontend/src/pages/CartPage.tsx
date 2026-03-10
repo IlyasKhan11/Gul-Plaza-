@@ -145,25 +145,7 @@ export function CartPage() {
                     <span>Subtotal ({itemCount} item{itemCount !== 1 ? 's' : ''})</span>
                     <span className="font-medium text-slate-800">{formatPrice(total)}</span>
                   </div>
-                  <div className="flex justify-between text-sm text-slate-600">
-                    <span>Shipping</span>
-                    <span className={shipping === 0 ? 'text-green-600 font-semibold' : 'text-slate-800 font-medium'}>
-                      {shipping === 0 ? 'FREE' : formatPrice(shipping)}
-                    </span>
-                  </div>
                 </div>
-
-                {shipping === 0 && (
-                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 text-xs text-green-700 font-medium">
-                    🎉 You qualify for free shipping!
-                  </div>
-                )}
-                {shipping > 0 && (
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 text-xs text-blue-700">
-                    Add {formatPrice(2000 - total)} more for free shipping
-                  </div>
-                )}
-
                 <Separator />
 
                 <div className="flex justify-between items-center">

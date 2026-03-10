@@ -1,5 +1,4 @@
 import { api } from '@/lib/api'
-import type { CartItem } from '@/types'
 
 interface ApiResp<T> {
   success: boolean

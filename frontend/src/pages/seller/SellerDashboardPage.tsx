@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FiDollarSign, FiPackage, FiShoppingBag, FiBriefcase, FiTrendingUp, FiGlobe, FiArrowRight, FiRefreshCw, FiClock } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar } from 'recharts'
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { OrderStatusBadge } from '@/components/common/OrderStatusBadge'

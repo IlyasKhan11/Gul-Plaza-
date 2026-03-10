@@ -432,6 +432,38 @@ export function BuyerOrdersPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Order Summary */}
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+                <div className="flex justify-between items-center text-sm mb-2">
+                  <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {formatPrice(selectedOrder.items?.reduce((sum: number, item: any) => sum + ((item.price_at_purchase || item.price || 0) * item.quantity), 0) || 0)}
+                  </span>
+                </div>
+                {(selectedOrder as any).shipping_cost > 0 && (
+                  <div className="flex justify-between items-center text-sm mb-2">
+                    <span className="text-slate-600 dark:text-slate-400">Shipping</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      {formatPrice((selectedOrder as any).shipping_cost)}
+                    </span>
+                  </div>
+                )}
+                {(selectedOrder as any).tax_amount > 0 && (
+                  <div className="flex justify-between items-center text-sm mb-2">
+                    <span className="text-slate-600 dark:text-slate-400">Tax</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      {formatPrice((selectedOrder as any).tax_amount)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-base font-bold border-t border-slate-200 dark:border-slate-700 pt-3 mt-3">
+                  <span className="text-slate-900 dark:text-slate-100">Total</span>
+                  <span className="text-slate-900 dark:text-slate-100">
+                    {formatPrice(parseFloat(selectedOrder.total_amount))}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>

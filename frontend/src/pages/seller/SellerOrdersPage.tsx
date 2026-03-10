@@ -667,12 +667,39 @@ export function SellerOrdersPage() {
               </div>
 
               {/* Footer */}
-              <div className="border-t border-slate-100 px-6 py-4 bg-slate-50 flex items-center justify-between">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-sm text-slate-500 font-medium">Total</span>
-                  <span className="text-2xl font-bold text-slate-900">{formatPrice(selectedOrder.total_amount || selectedOrder.totalAmount)}</span>
+              <div className="border-t border-slate-100 px-6 py-4 bg-slate-50">
+                {/* Order Summary */}
+                <div className="mb-4 pb-4 border-b border-slate-200">
+                  <div className="flex justify-between items-center text-sm mb-2">
+                    <span className="text-slate-500 font-medium">Subtotal</span>
+                    <span className="text-slate-900 font-medium">
+                      {formatPrice(selectedOrder.items?.reduce((sum: number, item: any) => sum + ((item.price || item.unit_price || 0) * (item.quantity || 1)), 0) || 0)}
+                    </span>
+                  </div>
+                  {(selectedOrder as any).shipping_cost > 0 && (
+                    <div className="flex justify-between items-center text-sm mb-2">
+                      <span className="text-slate-500 font-medium">Shipping</span>
+                      <span className="text-slate-900 font-medium">
+                        {formatPrice((selectedOrder as any).shipping_cost)}
+                      </span>
+                    </div>
+                  )}
+                  {(selectedOrder as any).tax_amount > 0 && (
+                    <div className="flex justify-between items-center text-sm mb-2">
+                      <span className="text-slate-500 font-medium">Tax</span>
+                      <span className="text-slate-900 font-medium">
+                        {formatPrice((selectedOrder as any).tax_amount)}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <Button onClick={() => setShowViewModal(false)} className="px-6">Close</Button>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm text-slate-500 font-medium">Total</span>
+                    <span className="text-2xl font-bold text-slate-900">{formatPrice(selectedOrder.total_amount || selectedOrder.totalAmount)}</span>
+                  </div>
+                  <Button onClick={() => setShowViewModal(false)} className="px-6">Close</Button>
+                </div>
               </div>
             </>
           )}

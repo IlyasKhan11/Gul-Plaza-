@@ -35,7 +35,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const stock = Number(p.stock)
         const qty = Number(i.quantity)
         return (
-          typeof p.id === 'string' &&
+          (typeof p.id === 'string' || typeof p.id === 'number') &&
           isFinite(price) && price > 0 &&
           isFinite(qty) && qty > 0 && Number.isInteger(qty) &&
           isFinite(stock) && stock >= 0
@@ -96,10 +96,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const total = items.reduce((sum, i) => {
-    const price = i.variantId
-      ? (i.product.variants?.find(v => v.id === i.variantId)?.price ?? Number(i.product.price))
-      : Number(i.product.price)
-    return sum + price * i.quantity
+    let price: number = 0
+    if (i.variantId) {
+      const variant = i.product.variants?.find(v => v.id === i.variantId)
+      price = variant ? Number(variant.price) : Number(i.product.price)
+    } else {
+      price = Number(i.product.price)
+    }
+    return sum + (isFinite(price) ? price : 0) * i.quantity
   }, 0)
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
 

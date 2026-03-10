@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiEdit2, FiCheckCircle, FiPhone, FiMapPin, FiGlobe, FiClock, FiTrash2 } from 'react-icons/fi'
+import { FiEdit2, FiPhone, FiMapPin, FiGlobe, FiClock, FiTrash2 } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,7 +12,6 @@ import { AlertModal } from '@/components/ui/alert-modal'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { sellerService } from '@/services/sellerService'
-import { generateId } from '@/lib/utils'
 import type { Store } from '@/types'
 
 function toSlug(name: string) {

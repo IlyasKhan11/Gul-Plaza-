@@ -22,7 +22,7 @@ export function AdminWithdrawalsPage() {
   const [filter, setFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalWithdrawals, setTotalWithdrawals] = useState(0)
+  const [, setTotalWithdrawals] = useState(0)
   const [stats, setStats] = useState({ pending_count: 0, pending_amount: 0, approved_amount: 0 })
   const [confirmAction, setConfirmAction] = useState<{ id: number; action: 'approved' | 'rejected' } | null>(null)
   const [successOpen, setSuccessOpen] = useState(false)

@@ -68,17 +68,14 @@ export function HomePage() {
   const [categories, setCategories] = useState<ApiCategory[]>([])
   const [stores, setStores] = useState<ApiStore[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
     api.get<{ data: { products: Product[] } }>('/api/products?page=1&limit=40')
       .then(res => {
         setProducts(res.data.products)
-        setError(null)
       })
-      .catch(err => {
-        setError(err.message)
+      .catch(() => {
         setProducts([])
       })
       .finally(() => setLoading(false))

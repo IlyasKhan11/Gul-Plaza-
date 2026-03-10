@@ -515,7 +515,7 @@ export function CheckoutPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-slate-600">
                     <span>Subtotal</span>
-                    <span>{serverTotalLoading ? '…' : formatPrice(grandTotal)}</span>
+                    <span>{serverTotalLoading ? '…' : formatPrice(total)}</span>
                   </div>
                 </div>
 
@@ -532,7 +532,7 @@ export function CheckoutPage() {
                   {serverTotalLoading ? (
                     <FiLoader className="h-5 w-5 animate-spin text-blue-500" />
                   ) : (
-                    <span className="text-xl font-bold text-blue-700">{formatPrice(grandTotal)}</span>
+                    <span className="text-xl font-bold text-blue-700">{formatPrice(total)}</span>
                   )}
                 </div>
 
