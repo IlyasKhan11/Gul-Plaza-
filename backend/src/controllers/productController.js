@@ -1,6 +1,7 @@
 const { query } = require('../config/db');
 const { body, param, validationResult } = require('express-validator');
 const notificationService = require('../services/notificationService');
+const { deleteImage } = require('../config/cloudinary');
 
 // Validation rules for product creation
 const createProductValidation = [
@@ -215,7 +216,7 @@ const getProductById = async (req, res) => {
     
     // Get product images
     const imagesQuery = `
-      SELECT id, image_url, created_at
+      SELECT id, image_url, public_id, created_at
       FROM product_images
       WHERE product_id = $1
       ORDER BY id ASC
@@ -287,10 +288,12 @@ const createProduct = async (req, res) => {
     // Insert product images
     if (images.length > 0) {
       for (let i = 0; i < images.length; i++) {
+        // Handle both string URLs and objects with url/public_id
+        const imageData = typeof images[i] === 'string' ? { url: images[i] } : images[i];
         await query(
-          `INSERT INTO product_images (product_id, image_url)
-           VALUES ($1, $2)`,
-          [productId, images[i]]
+          `INSERT INTO product_images (product_id, image_url, public_id)
+           VALUES ($1, $2, $3)`,
+          [productId, imageData.url, imageData.public_id || null]
         );
       }
     }
@@ -300,7 +303,7 @@ const createProduct = async (req, res) => {
       `SELECT p.*, 
         COALESCE(
           JSON_AGG(
-            JSON_BUILD_OBJECT('id', pi.id, 'image_url', pi.image_url)
+            JSON_BUILD_OBJECT('id', pi.id, 'image_url', pi.image_url, 'public_id', pi.public_id)
           ) FILTER (WHERE pi.id IS NOT NULL),
           '[]'
         ) as images
@@ -413,10 +416,12 @@ const updateProduct = async (req, res) => {
       
       // Insert new images
       for (let i = 0; i < images.length; i++) {
+        // Handle both string URLs and objects with url/public_id
+        const imageData = typeof images[i] === 'string' ? { url: images[i] } : images[i];
         await query(
-          `INSERT INTO product_images (product_id, image_url)
-           VALUES ($1, $2)`,
-          [productId, images[i]]
+          `INSERT INTO product_images (product_id, image_url, public_id)
+           VALUES ($1, $2, $3)`,
+          [productId, imageData.url, imageData.public_id || null]
         );
       }
     }
@@ -426,7 +431,7 @@ const updateProduct = async (req, res) => {
       `SELECT p.*, 
         COALESCE(
           JSON_AGG(
-            JSON_BUILD_OBJECT('id', pi.id, 'image_url', pi.image_url)
+            JSON_BUILD_OBJECT('id', pi.id, 'image_url', pi.image_url, 'public_id', pi.public_id)
           ) FILTER (WHERE pi.id IS NOT NULL),
           '[]'
         ) as images
@@ -513,11 +518,22 @@ const uploadProductImage = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No image file provided' });
     }
-    const imageUrl = `/uploads/products/${req.file.filename}`;
-    res.status(200).json({ success: true, message: 'Image uploaded successfully', data: { image_url: imageUrl } });
+    
+    // Cloudinary multer-storage provides the file info with Cloudinary URL
+    const imageUrl = req.file.path; // This will be the Cloudinary URL
+    const publicId = req.file.filename; // This will be the Cloudinary public_id
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Image uploaded successfully to Cloudinary', 
+      data: { 
+        image_url: imageUrl,
+        public_id: publicId
+      } 
+    });
   } catch (error) {
-    console.error('Error uploading product image:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    console.error('Error uploading product image to Cloudinary:', error);
+    res.status(500).json({ success: false, message: 'Error uploading image to Cloudinary' });
   }
 };
 
@@ -608,6 +624,58 @@ const getSellerProducts = async (req, res) => {
   }
 };
 
+// Delete product image (Seller only)
+const deleteProductImage = async (req, res) => {
+  try {
+    const sellerId = req.user.userId;
+    const imageId = parseInt(req.params.imageId);
+
+    // Check if image exists and belongs to seller's product
+    const imageCheckQuery = `
+      SELECT pi.id, pi.public_id, pi.product_id
+      FROM product_images pi
+      JOIN products p ON pi.product_id = p.id
+      JOIN stores s ON p.store_id = s.id
+      WHERE pi.id = $1 AND s.owner_id = $2
+    `;
+    
+    const imageCheckResult = await query(imageCheckQuery, [imageId, sellerId]);
+    
+    if (imageCheckResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Image not found or you do not have permission to delete it',
+      });
+    }
+
+    const image = imageCheckResult.rows[0];
+    
+    // Delete from Cloudinary if public_id exists
+    if (image.public_id) {
+      try {
+        await deleteImage(image.public_id);
+      } catch (cloudinaryError) {
+        console.error('Error deleting image from Cloudinary:', cloudinaryError);
+        // Continue with database deletion even if Cloudinary deletion fails
+      }
+    }
+    
+    // Delete from database
+    await query('DELETE FROM product_images WHERE id = $1', [imageId]);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Image deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting product image:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
@@ -616,6 +684,7 @@ module.exports = {
   deleteProduct,
   getSellerProducts,
   uploadProductImage,
+  deleteProductImage,
   createProductValidation,
   updateProductValidation,
   productIdValidation,

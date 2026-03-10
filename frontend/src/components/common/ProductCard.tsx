@@ -29,6 +29,13 @@ export function ProductCard({ product }: ProductCardProps) {
   const safeName = typeof product.name === 'string' ? product.name : ''
   const safeStoreName = typeof product.storeName === 'string' ? product.storeName : ''
   const safeImages = Array.isArray(product.images) && product.images.length > 0 ? product.images : []
+  
+  // Extract image URLs from both old string array and new object array formats
+  const imageUrls = safeImages.map(img => {
+    if (typeof img === 'string') return img
+    if (typeof img === 'object' && img.image_url) return img.image_url
+    return ''
+  }).filter(Boolean)
   // Convert product.id to number for wishlist service
   const safeId = typeof product.id === 'string' ? parseInt(product.id, 10) : (typeof product.id === 'number' ? product.id : 0)
 
@@ -63,7 +70,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="relative overflow-hidden bg-slate-50 aspect-square">
         <Link to={`/products/${product.id}`}>
           <img
-            src={safeImages[0] || ''}
+            src={imageUrls[0] || product.primary_image || ''}
             alt={safeName}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
