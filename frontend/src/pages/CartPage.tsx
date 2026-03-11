@@ -75,7 +75,7 @@ export function CartPage() {
             <div key={key} className="bg-white rounded-xl border border-slate-200 p-4 flex gap-4 shadow-sm hover:shadow-md transition-shadow">
               <Link to={`/products/${product.id}`} className="shrink-0">
                 <img
-                  src={safeImages[0] || ''}
+                  src={typeof safeImages[0] === 'string' ? safeImages[0] : safeImages[0]?.image_url || ''}
                   alt={product.name || ''}
                   className="w-20 h-20 rounded-xl object-cover bg-slate-100 border border-slate-100"
                 />

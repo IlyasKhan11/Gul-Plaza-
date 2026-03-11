@@ -1,0 +1,58 @@
+services:
+  - type: web
+    name: gul-plaza-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DB_HOST
+        value: your-postgres-host.render.com
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        value: gul_plaza_db
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        value: your-secure-password
+      - key: REDIS_HOST
+        value: your-redis-host.render.com
+      - key: REDIS_PORT
+        value: 6379
+      - key: REDIS_PASSWORD
+        value: your-redis-password
+      - key: JWT_SECRET
+        value: gul-plaza-secure-jwt-secret-2024-production-change-this
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLOUDINARY_CLOUD_NAME
+        value: ddtmhdvce
+      - key: CLOUDINARY_API_KEY
+        value: 625824612895964
+      - key: CLOUDINARY_API_SECRET
+        value: x7ooPbYWHB0ekIhslndDiOodeWQ
+      - key: FRONTEND_URL
+        value: https://your-vercel-app-url.vercel.app
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: MAX_FILE_SIZE
+        value: 5242880
+      - key: ALLOWED_FILE_TYPES
+        value: image/jpeg,image/jpg,image/png,image/webp
+
+databases:
+  - name: gul-plaza-postgres
+    plan: free
+    databaseName: gul_plaza_db
+    user: postgres
+
+  - name: gul-plaza-redis
+    plan: free
