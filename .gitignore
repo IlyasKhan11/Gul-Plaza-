@@ -6,6 +6,9 @@
 # Node
 node_modules/
 dist/
+
+# Environment
+.env
 *.local
 
 # Env files
