@@ -12,11 +12,15 @@
   ],
   "routes": [
     {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
   ],
   "env": {
-    "VITE_API_URL": "https://your-backend-url.onrender.com"
+    "VITE_API_URL": "https://gul-plaza-testing-production.up.railway.app/"
   }
 }
