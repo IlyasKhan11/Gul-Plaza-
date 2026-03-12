@@ -2,15 +2,12 @@ const { Pool } = require('pg');
 
 // PostgreSQL connection pool configuration
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'gul_plaza_db',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD,
+  connectionString: process.env.DATABASE_URL || 
+    `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 20, // Maximum number of connections in the pool
   idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
-  connectionTimeoutMillis: 10000, // How long to wait when connecting a new client (increased from 2000)
+  connectionTimeoutMillis: 15000, // How long to wait when connecting a new client
 });
 
 // Test database connection
