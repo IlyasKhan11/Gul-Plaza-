@@ -56,13 +56,9 @@ app.use(helmet({
   xssFilter: true,
 }));
 
-// CORS configuration - Temporary allow all for debugging
+// CORS configuration - Allow all origins for debugging
 const corsOptions = {
-  origin: function (origin, callback) {
-    // For now, allow all origins to debug the issue
-    console.log('CORS request from origin:', origin);
-    callback(null, true);
-  },
+  origin: '*', // Allow all origins temporarily
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
