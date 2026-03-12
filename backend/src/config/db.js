@@ -1,23 +1,41 @@
 const { Pool } = require('pg');
 
+// Build connection config — prefer DATABASE_URL (Railway auto-provides it for linked Postgres),
+// but fall back to individual DB_* variables if DATABASE_URL is not set.
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    }
+  : {
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT) || 5432,
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    };
+
+console.log('DB config mode:', process.env.DATABASE_URL ? 'DATABASE_URL' : 'individual vars');
+console.log('DB host:', process.env.DATABASE_URL ? '(from DATABASE_URL)' : process.env.DB_HOST);
+
 // PostgreSQL connection pool configuration
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ...poolConfig,
   max: 5,
-  idleTimeoutMillis: 60000,
-  connectionTimeoutMillis: 60000,
-  application_name: 'gul_plaza_backend'
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  application_name: 'gul_plaza_backend',
 });
 
 // Test database connection
 pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
+  console.log('✅ Connected to PostgreSQL database');
 });
 
+// Log errors but do NOT exit — let the app keep running and retry
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('⚠️  Unexpected error on idle PostgreSQL client:', err.message);
 });
 
 // Helper function to execute queries with parameterized inputs to prevent SQL injection
