@@ -53,17 +53,9 @@ const startServer = async () => {
       console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth/`);
     });
 
-    // Initialize database tables (with error handling) - non-blocking
-    console.log('Initializing database...');
-    try {
-      await initializeDatabase();
-      console.log('✅ Database tables initialized successfully');
-    } catch (dbError) {
-      console.error('❌ Database initialization failed:', dbError.message);
-      console.error('Full error:', dbError);
-      // Continue without database for now
-      console.log('⚠️ Server running without database - API endpoints will fail');
-    }
+    // Skip database initialization for now to get server working
+    console.log('⚠️ Skipping database initialization for debugging');
+    console.log('⚠️ Server running without database - basic endpoints will work');
     
     // Connect to Redis (with error handling)
     console.log('Connecting to Redis...');
@@ -75,15 +67,6 @@ const startServer = async () => {
     
     console.log('⚠️  Database/Redis connection issues will be shown above');
     
-    // Handle server errors
-    server.on('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use`);
-      } else {
-        console.error('Server error:', error);
-      }
-      process.exit(1);
-    });
 
     return server;
   } catch (error) {
