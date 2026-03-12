@@ -2,11 +2,7 @@ const { Pool } = require('pg');
 
 // PostgreSQL connection pool configuration
 const pool = new Pool({
-  host: process.env.RAILWAY_PRIVATE_DOMAIN || process.env.DB_HOST,
-  port: process.env.RAILWAY_TCP_PROXY_PORT || process.env.DB_PORT,
-  database: process.env.PGDATABASE || process.env.DB_NAME,
-  user: process.env.PGUSER || process.env.DB_USER,
-  password: process.env.PGPASSWORD || process.env.DB_PASSWORD,
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
   max: 5,
   idleTimeoutMillis: 30000,
