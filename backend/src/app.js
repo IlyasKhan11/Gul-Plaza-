@@ -64,12 +64,18 @@ const corsOptions = {
       const allowedOrigins = [
         process.env.FRONTEND_URL,
         process.env.ADMIN_URL,
+        'https://gul-plaza-testing.vercel.app',
+        'https://gul-plaza-testing.vercel.app/',
       ].filter(Boolean);
       
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.includes(origin)) {
+      // Remove trailing slash for comparison
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      const normalizedAllowedOrigins = allowedOrigins.map(url => url.replace(/\/$/, ''));
+      
+      if (normalizedAllowedOrigins.includes(normalizedOrigin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
