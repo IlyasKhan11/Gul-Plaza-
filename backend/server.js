@@ -43,7 +43,17 @@ process.on('unhandledRejection', (reason, promise) => {
 // Start server
 const startServer = async () => {
   try {
-    // Initialize database tables (with error handling)
+    // Start Express server first (without database dependency)
+    console.log('🚀 Starting Express server...');
+    
+    const server = app.listen(PORT, () => {
+      console.log(`🚀 Server running securely on port ${PORT}`);
+      console.log(`📝 Environment: ${process.env.NODE_ENV}`);
+      console.log(`🔗 Health check: http://localhost:${PORT}/`);
+      console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth/`);
+    });
+
+    // Initialize database tables (with error handling) - non-blocking
     console.log('Initializing database...');
     try {
       await initializeDatabase();
@@ -51,8 +61,8 @@ const startServer = async () => {
     } catch (dbError) {
       console.error('❌ Database initialization failed:', dbError.message);
       console.error('Full error:', dbError);
-      // Don't continue without database - it's required
-      throw dbError;
+      // Continue without database for now
+      console.log('⚠️ Server running without database - API endpoints will fail');
     }
     
     // Connect to Redis (with error handling)
@@ -63,15 +73,8 @@ const startServer = async () => {
       console.warn('Redis connection failed (continuing without Redis):', redisError.message);
     }
     
-    // Start Express server
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 Server running securely on port ${PORT}`);
-      console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/`);
-      console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth/`);
-      console.log(`⚠️  Database/Redis connection issues will be shown above`);
-    });
-
+    console.log('⚠️  Database/Redis connection issues will be shown above');
+    
     // Handle server errors
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
