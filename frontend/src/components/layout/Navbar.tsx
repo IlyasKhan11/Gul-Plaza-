@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiShoppingCart, FiSearch, FiMenu, FiX, FiUser, FiLogOut, FiGrid, FiPackage, FiSun, FiMoon } from 'react-icons/fi'
-import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
+import gulPlazaLogo from '@/assets/gulplazalogo.png'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -62,7 +62,7 @@ export function Navbar() {
         <div className="flex items-center gap-4 h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 w-auto rounded-lg object-contain" />
+            <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 md:h-48 md:w-48 lg:h-[200px] lg:w-[200px] rounded-lg object-contain" />
           </Link>
 
           {/* Search */}

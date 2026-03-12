@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(psql gul_plaza_db -c \"\\\\d users\")",
-      "Bash(node -e \":*)",
-      "Bash(node --require /Users/rtv-lpt-406/Desktop/personalaccount/Gul-Plaza-/backend/node_modules/bcrypt -e \"console.log\\(''test''\\)\")"
-    ]
-  }
-}

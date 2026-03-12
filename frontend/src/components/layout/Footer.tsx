@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { FiFacebook, FiInstagram, FiTwitter, FiMail, FiPhone, FiMapPin } from 'react-icons/fi'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/context/AuthContext'
-import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
+import gulPlazaLogo from '@/assets/gulplazalogo.png'
 import { api } from '@/lib/api'
 
 interface FooterCategory {
@@ -34,7 +34,7 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">
-              <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 w-auto rounded-lg object-contain" />
+              <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 md:h-48 md:w-48 lg:h-[200px] lg:w-[200px] rounded-lg object-contain" />
             </div>
             <p className="text-sm text-slate-400">
               Pakistan's trusted multi-vendor marketplace. Shop from thousands of verified sellers.

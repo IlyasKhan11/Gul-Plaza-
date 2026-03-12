@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Component, type ReactNode } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { FiLogOut, FiBell, FiHome, FiShoppingBag, FiBriefcase, FiCheckCircle, FiInfo, FiCheck, FiMenu, FiX, FiSun, FiMoon } from 'react-icons/fi'
-import gulPlazaLogo from '@/assets/gul-plaza.jpeg'
+import gulPlazaLogo from '@/assets/gulplazalogo.png'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -130,7 +130,7 @@ export function DashboardLayout() {
           </Button>
 
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-8 w-auto rounded-md object-contain" />
+            <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 md:h-48 md:w-48 lg:h-[200px] lg:w-[200px] rounded-md object-contain" />
           </Link>
           <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
           <Badge variant={roleColor} className="capitalize text-xs hidden sm:inline-flex">{user?.role} Dashboard</Badge>
