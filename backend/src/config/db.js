@@ -2,15 +2,15 @@ const { Pool } = require('pg');
 
 // PostgreSQL connection pool configuration
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 
-    `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
-  ssl: process.env.NODE_ENV === 'production' ? { 
-    rejectUnauthorized: false,
-    sslmode: 'require'
-  } : false,
-  max: 5, // Reduce connections to avoid overwhelming
+  host: process.env.RAILWAY_PRIVATE_DOMAIN || process.env.DB_HOST,
+  port: process.env.RAILWAY_TCP_PROXY_PORT || process.env.DB_PORT,
+  database: process.env.PGDATABASE || process.env.DB_NAME,
+  user: process.env.PGUSER || process.env.DB_USER,
+  password: process.env.PGPASSWORD || process.env.DB_PASSWORD,
+  ssl: { rejectUnauthorized: false },
+  max: 5,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 30000, // Increase to 30 seconds
+  connectionTimeoutMillis: 30000,
   application_name: 'gul_plaza_backend'
 });
 
