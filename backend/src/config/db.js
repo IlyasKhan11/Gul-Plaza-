@@ -4,10 +4,14 @@ const { Pool } = require('pg');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 
     `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20, // Maximum number of connections in the pool
-  idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
-  connectionTimeoutMillis: 15000, // How long to wait when connecting a new client
+  ssl: process.env.NODE_ENV === 'production' ? { 
+    rejectUnauthorized: false,
+    sslmode: 'require'
+  } : false,
+  max: 5, // Reduce connections to avoid overwhelming
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 30000, // Increase to 30 seconds
+  application_name: 'gul_plaza_backend'
 });
 
 // Test database connection
@@ -57,6 +61,12 @@ const queryWithRetry = async (text, params, maxRetries = 3) => {
 // Initialize database tables (will be expanded as needed)
 const initializeDatabase = async () => {
   try {
+    console.log('Testing database connection first...');
+    
+    // Simple connection test
+    const testResult = await query('SELECT NOW()');
+    console.log('✅ Database connection test successful:', testResult.rows[0]);
+    
     console.log('Creating database tables...');
     
     // Create users table if it doesn't exist (updated schema)
