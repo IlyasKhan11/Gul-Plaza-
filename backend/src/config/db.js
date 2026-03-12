@@ -7,9 +7,10 @@ const pool = new Pool({
   database: process.env.DB_NAME || 'gul_plaza_db',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 20, // Maximum number of connections in the pool
   idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
-  connectionTimeoutMillis: 2000, // How long to wait when connecting a new client
+  connectionTimeoutMillis: 10000, // How long to wait when connecting a new client (increased from 2000)
 });
 
 // Test database connection
@@ -36,11 +37,33 @@ const query = async (text, params) => {
   }
 };
 
+// Retry mechanism for database operations
+const queryWithRetry = async (text, params, maxRetries = 3) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await query(text, params);
+    } catch (error) {
+      console.error(`Database query attempt ${attempt} failed:`, error.message);
+      
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Wait before retry (exponential backoff)
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+      console.log(`Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+};
+
 // Initialize database tables (will be expanded as needed)
 const initializeDatabase = async () => {
   try {
+    console.log('Creating database tables...');
+    
     // Create users table if it doesn't exist (updated schema)
-    await query(`
+    await queryWithRetry(`
       CREATE TABLE IF NOT EXISTS users (
         id BIGSERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -53,9 +76,10 @@ const initializeDatabase = async () => {
         updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Users table created/verified');
 
     // Create store table if it doesn't exist
-    await query(`
+    await queryWithRetry(`
       CREATE TABLE IF NOT EXISTS stores (
         id BIGSERIAL PRIMARY KEY,
         owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -67,6 +91,7 @@ const initializeDatabase = async () => {
         updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Stores table created/verified');
 
     // Add missing columns to stores table (ALTER is safe with IF NOT EXISTS)
     await query(`ALTER TABLE stores ALTER COLUMN description DROP NOT NULL`).catch(() => {});
