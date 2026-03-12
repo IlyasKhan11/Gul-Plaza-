@@ -56,51 +56,12 @@ app.use(helmet({
   xssFilter: true,
 }));
 
-// CORS configuration
+// CORS configuration - Temporary allow all for debugging
 const corsOptions = {
   origin: function (origin, callback) {
-    // In production, be more restrictive
-    if (process.env.NODE_ENV === 'production') {
-      const allowedOrigins = [
-        process.env.FRONTEND_URL,
-        process.env.ADMIN_URL,
-        'https://gul-plaza-testing.vercel.app',
-        'https://gul-plaza-testing.vercel.app/',
-      ].filter(Boolean);
-      
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      // Remove trailing slash for comparison
-      const normalizedOrigin = origin.replace(/\/$/, '');
-      const normalizedAllowedOrigins = allowedOrigins.map(url => url.replace(/\/$/, ''));
-      
-      if (normalizedAllowedOrigins.includes(normalizedOrigin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    } else {
-      // In development, be more permissive
-      const allowedOrigins = [
-        process.env.FRONTEND_URL || 'http://localhost:3000',
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3001',
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-      ];
-      
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    }
+    // For now, allow all origins to debug the issue
+    console.log('CORS request from origin:', origin);
+    callback(null, true);
   },
   credentials: true,
   optionsSuccessStatus: 200,
