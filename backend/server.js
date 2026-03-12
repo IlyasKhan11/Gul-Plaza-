@@ -47,8 +47,12 @@ const startServer = async () => {
     console.log('Initializing database...');
     try {
       await initializeDatabase();
+      console.log('✅ Database tables initialized successfully');
     } catch (dbError) {
-      console.warn('Database initialization failed (continuing without database):', dbError.message);
+      console.error('❌ Database initialization failed:', dbError.message);
+      console.error('Full error:', dbError);
+      // Don't continue without database - it's required
+      throw dbError;
     }
     
     // Connect to Redis (with error handling)
