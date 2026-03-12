@@ -279,6 +279,41 @@ CREATE INDEX IF NOT EXISTS idx_product_reports_reporter_id ON product_reports(re
 CREATE INDEX IF NOT EXISTS idx_product_reports_status ON product_reports(status);
 CREATE INDEX IF NOT EXISTS idx_product_reports_created_at ON product_reports(created_at);
 
+-- ===============================
+-- TRANSACTION SLIPS TABLE
+-- ===============================
+CREATE TABLE IF NOT EXISTS transaction_slips (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    buyer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    slip_image_url TEXT NOT NULL,
+    transaction_id VARCHAR(100),
+    notes TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    approved_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    approved_by BIGINT REFERENCES users(id),
+    rejection_reason TEXT,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===============================
+-- ORDER NOTIFICATIONS TABLE
+-- ===============================
+CREATE TABLE IF NOT EXISTS order_notifications (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    notification_type VARCHAR(50) NOT NULL CHECK (notification_type IN ('new_order', 'order_confirmed', 'order_shipped', 'order_delivered', 'order_cancelled')),
+    message TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT false,
+    whatsapp_sent BOOLEAN NOT NULL DEFAULT false,
+    whatsapp_message_id VARCHAR(100),
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Order notifications indexes
 CREATE INDEX IF NOT EXISTS idx_order_notifications_order_id ON order_notifications(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_notifications_seller_id ON order_notifications(seller_id);
@@ -342,41 +377,6 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_transaction_slips_updated_at BEFORE UPDATE ON transaction_slips
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- ===============================
--- TRANSACTION SLIPS TABLE
--- ===============================
-CREATE TABLE IF NOT EXISTS transaction_slips (
-    id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    buyer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    slip_image_url TEXT NOT NULL,
-    transaction_id VARCHAR(100),
-    notes TEXT,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-    approved_at TIMESTAMP(0) WITHOUT TIME ZONE,
-    approved_by BIGINT REFERENCES users(id),
-    rejection_reason TEXT,
-    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- ===============================
--- ORDER NOTIFICATIONS TABLE
--- ===============================
-CREATE TABLE IF NOT EXISTS order_notifications (
-    id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    notification_type VARCHAR(50) NOT NULL CHECK (notification_type IN ('new_order', 'order_confirmed', 'order_shipped', 'order_delivered', 'order_cancelled')),
-    message TEXT NOT NULL,
-    is_read BOOLEAN NOT NULL DEFAULT false,
-    whatsapp_sent BOOLEAN NOT NULL DEFAULT false,
-    whatsapp_message_id VARCHAR(100),
-    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
 
 -- ===============================
 -- PRODUCT RATINGS TABLE
