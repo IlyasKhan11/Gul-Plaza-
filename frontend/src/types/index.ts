@@ -44,6 +44,13 @@ export interface Store {
   createdAt: string
 }
 
+export interface ProductImage {
+  id: string
+  image_url: string
+  public_id?: string
+  created_at?: string
+}
+
 export interface Product {
   id: string
   storeId?: string
@@ -56,7 +63,7 @@ export interface Product {
   originalPrice?: number
   category?: string
   categoryId?: string
-  images?: string[]
+  images?: string[] | ProductImage[]  // Support both old string array and new object array
   primary_image?: string | null
   stock?: number
   rating?: number

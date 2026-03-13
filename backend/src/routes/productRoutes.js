@@ -1,7 +1,8 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+
+// Import Cloudinary config
+const { storage } = require('../config/cloudinary');
 
 // Import controllers and validation
 const {
@@ -12,31 +13,25 @@ const {
   getAllProducts,
   getSellerProducts,
   uploadProductImage,
+  deleteProductImage,
   createProductValidation,
   updateProductValidation,
   productIdValidation
 } = require('../controllers/productController');
 
-// Multer setup for product image uploads
-const productUploadDir = path.join(__dirname, '../../../uploads/products');
-if (!fs.existsSync(productUploadDir)) fs.mkdirSync(productUploadDir, { recursive: true });
-
-const productImageStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, productUploadDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `product_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
-  },
-});
-
+// Multer setup for product image uploads using Cloudinary
 const productImageUpload = multer({
-  storage: productImageStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: storage,
+  limits: { 
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024 
+  },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error('Only JPG, PNG, and WEBP images are allowed'));
+    const allowedTypes = process.env.ALLOWED_FILE_TYPES?.split(',') || ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPG, PNG, and WEBP images are allowed'));
+    }
   },
 });
 
@@ -107,6 +102,13 @@ router.get('/seller/my-products', authenticateToken, requireSeller, getSellerPro
  * @access  Private (Seller only)
  */
 router.post('/upload-image', authenticateToken, requireSeller, productImageUpload.single('image'), uploadProductImage);
+
+/**
+ * @route   DELETE /api/products/images/:imageId
+ * @desc    Delete a product image
+ * @access  Private (Seller only)
+ */
+router.delete('/images/:imageId', authenticateToken, requireSeller, deleteProductImage);
 
 /**
  * @route   GET /api/products/:id

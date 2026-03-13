@@ -1,9 +1,12 @@
 version: '3.8'
 
+# Development services only (PostgreSQL + Redis)
+# Use this for local development when running backend/frontend locally
+
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: gul_plaza_postgres
+    container_name: gul_plaza_postgres_dev
     restart: unless-stopped
     environment:
       POSTGRES_DB: gul_plaza_db
@@ -12,7 +15,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d gul_plaza_db"]
       interval: 10s
@@ -21,12 +24,12 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: gul_plaza_redis
+    container_name: gul_plaza_redis_dev
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis_data_dev:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -34,5 +37,5 @@ services:
       retries: 5
 
 volumes:
-  postgres_data:
-  redis_data:
+  postgres_data_dev:
+  redis_data_dev:

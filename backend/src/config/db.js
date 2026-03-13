@@ -121,6 +121,7 @@ const initializeDatabase = async () => {
         id BIGSERIAL PRIMARY KEY,
         product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
         image_url TEXT NOT NULL,
+        public_id TEXT, -- Cloudinary public_id for image management
         created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
