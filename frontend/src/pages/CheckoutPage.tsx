@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   FiCheckCircle, FiShoppingBag,
   FiCreditCard, FiAlertCircle, FiLoader,
-  FiMapPin, FiPhone, FiMessageCircle, FiShield,
+  FiMapPin, FiPhone, FiMessageCircle,
 } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +13,6 @@ import { Label } from '@/components/ui/label'
 import { useCart } from '@/context/CartContext'
 import { orderService, type CheckoutPaymentMethod, type CreatedOrder } from '@/services/orderService'
 import { sellerService } from '@/services/sellerService'
-import { api } from '@/lib/api'
 import { formatPrice, cn } from '@/lib/utils'
 
 type Stage = 'form' | 'success'
@@ -36,7 +35,7 @@ const PAYMENT_OPTIONS: {
 ]
 
 export function CheckoutPage() {
-  const { items, total, clearCart } = useCart()
+  const { items, clearCart } = useCart()
 
   const [stage, setStage] = useState<Stage>('form')
   const [placedOrder, setPlacedOrder] = useState<CreatedOrder | null>(null)
@@ -60,23 +59,14 @@ export function CheckoutPage() {
   // Seller contact info fetched from backend
   const [sellerContacts, setSellerContacts] = useState<Record<string, { contact_phone: string | null; contact_email: string | null }>>({})
 
-  // Server-verified total — fetched from backend to prevent price manipulation
-  const [serverTotal, setServerTotal] = useState<number | null>(null)
-  const [serverTotalLoading, setServerTotalLoading] = useState(false)
+  // Compute subtotal directly from cart items (reliable, no server round-trip needed for display)
+  const subtotal = items.reduce((sum, { product, quantity, variantId }) => {
+    const price = variantId
+      ? (product.variants?.find(v => v.id === variantId)?.price ?? Number(product.price))
+      : Number(product.price)
+    return sum + (isFinite(price) ? price : 0) * quantity
+  }, 0)
 
-  const grandTotal = serverTotal ?? total
-
-  // Fetch server-computed cart total on mount
-  useEffect(() => {
-    if (items.length === 0) return
-    setServerTotalLoading(true)
-    api.get<{ success: boolean; data: { subtotal: string; total_items: number } }>('/api/cart/summary')
-      .then(res => {
-        if (res.success) setServerTotal(parseFloat(res.data.subtotal))
-      })
-      .catch(() => {})
-      .finally(() => setServerTotalLoading(false))
-  }, [items])
 
   // Get unique sellers from cart items
   const getSellers = () => {
@@ -487,7 +477,7 @@ export function CheckoutPage() {
                         <div className="relative shrink-0">
                           {product.images?.[0] ? (
                             <img
-                              src={product.images[0]}
+                              src={typeof product.images[0] === 'string' ? product.images[0] : (product.images[0] as { image_url: string }).image_url}
                               alt={product.name}
                               className="w-14 h-14 rounded-lg object-cover bg-slate-100 border border-slate-200"
                             />
@@ -515,25 +505,13 @@ export function CheckoutPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-slate-600">
                     <span>Subtotal</span>
-                    <span>{serverTotalLoading ? '…' : formatPrice(total)}</span>
+                    <span>{formatPrice(subtotal)}</span>
                   </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-slate-900">Total</span>
-                    {serverTotal !== null && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <FiShield className="h-3 w-3 text-green-600" />
-                        <span className="text-[10px] text-green-700 font-medium">Server-verified price</span>
-                      </div>
-                    )}
-                  </div>
-                  {serverTotalLoading ? (
-                    <FiLoader className="h-5 w-5 animate-spin text-blue-500" />
-                  ) : (
-                    <span className="text-xl font-bold text-blue-700">{formatPrice(total)}</span>
-                  )}
+                  <span className="font-bold text-slate-900">Total</span>
+                  <span className="text-xl font-bold text-blue-700">{formatPrice(subtotal)}</span>
                 </div>
 
                 {error && (

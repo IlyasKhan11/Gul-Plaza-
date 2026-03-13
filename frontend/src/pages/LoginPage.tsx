@@ -1,13 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiGlobe, FiMail, FiLock, FiArrowRight, FiAlertCircle, FiEye, FiEyeOff } from 'react-icons/fi'
+import { FiMail, FiLock, FiArrowRight, FiAlertCircle, FiEye, FiEyeOff, FiShield, FiZap, FiTrendingUp } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useAuth } from '@/context/AuthContext'
-
+import gulPlazaLogo from '@/assets/gulplazalogo.png'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -17,6 +14,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -31,80 +29,172 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 py-12 bg-slate-100">
-      <div className="w-full max-w-md">
-        {/* Brand header */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-5 group">
-            <div className="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center shadow-md group-hover:bg-blue-700 transition-colors">
-              <FiGlobe className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-slate-900">Gul <span className="text-blue-600">Plaza</span></span>
+    <div className="min-h-screen flex bg-slate-50 dark:bg-[#0f1117] transition-colors duration-300">
+
+      {/* Left panel — branding (desktop only) */}
+      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden bg-gradient-to-br from-blue-900 via-slate-900 to-indigo-950">
+        {/* Blobs */}
+        <div className="absolute top-[-80px] left-[-80px] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-[-100px] right-[-60px] w-[400px] h-[400px] bg-indigo-600/20 rounded-full blur-3xl" />
+        {/* Grid overlay */}
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '40px 40px' }} />
+
+        {/* Logo */}
+        <div className="relative z-10">
+          <Link to="/" className="inline-flex items-center gap-3">
+            <img src={gulPlazaLogo} alt="Gul Plaza" className="h-10 w-auto object-contain" />
           </Link>
-          <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-          <p className="text-slate-500 text-sm mt-1.5">Sign in to your account to continue</p>
         </div>
 
-        <Card className="shadow-md">
-          <CardContent className="p-7">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <Label htmlFor="email">Email Address</Label>
-                <div className="relative">
-                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="pl-10 pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-              <Button type="submit" className="w-full h-11 text-base gap-2" disabled={loading}>
-                {loading ? 'Signing in...' : <>Sign In <FiArrowRight className="h-4 w-4" /></>}
-              </Button>
-            </form>
-
-            <p className="text-center text-sm text-slate-500 mt-5">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-blue-600 font-semibold hover:underline">Create one free</Link>
+        {/* Center content */}
+        <div className="relative z-10 space-y-8">
+          <div>
+            <h2 className="text-4xl font-bold text-white leading-tight">
+              Pakistan's Fastest Growing<br />
+              <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                Marketplace
+              </span>
+            </h2>
+            <p className="mt-4 text-slate-400 text-base leading-relaxed max-w-xs">
+              Shop from thousands of verified sellers, or grow your business with our powerful seller tools.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              { icon: FiShield,     color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'Buyer & Seller Protection' },
+              { icon: FiZap,        color: 'text-yellow-400',  bg: 'bg-yellow-400/10',  label: 'Fast & Secure Payments' },
+              { icon: FiTrendingUp, color: 'text-blue-400',    bg: 'bg-blue-400/10',    label: 'Real-time Order Tracking' },
+            ].map(({ icon: Icon, color, bg, label }) => (
+              <div key={label} className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+                  <Icon className={`h-4 w-4 ${color}`} />
+                </div>
+                <span className="text-slate-300 text-sm font-medium">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative z-10">
+          <p className="text-slate-600 text-xs">Trusted by 10,000+ buyers across Pakistan</p>
+        </div>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-16 relative">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="w-full max-w-sm relative z-10">
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-8">
+            <Link to="/">
+              <img src={gulPlazaLogo} alt="Gul Plaza" className="h-10 w-auto object-contain mx-auto" />
+            </Link>
+          </div>
+
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">Sign in to your account to continue</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="email">
+                Email Address
+              </label>
+              <div className="relative">
+                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="w-full h-12 pl-11 pr-4 rounded-xl border text-sm outline-none transition-all
+                    bg-white border-slate-200 text-slate-900 placeholder:text-slate-400
+                    focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
+                    dark:bg-white/5 dark:border-white/10 dark:text-white dark:placeholder:text-slate-600
+                    dark:focus:border-blue-500/60 dark:focus:ring-blue-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest" htmlFor="password">
+                Password
+              </label>
+              <div className="relative">
+                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  className="w-full h-12 pl-11 pr-11 rounded-xl border text-sm outline-none transition-all
+                    bg-white border-slate-200 text-slate-900 placeholder:text-slate-400
+                    focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
+                    dark:bg-white/5 dark:border-white/10 dark:text-white dark:placeholder:text-slate-600
+                    dark:focus:border-blue-500/60 dark:focus:ring-blue-500/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  tabIndex={-1}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+                >
+                  {showPassword ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 mt-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Signing in...
+                </span>
+              ) : (
+                <>Sign In <FiArrowRight className="h-4 w-4" /></>
+              )}
+            </button>
+          </form>
+
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-slate-200 dark:bg-white/5" />
+            <span className="text-slate-400 dark:text-slate-600 text-xs">or</span>
+            <div className="flex-1 h-px bg-slate-200 dark:bg-white/5" />
+          </div>
+
+          <p className="text-center text-sm text-slate-500 dark:text-slate-500">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+              Create one free
+            </Link>
+          </p>
+        </div>
       </div>
 
       {/* Error Dialog */}
       <Dialog open={!!error} onOpenChange={() => setError('')}>
         <DialogContent className="max-w-sm">
           <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
-              <FiAlertCircle className="h-7 w-7 text-red-600" />
+            <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-500/10 flex items-center justify-center">
+              <FiAlertCircle className="h-7 w-7 text-red-600 dark:text-red-400" />
             </div>
             <DialogHeader>
               <DialogTitle>Sign In Failed</DialogTitle>
@@ -112,7 +202,7 @@ export function LoginPage() {
             </DialogHeader>
           </div>
           <DialogFooter className="justify-center">
-            <Button onClick={() => setError('')}>Try Again</Button>
+            <Button onClick={() => setError('')} className="bg-blue-600 hover:bg-blue-700">Try Again</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

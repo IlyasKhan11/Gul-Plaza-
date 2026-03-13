@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { FiShoppingCart, FiMessageCircle, FiChevronLeft, FiPackage, FiShield, FiTruck, FiZap, FiFlag, FiHeart } from 'react-icons/fi'
+import { FiShoppingCart, FiMessageCircle, FiChevronLeft, FiPackage, FiShield, FiTruck, FiZap, FiFlag, FiHeart, FiChevronRight, FiStar } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { StarRating } from '@/components/common/StarRating'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/api'
@@ -24,12 +21,6 @@ const REPORT_REASONS = [
   { value: 'other', label: 'Other' },
 ]
 
-function Label({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <span className={`text-sm font-medium text-slate-700 ${className ?? ''}`}>{children}</span>
-}
-
-// Extend the Product type to include API response fields
-// Use any for images to handle both string[] and object[] formats from API
 interface ApiProduct extends Product {
   store_name?: string;
   store_description?: string;
@@ -48,7 +39,6 @@ export function ProductDetailPage() {
   const [qty, setQty] = useState(1)
   const [selectedVariantId, setSelectedVariantId] = useState<number | undefined>(undefined)
 
-  // Report dialog state
   const [reportOpen, setReportOpen] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reportDesc, setReportDesc] = useState('')
@@ -56,7 +46,6 @@ export function ProductDetailPage() {
   const [reportError, setReportError] = useState<string | null>(null)
   const [reportSuccess, setReportSuccess] = useState(false)
 
-  // Wishlist state
   const [saved, setSaved] = useState(false)
   const [savingWishlist, setSavingWishlist] = useState(false)
 
@@ -65,46 +54,27 @@ export function ProductDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [ratingSummary, setRatingSummary] = useState<ProductRatingSummary | null>(null)
 
-  // Fetch product and ratings
   useEffect(() => {
     if (!id) return
     setLoading(true)
-    
-    // Fetch product - the API returns { success, message, data: product }
     api.get<{ success: boolean; data: Product }>(`/api/products/${id}`)
-      .then(res => {
-        setProduct(res.data) // res.data is the product
-        setError(null)
-      })
-      .catch(err => {
-        setError(err.message || 'Failed to load product')
-        setProduct(null)
-      })
+      .then(res => { setProduct(res.data); setError(null) })
+      .catch(err => { setError(err.message || 'Failed to load product'); setProduct(null) })
       .finally(() => setLoading(false))
-    
-    // Fetch ratings
+
     ratingService.getProductRatings(Number(id))
       .then(data => { setRatingSummary(data.summary) })
       .catch(() => {})
 
-    // Check wishlist status for buyers
     if (user?.role === 'buyer') {
-      wishlistService.check(Number(id))
-        .then(setSaved)
-        .catch(() => {})
+      wishlistService.check(Number(id)).then(setSaved).catch(() => {})
     }
   }, [id, user])
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!reportReason) { 
-      setReportError('Please select a reason'); 
-      return 
-    }
-    if (reportDesc && reportDesc.length < 10) { 
-      setReportError('Description must be at least 10 characters'); 
-      return 
-    }
+    if (!reportReason) { setReportError('Please select a reason'); return }
+    if (reportDesc && reportDesc.length < 10) { setReportError('Description must be at least 10 characters'); return }
     setReportSubmitting(true)
     setReportError(null)
     try {
@@ -125,18 +95,14 @@ export function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!product) return
-    const label = selectedVariant
-      ? selectedVariant.options.map(o => o.value).join(' / ')
-      : undefined
+    const label = selectedVariant ? selectedVariant.options.map(o => o.value).join(' / ') : undefined
     addItem(product, qty, selectedVariantId, label)
     navigate('/cart')
   }
 
   const handleBuyNow = () => {
     if (!product) return
-    const label = selectedVariant
-      ? selectedVariant.options.map(o => o.value).join(' / ')
-      : undefined
+    const label = selectedVariant ? selectedVariant.options.map(o => o.value).join(' / ') : undefined
     addItem(product, qty, selectedVariantId, label)
     navigate('/checkout')
   }
@@ -145,34 +111,19 @@ export function ProductDetailPage() {
     if (savingWishlist) return
     setSavingWishlist(true)
     try {
-      if (saved) {
-        await wishlistService.remove(Number(id))
-        setSaved(false)
-      } else {
-        await wishlistService.add(Number(id))
-        setSaved(true)
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setSavingWishlist(false)
-    }
+      if (saved) { await wishlistService.remove(Number(id)); setSaved(false) }
+      else { await wishlistService.add(Number(id)); setSaved(true) }
+    } catch {} finally { setSavingWishlist(false) }
   }
 
   const openReport = () => {
-    setReportReason('')
-    setReportDesc('')
-    setReportError(null)
-    setReportSuccess(false)
-    setReportOpen(true)
+    setReportReason(''); setReportDesc(''); setReportError(null); setReportSuccess(false); setReportOpen(true)
   }
 
-  // Get the image URL - FIXED: Handle API image structure
   const getImageUrl = (image: any): string => {
     if (!image) return '/placeholder.png'
     if (typeof image === 'string') return image
     if (image.image_url) {
-      // If it's a relative path, make sure it starts with /
       const url = image.image_url.startsWith('/') ? image.image_url : `/${image.image_url}`
       return url
     }
@@ -181,337 +132,338 @@ export function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <p className="text-xl text-slate-400">Loading product...</p>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-slate-400 text-sm">Loading product...</p>
+        </div>
       </div>
     )
   }
 
   if (error || !product) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <p className="text-xl text-slate-400">Product not found</p>
-        <Button className="mt-4" asChild>
-          <Link to="/products">Back to Products</Link>
-        </Button>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto">
+            <FiPackage className="h-7 w-7 text-slate-400" />
+          </div>
+          <p className="text-slate-500 dark:text-slate-400">Product not found</p>
+          <Button asChild className="bg-blue-600 hover:bg-blue-700">
+            <Link to="/products">Back to Products</Link>
+          </Button>
+        </div>
       </div>
     )
   }
 
   const whatsappUrl = '#'
-
-  // FIXED: Use the correct store info from API
   const storeName = product.store_name || product.storeName || 'Unknown Store'
   const storeId = product.store_id || product.storeId
   const storeDescription = product.store_description || ''
+  const stockToUse = selectedVariant ? selectedVariant.stock : (product.stock ?? 0)
+  const currentPrice = selectedVariant ? selectedVariant.price : Number(product.price)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1 hover:text-blue-600">
-          <FiChevronLeft className="h-4 w-4" /> Back
-        </button>
-        <span>/</span>
-        <Link to="/products" className="hover:text-blue-600">Products</Link>
-        <span>/</span>
-        <span className="text-slate-700 truncate max-w-xs">{product.title || product.name}</span>
-      </div>
+    <div className="bg-slate-50 dark:bg-slate-950 min-h-screen transition-colors">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
 
-      <div className="grid md:grid-cols-2 gap-10">
-        {/* Images - FIXED: Handle API image structure */}
-        <div className="space-y-3">
-          <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50 border border-slate-200">
-            <img 
-              src={product.images?.length ? getImageUrl(product.images[selectedImage]) : '/placeholder.png'}
-              alt={product.title || product.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/placeholder.png'
-              }}
-            />
-          </div>
-          {product.images && product.images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {product.images.map((img: any, idx: number) => (
-                <button
-                  key={img.id || idx}
-                  onClick={() => setSelectedImage(idx)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-colors ${
-                    selectedImage === idx ? 'border-blue-500' : 'border-slate-200 hover:border-slate-400'
-                  }`}
-                >
-                  <img 
-                    src={getImageUrl(img)} 
-                    alt={`Thumbnail ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.png'
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-6">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-1 hover:text-blue-500 transition-colors">
+            <FiChevronLeft className="h-3.5 w-3.5" /> Back
+          </button>
+          <FiChevronRight className="h-3 w-3" />
+          <Link to="/products" className="hover:text-blue-500 transition-colors">Products</Link>
+          <FiChevronRight className="h-3 w-3" />
+          <span className="text-slate-600 dark:text-slate-300 truncate max-w-[200px] font-medium">
+            {product.title || product.name}
+          </span>
+        </nav>
 
-        {/* Details */}
-        <div className="space-y-5">
-          <div className="flex items-start justify-between gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{product.title || product.name}</h1>
-            {user?.role === 'buyer' && (
-              <button
-                onClick={handleToggleWishlist}
-                disabled={savingWishlist}
-                title={saved ? 'Remove from saved' : 'Save product'}
-                className={`shrink-0 p-2 rounded-full border transition-colors ${
-                  saved
-                    ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
-                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-red-400 hover:border-red-200'
-                }`}
-              >
-                <FiHeart className={`h-5 w-5 ${saved ? 'fill-red-500' : ''}`} />
-              </button>
-            )}
-          </div>
+        {/* Main Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <div className="grid md:grid-cols-[420px_1fr] lg:grid-cols-[460px_1fr]">
 
-          <div className="flex items-center gap-3 mt-2">
-            <StarRating 
-              rating={ratingSummary?.average_rating || product.rating || 0} 
-              reviewCount={ratingSummary?.total_reviews || product.reviewCount || 0} 
-              size="md" 
-            />
-            <Badge variant={(product.stock || 0) > 0 ? 'success' : 'destructive'}>
-              {(product.stock || 0) > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
-            </Badge>
-          </div>
-
-          <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-bold text-slate-900">
-              {formatPrice(selectedVariant ? selectedVariant.price : Number(product.price))}
-            </span>
-          </div>
-
-          <Separator />
-
-          {/* Variant selector */}
-          {product.variants && product.variants.length > 0 && (() => {
-            // Group options by type across all variants
-            const colorMap: Record<string, number[]> = {}
-            const sizeMap: Record<string, number[]> = {}
-            for (const v of product.variants) {
-              for (const o of v.options) {
-                if (o.type === 'color') {
-                  if (!colorMap[o.value]) colorMap[o.value] = []
-                  colorMap[o.value].push(v.id)
-                } else if (o.type === 'size') {
-                  if (!sizeMap[o.value]) sizeMap[o.value] = []
-                  sizeMap[o.value].push(v.id)
-                }
-              }
-            }
-            const colors = Object.keys(colorMap)
-            const sizes = Object.keys(sizeMap)
-            return (
-              <div className="space-y-3">
-                {colors.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-slate-700 mb-2">Color</p>
-                    <div className="flex flex-wrap gap-2">
-                      {colors.map(color => {
-                        const vId = colorMap[color][0]
-                        const isSelected = selectedVariantId === vId
-                        return (
-                          <button
-                            key={color}
-                            onClick={() => setSelectedVariantId(isSelected ? undefined : vId)}
-                            className={`px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition-colors ${
-                              isSelected
-                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                : 'border-slate-200 hover:border-slate-400 text-slate-700'
-                            }`}
-                          >
-                            {color}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-                {sizes.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-slate-700 mb-2">Size</p>
-                    <div className="flex flex-wrap gap-2">
-                      {sizes.map(size => {
-                        const vId = sizeMap[size][0]
-                        const isSelected = selectedVariantId === vId
-                        const variant = product.variants?.find(v => v.id === vId)
-                        const outOfStock = variant && variant.stock === 0
-                        return (
-                          <button
-                            key={size}
-                            disabled={!!outOfStock}
-                            onClick={() => setSelectedVariantId(isSelected ? undefined : vId)}
-                            className={`px-3 py-1.5 rounded-lg border-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                              isSelected
-                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                : 'border-slate-200 hover:border-slate-400 text-slate-700'
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
+            {/* ── Left: Images ── */}
+            <div className="p-5 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
+              {/* Main image */}
+              <div className="relative rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800" style={{ height: '340px' }}>
+                <img
+                  src={product.images?.length ? getImageUrl(product.images[selectedImage]) : '/placeholder.png'}
+                  alt={product.title || product.name}
+                  className="w-full h-full object-contain p-3"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png' }}
+                />
+                {/* Wishlist on image */}
+                {user?.role === 'buyer' && (
+                  <button
+                    onClick={handleToggleWishlist}
+                    disabled={savingWishlist}
+                    className={`absolute top-3 right-3 w-9 h-9 rounded-xl flex items-center justify-center shadow-md transition-all ${
+                      saved ? 'bg-red-500 text-white' : 'bg-white dark:bg-slate-700 text-slate-400 hover:text-red-500'
+                    }`}
+                  >
+                    <FiHeart className={`h-4 w-4 ${saved ? 'fill-white' : ''}`} />
+                  </button>
                 )}
               </div>
-            )
-          })()}
 
-          <div>
-            <h3 className="font-semibold text-slate-900 mb-2">Description</h3>
-            <p className="text-slate-600 text-sm leading-relaxed">{product.description}</p>
-          </div>
+              {/* Thumbnails */}
+              {product.images && product.images.length > 1 && (
+                <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                  {product.images.map((img: any, idx: number) => (
+                    <button
+                      key={img.id || idx}
+                      onClick={() => setSelectedImage(idx)}
+                      className={`w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
+                        selectedImage === idx
+                          ? 'border-blue-500 scale-105'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-400 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={getImageUrl(img)}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png' }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
 
-          {/* Quantity */}
-          {(() => {
-            const stockToUse = selectedVariant ? selectedVariant.stock : (product.stock ?? 0)
-            return (
-              <div className="flex items-center gap-3">
-                <Label className="font-medium text-slate-700">Quantity:</Label>
-                <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden">
+              {/* Trust badges row */}
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                {[
+                  { icon: FiShield, label: 'Verified Seller', color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/50' },
+                  { icon: FiTruck,  label: 'Fast Delivery',   color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/50' },
+                  { icon: FiPackage, label: 'Easy Returns',   color: 'text-purple-500',  bg: 'bg-purple-50 dark:bg-purple-950/50' },
+                ].map(({ icon: Icon, label, color, bg }) => (
+                  <div key={label} className={`${bg} rounded-xl p-2.5 flex flex-col items-center gap-1.5 text-center`}>
+                    <Icon className={`h-4 w-4 ${color}`} />
+                    <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 leading-tight">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Right: Details ── */}
+            <div className="p-6 flex flex-col gap-5">
+
+              {/* Title + badges */}
+              <div>
+                {product.category_name && (
+                  <span className="text-[11px] font-bold text-blue-500 uppercase tracking-widest">{product.category_name}</span>
+                )}
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white mt-1 leading-snug">
+                  {product.title || product.name}
+                </h1>
+                <div className="flex items-center gap-2.5 mt-2">
+                  <div className="flex items-center gap-1">
+                    {[1,2,3,4,5].map(i => (
+                      <FiStar key={i} className={`h-3.5 w-3.5 ${i <= Math.round(ratingSummary?.average_rating || product.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
+                    ))}
+                    <span className="text-xs text-slate-500 ml-1">
+                      {(ratingSummary?.average_rating || product.rating || 0).toFixed(1)}
+                      {(ratingSummary?.total_reviews || 0) > 0 && ` (${ratingSummary?.total_reviews})`}
+                    </span>
+                  </div>
+                  <span className="w-px h-3 bg-slate-200 dark:bg-slate-700" />
+                  <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                    stockToUse > 0
+                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'
+                  }`}>
+                    {stockToUse > 0 ? `In Stock (${stockToUse})` : 'Out of Stock'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  {formatPrice(currentPrice)}
+                </span>
+                {product.originalPrice && product.originalPrice > currentPrice && (
+                  <>
+                    <span className="text-sm text-slate-400 line-through">{formatPrice(product.originalPrice)}</span>
+                    <span className="text-xs font-bold text-red-500 bg-red-50 dark:bg-red-950/50 px-2 py-0.5 rounded-full">
+                      -{Math.round(((product.originalPrice - currentPrice) / product.originalPrice) * 100)}%
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Description */}
+              {product.description && (
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3.5">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Description</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{product.description}</p>
+                </div>
+              )}
+
+              {/* Variants */}
+              {product.variants && product.variants.length > 0 && (() => {
+                const colorMap: Record<string, number[]> = {}
+                const sizeMap: Record<string, number[]> = {}
+                for (const v of product.variants) {
+                  for (const o of v.options) {
+                    if (o.type === 'color') { if (!colorMap[o.value]) colorMap[o.value] = []; colorMap[o.value].push(v.id) }
+                    else if (o.type === 'size') { if (!sizeMap[o.value]) sizeMap[o.value] = []; sizeMap[o.value].push(v.id) }
+                  }
+                }
+                const colors = Object.keys(colorMap)
+                const sizes = Object.keys(sizeMap)
+                return (
+                  <div className="space-y-3">
+                    {colors.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Color</p>
+                        <div className="flex flex-wrap gap-2">
+                          {colors.map(color => {
+                            const vId = colorMap[color][0]
+                            const isSelected = selectedVariantId === vId
+                            return (
+                              <button key={color} onClick={() => setSelectedVariantId(isSelected ? undefined : vId)}
+                                className={`px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+                                  isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-700 dark:text-slate-300'
+                                }`}>{color}</button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {sizes.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Size</p>
+                        <div className="flex flex-wrap gap-2">
+                          {sizes.map(size => {
+                            const vId = sizeMap[size][0]
+                            const isSelected = selectedVariantId === vId
+                            const outOfStock = product.variants?.find(v => v.id === vId)?.stock === 0
+                            return (
+                              <button key={size} disabled={!!outOfStock} onClick={() => setSelectedVariantId(isSelected ? undefined : vId)}
+                                className={`px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                                  isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-700 dark:text-slate-300'
+                                }`}>{size}</button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Quantity */}
+              <div className="flex items-center gap-4">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Qty</p>
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden">
                   <button
                     onClick={() => setQty(q => Math.max(1, q - 1))}
-                    className="px-4 py-2 hover:bg-red-50 hover:text-red-600 text-slate-700 font-bold transition-colors"
                     disabled={stockToUse === 0}
-                  >
-                    −
-                  </button>
-                  <span className="px-5 py-2 text-sm font-bold text-slate-900 border-x-2 border-slate-200">{qty}</span>
+                    className="w-9 h-9 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-40 font-bold text-lg"
+                  >−</button>
+                  <span className="w-10 text-center text-sm font-bold text-slate-900 dark:text-white">{qty}</span>
                   <button
                     onClick={() => setQty(q => Math.min(stockToUse, q + 1))}
-                    className="px-4 py-2 hover:bg-green-50 hover:text-green-600 text-slate-700 font-bold transition-colors"
                     disabled={stockToUse === 0 || qty >= stockToUse}
+                    className="w-9 h-9 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors disabled:opacity-40 font-bold text-lg"
+                  >+</button>
+                </div>
+                {selectedVariant && <span className="text-xs text-slate-400">{selectedVariant.stock} available</span>}
+              </div>
+
+              {/* Action buttons */}
+              {isBuyer ? (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={stockToUse === 0}
+                      className="h-11 rounded-xl bg-slate-900 dark:bg-slate-100 hover:bg-slate-700 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                    >
+                      <FiShoppingCart className="h-4 w-4" />
+                      Add to Cart
+                    </button>
+                    <button
+                      onClick={handleBuyNow}
+                      disabled={stockToUse === 0}
+                      className="h-11 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                    >
+                      <FiZap className="h-4 w-4" />
+                      Buy Now
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => window.open(whatsappUrl, '_blank')}
+                    className="w-full h-11 rounded-xl border-2 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-sm font-semibold flex items-center justify-center gap-2 transition-all"
                   >
-                    +
+                    <FiMessageCircle className="h-4 w-4" />
+                    WhatsApp Seller
                   </button>
                 </div>
-                {selectedVariant && (
-                  <span className="text-xs text-slate-400">{selectedVariant.stock} in stock</span>
-                )}
-              </div>
-            )
-          })()}
+              ) : (
+                <div className="space-y-2.5">
+                  <div className="h-11 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs text-slate-400 font-medium">
+                    Only buyers can purchase products
+                  </div>
+                  <button
+                    onClick={() => window.open(whatsappUrl, '_blank')}
+                    className="w-full h-11 rounded-xl border-2 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                  >
+                    <FiMessageCircle className="h-4 w-4" />
+                    WhatsApp Seller
+                  </button>
+                </div>
+              )}
 
-          {/* Actions */}
-          {isBuyer ? (
-            <div className="space-y-2">
-              <div className="flex gap-3 flex-wrap">
-                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.stock === 0}>
-                  <FiShoppingCart className="h-5 w-5 mr-2" />
-                  Add to Cart
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="default" 
-                  className="flex-1 bg-green-600 hover:bg-green-700" 
-                  onClick={handleBuyNow} 
-                  disabled={product.stock === 0}
-                >
-                  <FiZap className="h-5 w-5 mr-2" />
-                  Buy Now
-                </Button>
+              {/* Store card */}
+              {storeId && (
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-100 dark:border-slate-700/50">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                    {storeName?.charAt(0)?.toUpperCase() ?? '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Link to={`/stores/${storeId}`} className="text-sm font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      {storeName}
+                    </Link>
+                    {storeDescription && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{storeDescription}</p>
+                    )}
+                  </div>
+                  <Link to={`/stores/${storeId}`} className="text-xs text-blue-500 hover:text-blue-700 font-semibold whitespace-nowrap">
+                    Visit →
+                  </Link>
+                </div>
+              )}
+
+              {/* Report */}
+              <div className="flex justify-end pt-1">
+                {isAuthenticated && user?.role === 'buyer' ? (
+                  <button onClick={openReport} className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors">
+                    <FiFlag className="h-3 w-3" /> Report product
+                  </button>
+                ) : !isAuthenticated ? (
+                  <Link to="/login" className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-500 transition-colors">
+                    <FiFlag className="h-3 w-3" /> Login to report
+                  </Link>
+                ) : null}
               </div>
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full border-green-500 text-green-700 hover:bg-green-50"
-                onClick={() => window.open(whatsappUrl, '_blank')}
-              >
-                <FiMessageCircle className="h-5 w-5 mr-2" />
-                WhatsApp Seller
-              </Button>
             </div>
+          </div>
+        </div>
+
+        {/* Reviews */}
+        <div className="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Customer Reviews</h2>
+          {ratingSummary && ratingSummary.total_reviews > 0 ? (
+            <div className="text-sm text-slate-500">Reviews coming soon.</div>
           ) : (
-            <div className="space-y-2">
-              <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-400">
-                Only buyers can purchase products
-              </div>
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full border-green-500 text-green-700 hover:bg-green-50"
-                onClick={() => window.open(whatsappUrl, '_blank')}
-              >
-                <FiMessageCircle className="h-5 w-5 mr-2" />
-                WhatsApp Seller
-              </Button>
-            </div>
-          )}
-
-          {/* Report link */}
-          <div className="flex items-center justify-end pt-1">
-            {isAuthenticated && user?.role === 'buyer' ? (
-              <button
-                onClick={openReport}
-                className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors"
-              >
-                <FiFlag className="h-3 w-3" />
-                Report this product
-              </button>
-            ) : !isAuthenticated ? (
-              <Link to="/login" className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-500 transition-colors">
-                <FiFlag className="h-3 w-3" />
-                Login to report this product
-              </Link>
-            ) : null}
-          </div>
-
-          {/* Trust icons */}
-          <div className="grid grid-cols-3 gap-3 text-center text-xs text-slate-500">
-            <div className="flex flex-col items-center gap-1">
-              <FiShield className="h-5 w-5 text-blue-600" />
-              <span>Verified Seller</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <FiTruck className="h-5 w-5 text-blue-600" />
-              <span>Fast Delivery</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <FiPackage className="h-5 w-5 text-blue-600" />
-              <span>Easy Returns</span>
-            </div>
-          </div>
-
-          {/* Store Card - FIXED: Use correct API fields */}
-          {storeId && (
-            <div className="border border-slate-200 rounded-xl p-4 flex items-start gap-3 bg-slate-50/50 shadow-sm">
-              <div className="w-12 h-12 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-400">
-                <span className="text-lg font-bold">{storeName?.charAt(0) ?? '?'}</span>
-              </div>
-              <div className="flex-1">
-                <Link to={`/stores/${storeId}`} className="font-semibold text-slate-900 hover:text-blue-600 text-sm">
-                  {storeName}
-                </Link>
-                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{storeDescription}</p>
-              </div>
-              <Button size="sm" variant="outline" asChild>
-                <Link to={`/stores/${storeId}`}>Visit</Link>
-              </Button>
-            </div>
+            <p className="text-sm text-slate-400">No reviews yet. Be the first to review!</p>
           )}
         </div>
-      </div>
-
-      {/* Reviews section */}
-      <div className="mt-12">
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Customer Reviews</h2>
-        {ratingSummary && ratingSummary.total_reviews > 0 ? (
-          <div>{/* Add your reviews list component here */}</div>
-        ) : (
-          <p className="text-slate-400 text-sm">No reviews yet. Be the first to review!</p>
-        )}
       </div>
 
       {/* Report Dialog */}
@@ -519,9 +471,7 @@ export function ProductDetailPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Report Product</DialogTitle>
-            <DialogDescription>
-              Help us keep the marketplace safe. Your report will be reviewed by our team.
-            </DialogDescription>
+            <DialogDescription>Help us keep the marketplace safe. Your report will be reviewed by our team.</DialogDescription>
           </DialogHeader>
           {reportSuccess ? (
             <div className="py-4 text-center">
@@ -537,13 +487,9 @@ export function ProductDetailPage() {
               <div>
                 <label className="text-sm font-medium text-slate-700">Reason *</label>
                 <Select value={reportReason} onValueChange={setReportReason}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select a reason" />
-                  </SelectTrigger>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select a reason" /></SelectTrigger>
                   <SelectContent>
-                    {REPORT_REASONS.map(r => (
-                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                    ))}
+                    {REPORT_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -552,14 +498,12 @@ export function ProductDetailPage() {
                 <textarea
                   value={reportDesc}
                   onChange={e => setReportDesc(e.target.value)}
-                  placeholder="Describe the issue in more detail (min 10 characters if provided)..."
+                  placeholder="Describe the issue..."
                   rows={3}
-                  className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
               </div>
-              {reportError && (
-                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{reportError}</p>
-              )}
+              {reportError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{reportError}</p>}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setReportOpen(false)}>Cancel</Button>
                 <Button type="submit" variant="destructive" disabled={reportSubmitting}>
