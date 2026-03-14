@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
+const SSE_URL = `${BASE_URL}/api/notifications/sse`.replace(/\/+/g, '/');
 
 interface Notification {
   id: string;
@@ -55,7 +56,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
 
       const eventSource = new EventSource(
-        `${BASE_URL}/api/notifications/sse?token=${token}`
+        `${SSE_URL}?token=${token}`
       );
 
       eventSourceRef.current = eventSource;
