@@ -342,39 +342,51 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for all tables with updated_at columns
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_stores_updated_at ON stores;
 CREATE TRIGGER update_stores_updated_at BEFORE UPDATE ON stores
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_categories_updated_at ON categories;
 CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON categories
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_products_updated_at ON products;
 CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON user_profiles;
 CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_blocks_updated_at ON user_blocks;
 CREATE TRIGGER update_user_blocks_updated_at BEFORE UPDATE ON user_blocks
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_product_reports_updated_at ON product_reports;
 CREATE TRIGGER update_product_reports_updated_at BEFORE UPDATE ON product_reports
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_payments_updated_at ON payments;
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_cart_updated_at ON cart;
 CREATE TRIGGER update_cart_updated_at BEFORE UPDATE ON cart
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_order_notifications_updated_at ON order_notifications;
 CREATE TRIGGER update_order_notifications_updated_at BEFORE UPDATE ON order_notifications
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_transaction_slips_updated_at ON transaction_slips;
 CREATE TRIGGER update_transaction_slips_updated_at BEFORE UPDATE ON transaction_slips
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
