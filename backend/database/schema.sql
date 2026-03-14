@@ -399,10 +399,26 @@ CREATE INDEX IF NOT EXISTS idx_product_ratings_product_id ON product_ratings(pro
 CREATE INDEX IF NOT EXISTS idx_product_ratings_buyer_id ON product_ratings(buyer_id);
 
 -- ===============================
+-- WISHLISTS TABLE
+-- ===============================
+CREATE TABLE IF NOT EXISTS wishlists (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, product_id)
+);
+
+-- Wishlists indexes
+CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id);
+CREATE INDEX IF NOT EXISTS idx_wishlists_created_at ON wishlists(created_at);
+
+-- ===============================
 -- COMPLETION MESSAGE
 -- ===============================
 -- Schema created successfully!
--- Tables: 14
--- Indexes: 39
+-- Tables: 15
+-- Indexes: 42
 -- Triggers: 12
 -- Extensions: 1 (pgcrypto)
