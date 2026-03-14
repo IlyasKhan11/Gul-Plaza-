@@ -1,4 +1,4 @@
-# Gul Plaza E-Commerce Platform
+Gul Plaza E-Commerce Platform
 
 A modern, full-featured e-commerce platform built with Node.js, React, PostgreSQL, and Redis. Features multi-vendor support, product management, order processing, and **Cloudinary integration for image storage**.
 
