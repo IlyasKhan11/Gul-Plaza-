@@ -78,7 +78,7 @@ export function DashboardLayout() {
     if (!user) return
     api.get<{ success: boolean; data: { notifications: ApiNotification[] } }>('/api/notifications')
       .then(res => { if (res.success) setNotifications(res.data.notifications) })
-      .catch(() => {})
+      .catch(() => { })
   }, [user])
 
   // SSE for real-time notifications
@@ -87,7 +87,13 @@ export function DashboardLayout() {
     const token = localStorage.getItem('gul_plaza_token')
     if (!token) return
     const apiUrl = import.meta.env.VITE_API_URL as string
-    const es = new EventSource(`${apiUrl}/api/notifications/sse?token=${token}`)
+
+    // Safely construct URL avoiding double slashes and preventing pre-pended domains
+    const sseUrl = apiUrl
+      ? `${apiUrl.replace(/\\/$ /, '')}/api/notifications/sse?token=${token}`
+      : `/api/notifications/sse?token=${token}`
+
+    const es = new EventSource(sseUrl)
     sseRef.current = es
     es.onmessage = (e) => {
       try {
@@ -95,19 +101,19 @@ export function DashboardLayout() {
         if (payload.event === 'notification' && payload.data) {
           setNotifications(prev => [payload.data as ApiNotification, ...prev])
         }
-      } catch {}
+      } catch { }
     }
     return () => { es.close(); sseRef.current = null }
   }, [user])
 
   async function markAllRead() {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
-    api.put('/api/notifications/read-all').catch(() => {})
+    api.put('/api/notifications/read-all').catch(() => { })
   }
 
   async function markRead(id: number) {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
-    api.put(`/api/notifications/${id}/read`).catch(() => {})
+    api.put(`/api/notifications/${id}/read`).catch(() => { })
   }
 
   function getSidebar(onLinkClick?: () => void) {
@@ -192,9 +198,8 @@ export function DashboardLayout() {
                       className={`w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors flex gap-3 items-start ${!n.is_read ? 'bg-blue-50/60 dark:bg-blue-900/20' : ''}`}
                       onClick={() => { markRead(n.id); if (n.link) navigate(n.link) }}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                        n.type === 'order' ? 'bg-blue-100 dark:bg-blue-900/40' : n.type === 'withdrawal' ? 'bg-amber-100 dark:bg-amber-900/40' : n.type === 'approval' ? 'bg-green-100 dark:bg-green-900/40' : 'bg-slate-100 dark:bg-slate-700'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${n.type === 'order' ? 'bg-blue-100 dark:bg-blue-900/40' : n.type === 'withdrawal' ? 'bg-amber-100 dark:bg-amber-900/40' : n.type === 'approval' ? 'bg-green-100 dark:bg-green-900/40' : 'bg-slate-100 dark:bg-slate-700'
+                        }`}>
                         {typeIcon(n.type)}
                       </div>
                       <div className="flex-1 min-w-0">
