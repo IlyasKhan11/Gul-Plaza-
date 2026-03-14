@@ -37,6 +37,19 @@ services:
         value: 5242880
       - key: ALLOWED_FILE_TYPES
         value: image/jpeg,image/jpg,image/png,image/webp
+      # Cloudinary - Use Railway Environment Variables
+      # - key: CLOUDINARY_CLOUD_NAME
+      #   value: ddtmhdvce
+      # - key: CLOUDINARY_API_KEY
+      #   value: your_new_key_here
+      # - key: CLOUDINARY_API_SECRET
+      #   value: your_new_secret_here
+    databases:
+      - name: gul-plaza-postgres
+        plan: free
+        databaseName: gul_plaza_db
+        user: postgres
+    plan: free
 
 databases:
   - name: gul-plaza-postgres
