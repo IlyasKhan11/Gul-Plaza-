@@ -27,7 +27,7 @@ async function createAdminUser() {
     console.log('📧 Admin Email:', adminEmail);
     console.log('📧 Admin Name:', adminName);
 
-    // Connect to database
+    // Connect to database using Railway's DATABASE_URL
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
@@ -88,7 +88,8 @@ async function createAdminUser() {
     });
 }
 
-// Security: Only run this in production with proper environment variables
-if (require.main === module) {
+// Auto-run if called directly, but require production environment
+if (require.main === module && process.env.NODE_ENV === 'production') {
+  console.log('🚀 Auto-running admin creation in production environment');
   createAdminUser();
 }

@@ -1,7 +1,10 @@
 {
   "scripts": {
-    "start": "cd ./backend && npm start",
-    "build": "cd ./backend && npm install"
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev",
+    "test-db": "cd backend && npm run test-db",
+    "create-admin": "cd backend && npm run create-admin",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "dotenv": "^17.3.1",
