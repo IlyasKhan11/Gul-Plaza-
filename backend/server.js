@@ -66,8 +66,24 @@ const startServer = async () => {
     try {
       await initializeDatabase();
       console.log('✅ Database ready');
+      
+      // Verify wishlists table exists
+      const { query } = require('./src/config/db');
+      const result = await query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'wishlists'
+      `);
+      
+      if (result.rows.length > 0) {
+        console.log('✅ Wishlists table verified - wishlist functionality should work');
+      } else {
+        console.log('❌ Wishlists table still missing - manual creation may be needed');
+      }
+      
     } catch (dbError) {
       console.error('❌ Database initialization failed:', dbError.message);
+      console.error('❌ Full error details:', dbError);
       console.error('⚠️  Server running without fully initialized database');
     }
 
