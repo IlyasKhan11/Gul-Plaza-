@@ -27,7 +27,7 @@ async function createAdmin() {
             console.log('Detected admin credentials in environment variables. Running in non-interactive mode...');
             name = process.env.ADMIN_NAME;
             email = process.env.ADMIN_EMAIL;
-            phone = process.env.ADMIN_PHONE || null;
+            phone = process.env.ADMIN_PHONE || '0000000000';
             password = process.env.ADMIN_PASSWORD;
 
             if (password.length < 8) {
