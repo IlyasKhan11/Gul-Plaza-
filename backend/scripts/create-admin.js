@@ -20,14 +20,32 @@ async function createAdmin() {
     console.log('\n🔐 Create Secure Admin Account\n');
 
     try {
-        const name = await question('Enter admin name: ');
-        const email = await question('Enter admin email: ');
-        const phone = await question('Enter admin phone (optional): ');
-        let password = await question('Enter admin password (min 8 chars): ');
+        let name, email, phone, password;
 
-        while (password.length < 8) {
-            console.log('Password must be at least 8 characters long.');
+        // Check if environment variables are provided (for Railway non-interactive mode)
+        if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD && process.env.ADMIN_NAME) {
+            console.log('Detected admin credentials in environment variables. Running in non-interactive mode...');
+            name = process.env.ADMIN_NAME;
+            email = process.env.ADMIN_EMAIL;
+            phone = process.env.ADMIN_PHONE || null;
+            password = process.env.ADMIN_PASSWORD;
+
+            if (password.length < 8) {
+                console.log('❌ Error: Environment variable ADMIN_PASSWORD must be at least 8 characters long.');
+                process.exit(1);
+            }
+        } else {
+            // Interactive mode (Local terminal)
+            console.log('No ADMIN_EMAIL/ADMIN_PASSWORD environment variables found. Running in interactive mode...\n');
+            name = await question('Enter admin name: ');
+            email = await question('Enter admin email: ');
+            phone = await question('Enter admin phone (optional): ');
             password = await question('Enter admin password (min 8 chars): ');
+
+            while (password.length < 8) {
+                console.log('Password must be at least 8 characters long.');
+                password = await question('Enter admin password (min 8 chars): ');
+            }
         }
 
         console.log('\nCreating admin account...');
