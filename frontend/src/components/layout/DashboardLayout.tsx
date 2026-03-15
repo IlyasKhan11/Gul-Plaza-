@@ -90,7 +90,7 @@ export function DashboardLayout() {
 
     // Safely construct URL avoiding double slashes and preventing pre-pended domains
     const sseUrl = apiUrl
-      ? `${apiUrl.replace(/\\/$ /, '')}/api/notifications/sse?token=${token}`
+      ? `${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}/api/notifications/sse?token=${token}`
       : `/api/notifications/sse?token=${token}`
 
     const es = new EventSource(sseUrl)
