@@ -12,20 +12,20 @@ const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
 const checkAccountLockout = async (email) => {
   const lockoutKey = `lockout_${email}`;
   const lockoutData = await getCache(lockoutKey);
-  
+
   if (lockoutData) {
     const { attempts, lockUntil } = JSON.parse(lockoutData);
-    
+
     if (lockUntil && Date.now() < lockUntil) {
       const remainingTime = Math.ceil((lockUntil - Date.now()) / 1000);
-      return { 
-        locked: true, 
+      return {
+        locked: true,
         remainingTime,
-        attempts 
+        attempts
       };
     }
   }
-  
+
   return { locked: false };
 };
 
@@ -33,25 +33,25 @@ const checkAccountLockout = async (email) => {
 const incrementFailedAttempts = async (email) => {
   const lockoutKey = `lockout_${email}`;
   const lockoutData = await getCache(lockoutKey);
-  
+
   let attempts = 1;
   let lockUntil = null;
-  
+
   if (lockoutData) {
     const parsed = JSON.parse(lockoutData);
     attempts = parsed.attempts + 1;
   }
-  
+
   if (attempts >= LOCKOUT_THRESHOLD) {
     lockUntil = Date.now() + LOCKOUT_DURATION;
   }
-  
+
   await setCache(lockoutKey, JSON.stringify({
     attempts,
     lockUntil,
     lastAttempt: Date.now()
   }), LOCKOUT_DURATION / 1000);
-  
+
   return { attempts, locked: attempts >= LOCKOUT_THRESHOLD };
 };
 
@@ -107,7 +107,15 @@ const registerUser = async (req, res) => {
       });
     }
 
-  const { name, email, password, phone, role = 'buyer' } = req.body;
+    const { name, email, password, phone, role = 'buyer' } = req.body;
+
+    // Hard security check: Prevent privilege escalation
+    if (role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin registration is not allowed via the public API',
+      });
+    }
 
     // Check if user already exists
     const existingUser = await query(
@@ -296,28 +304,28 @@ const registerValidation = [
     .withMessage('Name must be between 3 and 255 characters')
     .trim()
     .escape(),
-  
+
   body('email')
     .isEmail()
     .withMessage('Please provide a valid email address')
     .normalizeEmail(),
-  
+
   body('password')
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
-  
+
   body('phone')
     .isLength({ min: 10, max: 20 })
     .withMessage('Phone must be between 10 and 20 characters')
     .trim()
     .escape(),
-  
+
   body('role')
     .optional()
-    .isIn(['buyer', 'seller', 'admin'])
-    .withMessage('Role must be either buyer, seller, or admin'),
+    .isIn(['buyer', 'seller'])
+    .withMessage('Role must be either buyer or seller'),
 ];
 
 // Validation rules for login
@@ -326,7 +334,7 @@ const loginValidation = [
     .isEmail()
     .withMessage('Please provide a valid email address')
     .normalizeEmail(),
-  
+
   body('password')
     .notEmpty()
     .withMessage('Password is required'),
