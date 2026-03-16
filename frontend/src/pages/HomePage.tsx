@@ -208,24 +208,31 @@ export function HomePage() {
               <Link to="/products">View All <FiArrowRight className="h-4 w-4" /></Link>
             </Button>
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
             {categories.map(cat => (
               <Link
                 key={cat.id}
                 to={`/products?category=${cat.slug}`}
-                className="flex flex-col items-center gap-2.5 p-3.5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group"
+                className="group relative rounded-2xl overflow-hidden aspect-[4/3] shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
               >
+                {/* Full-cover image */}
                 {cat.sample_image ? (
                   <img
                     src={cat.sample_image}
                     alt={cat.name}
-                    className="w-12 h-12 object-cover rounded-xl"
-                    onError={e => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'block') }}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                   />
                 ) : (
-                  <span className="text-3xl leading-none">{getCategoryIcon(cat.name, cat.slug)}</span>
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center">
+                    <span className="text-4xl">{getCategoryIcon(cat.name, cat.slug)}</span>
+                  </div>
                 )}
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 text-center group-hover:text-blue-600 dark:group-hover:text-blue-400 leading-tight">{cat.name}</span>
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                {/* Category name */}
+                <span className="absolute bottom-0 left-0 right-0 px-2 pb-2.5 text-[11px] font-bold text-white text-center leading-tight drop-shadow-md">
+                  {cat.name}
+                </span>
               </Link>
             ))}
           </div>
@@ -252,6 +259,7 @@ export function HomePage() {
                   <ProductCard key={product.id} product={{
                     ...product,
                     name: product.title,
+                    category: (product as any).category_name ?? product.category,
                     images:
                       product.images && product.images.length > 0
                         ? product.images
@@ -343,6 +351,7 @@ export function HomePage() {
                   <ProductCard key={product.id} product={{
                     ...product,
                     name: product.title,
+                    category: (product as any).category_name ?? product.category,
                     images:
                       product.images && product.images.length > 0
                         ? product.images

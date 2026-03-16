@@ -333,25 +333,6 @@ const createStore = async (req, res) => {
       store_settings,
     } = req.body;
 
-    // Check if user exists and is a seller
-    const userResult = await query(
-      'SELECT id, role FROM users WHERE id = $1',
-      [userId]
-    );
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
-
-    if (userResult.rows[0].role !== 'seller') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only sellers can create stores',
-      });
-    }
-
     // Check if store already exists for this seller
     const existingStore = await query(
       'SELECT id FROM stores WHERE owner_id = $1',

@@ -26,11 +26,10 @@ const productImageUpload = multer({
     fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024 
   },
   fileFilter: (_req, file, cb) => {
-    const allowedTypes = process.env.ALLOWED_FILE_TYPES?.split(',') || ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (allowedTypes.includes(file.mimetype)) {
+    if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only JPG, PNG, and WEBP images are allowed'));
+      cb(new Error('Only image files are allowed'));
     }
   },
 });

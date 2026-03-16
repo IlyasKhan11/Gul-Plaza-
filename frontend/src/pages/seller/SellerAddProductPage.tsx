@@ -284,7 +284,7 @@ export function SellerAddProductPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/*"
                 multiple
                 className="hidden"
                 onChange={handleFileChange}
@@ -303,7 +303,7 @@ export function SellerAddProductPage() {
                   <FiUpload className="h-6 w-6 text-slate-400" />
                 )}
                 <span className="text-sm text-slate-500">
-                  {uploadingImage ? 'Uploading…' : 'Click to upload images (JPG, PNG, WEBP — max 5MB each)'}
+                  {uploadingImage ? 'Uploading…' : 'Click to upload images (max 5MB each)'}
                 </span>
               </button>
 

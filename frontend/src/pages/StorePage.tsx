@@ -124,6 +124,7 @@ export function StorePage() {
                 <ProductCard key={product.id} product={{
                   ...product,
                   name: product.title,
+                  category: (product as any).category_name ?? product.category,
                   images: product.images?.length ? product.images : product.primary_image ? [product.primary_image] : [],
                   price: Number(product.price),
                 }} />

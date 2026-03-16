@@ -12,7 +12,7 @@ const createCategoryValidation = [
 const updateCategoryValidation = [
   body('name').optional().isLength({ min: 1, max: 255 }).trim().escape(),
   body('slug').optional().isLength({ min: 1, max: 255 }).trim().escape(),
-  body('parent_id').optional().isInt({ min: 1 }),
+  body('parent_id').optional({ values: 'null' }).isInt({ min: 1 }).withMessage('Parent ID must be a positive integer'),
 ];
 
 // Validation rules for category ID parameter
