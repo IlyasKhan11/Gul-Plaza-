@@ -11,29 +11,17 @@ interface StoreCardProps {
 
 export function StoreCard({ store }: StoreCardProps) {
   const [logoError, setLogoError] = useState(false)
-  const [bannerError, setBannerError] = useState(false)
 
   // Defensive: Ensure store data is valid
   const safeName = typeof store.name === 'string' ? store.name : 'Store'
   const safeDescription = typeof store.description === 'string' ? store.description : ''
   const safeLogo = store.logo && !logoError ? store.logo : null
-  const safeBanner = store.banner && !bannerError ? store.banner : null
 
   return (
     <Link to={`/stores/${store.id}`}>
       <Card className="group hover:shadow-md transition-shadow duration-200 overflow-hidden">
-        <div className="relative h-24 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 overflow-hidden">
-          {safeBanner && (
-            <img 
-              src={safeBanner} 
-              alt={`${safeName} banner`} 
-              className="w-full h-full object-cover opacity-60"
-              onError={() => setBannerError(true)}
-            />
-          )}
-        </div>
-        <CardContent className="p-4 -mt-6 relative">
-          <div className="flex items-end gap-3">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
             {safeLogo ? (
               <img
                 src={safeLogo}
@@ -46,7 +34,7 @@ export function StoreCard({ store }: StoreCardProps) {
                 <FiPackage className="h-6 w-6 text-slate-400" />
               </div>
             )}
-            <div className="flex-1 min-w-0 pb-1">
+            <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 {safeName}
               </h3>

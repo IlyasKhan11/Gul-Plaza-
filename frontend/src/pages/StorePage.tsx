@@ -63,17 +63,9 @@ export function StorePage() {
 
   return (
     <div>
-      {/* Banner */}
-      <div className="relative h-48 md:h-64 overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700">
-        {store.banner_url && (
-          <img src={store.banner_url} alt={store.name} className="w-full h-full object-cover opacity-70" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
         {/* Store Header */}
-        <div className="relative -mt-12 mb-8">
+        <div className="mb-8">
           <div className="flex flex-col sm:flex-row items-start gap-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <img
               src={store.logo_url || '/default-store-logo.png'}

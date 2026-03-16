@@ -27,40 +27,6 @@ interface ApiStore {
   product_count: number
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  electronics: '📱',
-  fashion: '👗',
-  clothing: '👕',
-  'home-living': '🏠',
-  home: '🏠',
-  books: '📚',
-  sports: '⚽',
-  beauty: '💄',
-  groceries: '🛒',
-  food: '🛒',
-  toys: '🧸',
-  automotive: '🚗',
-  health: '💊',
-  jewelry: '💍',
-  furniture: '🛋️',
-  garden: '🌱',
-  music: '🎵',
-  tools: '🔧',
-  baby: '👶',
-  pets: '🐾',
-}
-
-function getCategoryIcon(name: string, slug: string): string {
-  const key = slug.toLowerCase()
-  if (CATEGORY_ICONS[key]) return CATEGORY_ICONS[key]
-  const nameKey = name.toLowerCase().replace(/\s+/g, '-')
-  if (CATEGORY_ICONS[nameKey]) return CATEGORY_ICONS[nameKey]
-  // partial match
-  for (const [k, icon] of Object.entries(CATEGORY_ICONS)) {
-    if (key.includes(k) || k.includes(key.split('-')[0])) return icon
-  }
-  return '🏷️'
-}
 
 export function HomePage() {
   const { user } = useAuth()
@@ -109,65 +75,35 @@ export function HomePage() {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl translate-x-1/3 translate-y-1/3 pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-7">
-              <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-400/30 rounded-full px-4 py-1.5 text-sm backdrop-blur-sm">
-                <FiStar className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                <span className="text-blue-100 font-medium">Pakistan's Trusted Marketplace</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight">
-                Shop Everything,<br />
-                <span className="bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
-                  All in One Place
-                </span>
-              </h1>
-              <p className="text-slate-300 text-lg leading-relaxed max-w-md">
-                Browse thousands of products from verified sellers. Best prices, genuine products, secure payments.
-              </p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <Button size="lg" className="bg-blue-500 hover:bg-blue-400 text-white font-semibold shadow-lg shadow-blue-500/30 h-12 px-6 rounded-xl" asChild>
-                  <Link to="/products">Shop Now <FiArrowRight className="h-4 w-4 ml-1" /></Link>
-                </Button>
-                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-white/5 backdrop-blur h-12 px-6 rounded-xl" asChild>
-                  <Link to={user ? "/buyer/profile?becomeSeller=true" : "/login"}>Sell on GUL PLAZA</Link>
-                </Button>
-              </div>
-              <div className="flex items-center gap-5 text-sm">
-                {['500+ Verified Sellers', '10,000+ Products', 'Cash on Delivery'].map(t => (
-                  <span key={t} className="flex items-center gap-1.5 text-slate-300">
-                    <span className="w-4 h-4 rounded-full bg-blue-500/30 flex items-center justify-center text-blue-300 text-xs">✓</span>
-                    {t}
-                  </span>
-                ))}
-              </div>
+          <div className="flex flex-col items-center text-center space-y-7 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-400/30 rounded-full px-4 py-1.5 text-sm backdrop-blur-sm">
+              <FiStar className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+              <span className="text-blue-100 font-medium">Pakistan's Trusted Marketplace</span>
             </div>
-
-            <div className="hidden md:grid grid-cols-2 gap-3">
-              {loading
-                ? Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden animate-pulse">
-                      <div className="w-full h-36 bg-white/10" />
-                      <div className="p-3 space-y-2">
-                        <div className="h-3 bg-white/15 rounded w-3/4" />
-                        <div className="h-2.5 bg-white/10 rounded w-1/2" />
-                      </div>
-                    </div>
-                  ))
-                : products.slice(0, 4).map((p, i) => (
-                    <Link key={p.id} to={`/products/${p.id}`}
-                      className={`group bg-white/8 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-blue-400/50 hover:bg-white/15 transition-all duration-300 ${i === 0 ? 'col-span-2 row-span-1' : ''}`}>
-                      <img
-                        src={(() => { const img = p.images?.[0]; if (!img) return p.primary_image || ''; if (typeof img === 'string') return img; return (img as { image_url: string }).image_url })() || p.primary_image || ''}
-                        alt={p.name || p.title}
-                        className={`w-full object-cover group-hover:scale-105 transition-transform duration-500 ${i === 0 ? 'h-36' : 'h-32'}`}
-                      />
-                      <div className="p-2.5">
-                        <p className="text-xs font-semibold text-white truncate">{p.name || p.title}</p>
-                        <p className="text-blue-300 text-xs mt-0.5">Rs. {Number(p.price).toLocaleString()}</p>
-                      </div>
-                    </Link>
-                  ))
-              }
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight">
+              Shop Everything,<br />
+              <span className="bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+                All in One Place
+              </span>
+            </h1>
+            <p className="text-slate-300 text-lg leading-relaxed max-w-xl">
+              Browse thousands of products from verified sellers. Best prices, genuine products, secure payments.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap justify-center">
+              <Button size="lg" className="bg-blue-500 hover:bg-blue-400 text-white font-semibold shadow-lg shadow-blue-500/30 h-12 px-6 rounded-xl" asChild>
+                <Link to="/products">Shop Now <FiArrowRight className="h-4 w-4 ml-1" /></Link>
+              </Button>
+              <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-white/5 backdrop-blur h-12 px-6 rounded-xl" asChild>
+                <Link to={user ? "/buyer/profile?becomeSeller=true" : "/login"}>Sell on GUL PLAZA</Link>
+              </Button>
+            </div>
+            <div className="flex items-center gap-5 text-sm justify-center">
+              {['500+ Verified Sellers', '10,000+ Products', 'Cash on Delivery'].map(t => (
+                <span key={t} className="flex items-center gap-1.5 text-slate-300">
+                  <span className="w-4 h-4 rounded-full bg-blue-500/30 flex items-center justify-center text-blue-300 text-xs">✓</span>
+                  {t}
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -223,9 +159,7 @@ export function HomePage() {
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center">
-                    <span className="text-4xl">{getCategoryIcon(cat.name, cat.slug)}</span>
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-600" />
                 )}
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
