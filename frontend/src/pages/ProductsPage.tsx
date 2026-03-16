@@ -192,8 +192,8 @@ export function ProductsPage() {
           {!loading && <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{filtered.length} products found</p>}
 
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 justify-items-center">
+              {Array.from({ length: 12 }).map((_, i) => <ProductCardSkeleton key={i} delay={i * 80} />)}
             </div>
           ) : error ? (
             <div className="text-center py-20">
@@ -215,7 +215,7 @@ export function ProductsPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 justify-items-center">
               {filtered.map(product => (
                 <ProductCard key={product.id} product={{
                   ...product,

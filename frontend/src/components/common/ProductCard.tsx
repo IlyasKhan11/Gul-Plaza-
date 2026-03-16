@@ -103,7 +103,7 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* ── Content ── */}
-      <div className="p-3 flex flex-col gap-1">
+      <div className="p-4 flex flex-col gap-1.5">
         {/* Product name */}
         <Link to={`/products/${product.id}`}>
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-2 hover:text-orange-500 transition-colors leading-snug">
@@ -121,17 +121,17 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Price row + cart button */}
         <div className="flex items-center justify-between mt-1">
           <div className="flex flex-col">
-            <span className="text-base font-extrabold text-orange-500 tracking-tight">
+            <span className="text-lg font-extrabold text-orange-500 tracking-tight">
               {formatPrice(safePrice)}
             </span>
             {safeOriginalPrice > 0 && (
-              <span className="text-[11px] text-slate-400 line-through">{formatPrice(safeOriginalPrice)}</span>
+              <span className="text-xs text-slate-400 line-through">{formatPrice(safeOriginalPrice)}</span>
             )}
           </div>
 
           {/* Cart button */}
           {safeStock === 0 ? (
-            <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
               <FiShoppingCart className="h-4 w-4 text-slate-400" />
             </div>
           ) : (
@@ -140,7 +140,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 if (!user) { navigate('/login'); return }
                 addItem(product, 1)
               }}
-              className="w-9 h-9 rounded-full bg-slate-900 hover:bg-slate-700 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110"
+              className="w-10 h-10 rounded-full bg-slate-900 hover:bg-slate-700 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110"
             >
               <FiShoppingCart className="h-4 w-4" />
             </button>

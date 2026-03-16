@@ -68,6 +68,46 @@ body {
   min-height: 100vh;
 }
 
+/* Wind shimmer loader animation */
+@keyframes wind-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-wind {
+  background: linear-gradient(
+    90deg,
+    #e2e8f0 0%,
+    #e2e8f0 30%,
+    #f8fafc 48%,
+    #ffffff 50%,
+    #f8fafc 52%,
+    #e2e8f0 70%,
+    #e2e8f0 100%
+  );
+  background-size: 200% 100%;
+  animation: wind-shimmer 1.6s ease-in-out infinite;
+}
+
+.dark .animate-wind {
+  background: linear-gradient(
+    90deg,
+    #1e293b 0%,
+    #1e293b 30%,
+    #334155 48%,
+    #475569 50%,
+    #334155 52%,
+    #1e293b 70%,
+    #1e293b 100%
+  );
+  background-size: 200% 100%;
+  animation: wind-shimmer 1.6s ease-in-out infinite;
+}
+
 /* Smooth page transitions */
 a {
   text-decoration: none;

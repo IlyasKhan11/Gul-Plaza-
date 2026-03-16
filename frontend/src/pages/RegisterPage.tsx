@@ -103,14 +103,10 @@ export function RegisterPage() {
         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="w-full max-w-sm relative z-10">
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
-            <Link to="/">
-              <img src={gulPlazaLogo} alt="Gul Plaza" className="h-10 w-auto object-contain mx-auto" />
-            </Link>
-          </div>
-
           <div className="mb-6">
+            <Link to="/" className="inline-block mb-5">
+              <img src={gulPlazaLogo} alt="Gul Plaza" className="h-10 w-auto object-contain" />
+            </Link>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Create account</h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">Join GUL PLAZA and start shopping today</p>
           </div>

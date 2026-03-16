@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
-import { FiArrowRight, FiShield, FiTruck, FiHeadphones, FiStar } from 'react-icons/fi'
+import { FiArrowRight, FiShield, FiTruck, FiHeadphones, FiStar, FiTag, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { ProductCard } from '@/components/common/ProductCard'
 import { ProductCardSkeleton } from '@/components/common/ProductCardSkeleton'
 import { StoreCard } from '@/components/common/StoreCard'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
 import type { Product } from '@/types'
@@ -27,6 +27,76 @@ interface ApiStore {
   product_count: number
 }
 
+interface CategorySection {
+  name: string
+  slug: string
+  products: Product[]
+}
+
+function CategoryRow({ section }: { section: CategorySection }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  function scroll(dir: 'left' | 'right') {
+    if (!scrollRef.current) return
+    const amount = scrollRef.current.clientWidth * 0.75
+    scrollRef.current.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' })
+  }
+
+  return (
+    <section className="py-8 bg-slate-50 dark:bg-slate-900">
+      <div className="w-full px-4 sm:px-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+              <FiTag className="h-3.5 w-3.5 text-orange-500" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{section.name}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to={`/products?category=${section.slug}`}
+              className="text-sm font-semibold text-orange-500 hover:text-orange-600 flex items-center gap-1 mr-2"
+            >
+              See all <FiArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <button
+              onClick={() => scroll('left')}
+              className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+            >
+              <FiChevronLeft className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+            >
+              <FiChevronRight className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable row */}
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto pb-2 scroll-smooth"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {section.products.map((product) => (
+            <div key={product.id} className="flex-none w-48 sm:w-52">
+              <ProductCard product={{
+                ...product,
+                name: product.title,
+                category: (product as any).category_name ?? product.category,
+                images: product.images?.length ? product.images : product.primary_image ? [product.primary_image] : [],
+                price: Number(product.price),
+              }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 export function HomePage() {
   const { user } = useAuth()
@@ -37,13 +107,9 @@ export function HomePage() {
 
   useEffect(() => {
     setLoading(true)
-    api.get<{ data: { products: Product[] } }>('/api/products?page=1&limit=40')
-      .then(res => {
-        setProducts(res.data.products)
-      })
-      .catch(() => {
-        setProducts([])
-      })
+    api.get<{ data: { products: Product[] } }>('/api/products?page=1&limit=120')
+      .then(res => setProducts(res.data.products))
+      .catch(() => setProducts([])  )
       .finally(() => setLoading(false))
   }, [])
 
@@ -63,18 +129,29 @@ export function HomePage() {
       .catch(() => {})
   }, [])
 
-  const featuredProducts = products.slice(0, 8)
-  const moreProducts = products.slice(8)
+  // Group products by category name
+  const categorySections: CategorySection[] = []
+  const seen = new Map<string, CategorySection>()
+
+  for (const p of products) {
+    const catName: string = (p as any).category_name ?? p.category ?? 'Other'
+    const catSlug: string = (p as any).category_slug ?? catName.toLowerCase().replace(/\s+/g, '-')
+    if (!seen.has(catName)) {
+      const section = { name: catName, slug: catSlug, products: [] }
+      seen.set(catName, section)
+      categorySections.push(section)
+    }
+    seen.get(catName)!.products.push(p)
+  }
 
   return (
     <div className="space-y-0">
       {/* Hero Banner */}
       <section className="relative bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 text-white overflow-hidden">
-        {/* Decorative blobs */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl translate-x-1/3 translate-y-1/3 pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+        <div className="relative w-full px-4 sm:px-6 py-16 md:py-24">
           <div className="flex flex-col items-center text-center space-y-7 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-400/30 rounded-full px-4 py-1.5 text-sm backdrop-blur-sm">
               <FiStar className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
@@ -111,7 +188,7 @@ export function HomePage() {
 
       {/* Trust Badges */}
       <section className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
+        <div className="w-full px-4 sm:px-6 py-5">
           <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-700">
             {[
               { icon: FiShield, title: 'Secure Payments', desc: 'Multiple payment options', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/30' },
@@ -133,14 +210,14 @@ export function HomePage() {
       </section>
 
       {/* Categories */}
-      <section className="py-14 bg-slate-50 dark:bg-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between mb-8">
+      <section className="py-10 bg-white dark:bg-slate-950">
+        <div className="w-full px-4 sm:px-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Shop by Category</h2>
-              <div className="mt-1 w-12 h-1 bg-blue-500 rounded-full" />
+              <div className="mt-1 w-12 h-1 bg-orange-500 rounded-full" />
             </div>
-            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 gap-1" asChild>
+            <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600 gap-1" asChild>
               <Link to="/products">View All <FiArrowRight className="h-4 w-4" /></Link>
             </Button>
           </div>
@@ -151,7 +228,6 @@ export function HomePage() {
                 to={`/products?category=${cat.slug}`}
                 className="group relative rounded-2xl overflow-hidden aspect-[4/3] shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
               >
-                {/* Full-cover image */}
                 {cat.sample_image ? (
                   <img
                     src={cat.sample_image}
@@ -159,11 +235,9 @@ export function HomePage() {
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-600" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-400 to-slate-600" />
                 )}
-                {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                {/* Category name */}
                 <span className="absolute bottom-0 left-0 right-0 px-2 pb-2.5 text-[11px] font-bold text-white text-center leading-tight drop-shadow-md">
                   {cat.name}
                 </span>
@@ -173,45 +247,32 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products */}
-      <section className="py-14 bg-white dark:bg-slate-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Featured Products</h2>
-              <div className="mt-1 w-12 h-1 bg-blue-500 rounded-full" />
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">Hand-picked products just for you</p>
+      {/* Products by category */}
+      {loading ? (
+        <section className="py-8 bg-slate-50 dark:bg-slate-900">
+          <div className="w-full px-4 sm:px-6">
+            <div className="flex gap-2 mb-5">
+              <div className="animate-wind h-6 w-32 rounded-lg" />
             </div>
-            <Button variant="outline" size="sm" className="rounded-xl gap-1" asChild>
-              <Link to="/products">See All <FiArrowRight className="h-4 w-4" /></Link>
-            </Button>
+            <div className="flex gap-4 overflow-hidden">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex-none w-48 sm:w-52">
+                  <ProductCardSkeleton delay={i * 80} />
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {loading
-              ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
-              : featuredProducts.map(product => (
-                  <ProductCard key={product.id} product={{
-                    ...product,
-                    name: product.title,
-                    category: (product as any).category_name ?? product.category,
-                    images:
-                      product.images && product.images.length > 0
-                        ? product.images
-                        : product.primary_image
-                        ? [product.primary_image]
-                        : [],
-                    price: Number(product.price),
-                  }} />
-                ))
-            }
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        categorySections.map(section => (
+          <CategoryRow key={section.name} section={section} />
+        ))
+      )}
 
-      {/* Promo Banner - Only show for non-seller users */}
+      {/* Promo Banner */}
       {(!user || user.role === 'buyer') && (
-        <section className="py-10 bg-slate-50 dark:bg-slate-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <section className="py-10 bg-white dark:bg-slate-950">
+          <div className="w-full px-4 sm:px-6">
             <div className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400 rounded-3xl p-8 md:p-12 text-white">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-2xl translate-x-1/3 -translate-y-1/3 pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl -translate-x-1/3 translate-y-1/3 pointer-events-none" />
@@ -230,13 +291,12 @@ export function HomePage() {
 
       {/* Trending Stores */}
       {stores.length > 0 && (
-        <section className="py-14 bg-slate-50 dark:bg-slate-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center justify-between mb-8">
+        <section className="py-10 bg-slate-50 dark:bg-slate-900">
+          <div className="w-full px-4 sm:px-6">
+            <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Trending Stores</h2>
-                <div className="mt-1 w-12 h-1 bg-blue-500 rounded-full" />
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">Top-rated sellers with amazing products</p>
+                <div className="mt-1 w-12 h-1 bg-orange-500 rounded-full" />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -265,40 +325,6 @@ export function HomePage() {
           </div>
         </section>
       )}
-
-      {/* All Products */}
-      {(loading || moreProducts.length > 0) && <section className="py-14 bg-white dark:bg-slate-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">New Arrivals</h2>
-              <div className="mt-1 w-12 h-1 bg-blue-500 rounded-full" />
-            </div>
-            <Button variant="outline" size="sm" className="rounded-xl gap-1" asChild>
-              <Link to="/products">View All <FiArrowRight className="h-4 w-4" /></Link>
-            </Button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {loading
-              ? Array.from({ length: 10 }).map((_, i) => <ProductCardSkeleton key={i} />)
-              : moreProducts.map(product => (
-                  <ProductCard key={product.id} product={{
-                    ...product,
-                    name: product.title,
-                    category: (product as any).category_name ?? product.category,
-                    images:
-                      product.images && product.images.length > 0
-                        ? product.images
-                        : product.primary_image
-                        ? [product.primary_image]
-                        : [],
-                    price: Number(product.price),
-                  }} />
-                ))
-            }
-          </div>
-        </div>
-      </section>}
     </div>
   )
 }

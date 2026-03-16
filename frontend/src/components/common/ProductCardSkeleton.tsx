@@ -1,22 +1,23 @@
-import { Skeleton } from '@/components/ui/skeleton'
+export function ProductCardSkeleton({ delay = 0 }: { delay?: number }) {
+  const style = delay ? { animationDelay: `${delay}ms` } : undefined
 
-export function ProductCardSkeleton() {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm w-full">
       {/* Image */}
-      <Skeleton className="w-full aspect-square rounded-none" />
-      <div className="p-4 space-y-2">
-        {/* Store name */}
-        <Skeleton className="h-3 w-24" />
-        {/* Product name */}
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-        {/* Stars */}
-        <Skeleton className="h-3 w-20 mt-1" />
-        {/* Price */}
-        <Skeleton className="h-5 w-28 mt-1" />
-        {/* Button */}
-        <Skeleton className="h-8 w-full mt-2 rounded-md" />
+      <div className="animate-wind w-full aspect-square" style={style} />
+
+      <div className="p-4 space-y-2.5">
+        {/* Name line 1 */}
+        <div className="animate-wind h-4 w-full rounded-md" style={style} />
+        {/* Name line 2 */}
+        <div className="animate-wind h-4 w-3/4 rounded-md" style={style} />
+        {/* Rating */}
+        <div className="animate-wind h-3 w-20 rounded-md" style={style} />
+        {/* Price + button */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="animate-wind h-6 w-24 rounded-md" style={style} />
+          <div className="animate-wind h-10 w-10 rounded-full" style={style} />
+        </div>
       </div>
     </div>
   )
