@@ -62,7 +62,7 @@ export function Navbar() {
         <div className="flex items-center gap-4 h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 md:h-48 md:w-48 lg:h-[200px] lg:w-[200px] rounded-lg object-contain" />
+            <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 w-auto md:h-12 lg:h-14 object-contain filter dark:invert dark:drop-shadow-lg" />
           </Link>
 
           {/* Search */}

@@ -37,7 +37,7 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-5">
             <div className="flex items-center gap-2.5">
-              <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 w-auto object-contain" />
+              <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 w-auto object-contain filter invert drop-shadow-lg" />
             </div>
             <p className="text-sm text-slate-400 leading-relaxed">
               Pakistan's trusted multi-vendor marketplace. Shop from thousands of verified sellers across the country.
