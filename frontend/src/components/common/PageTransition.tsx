@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -26,8 +26,8 @@ const pageVariants = {
 }
 
 const pageTransition = {
-  type: 'tween',
-  ease: 'anticipate',
+  type: 'tween' as const,
+  ease: 'anticipate' as const,
   duration: 0.3
 }
 
@@ -62,8 +62,8 @@ export function PageTransitionFade({ children, className = '' }: PageTransitionP
   }
 
   const fadeTransition = {
-    type: 'tween',
-    ease: 'easeInOut',
+    type: 'tween' as const,
+    ease: 'easeInOut' as const,
     duration: 0.2
   }
 
@@ -104,8 +104,8 @@ export function DashboardPageTransition({ children, className = '' }: PageTransi
   }
 
   const dashboardTransition = {
-    type: 'tween',
-    ease: 'easeInOut',
+    type: 'tween' as const,
+    ease: 'easeInOut' as const,
     duration: 0.25
   }
 
