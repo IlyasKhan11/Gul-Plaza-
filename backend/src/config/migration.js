@@ -6,13 +6,28 @@ const runMigrations = async (pool) => {
   try {
     console.log('🔄 Running database migrations...');
     
-    // Read and execute the main schema file
-    const schemaPath = path.join(__dirname, '../../database/schema.sql');
-    const schemaSQL = await fs.readFile(schemaPath, 'utf8');
+    // Check if tables already exist
+    const tablesCheck = await pool.query(`
+      SELECT COUNT(*) as count 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_type = 'BASE TABLE'
+    `);
     
-    console.log('📝 Executing main schema...');
-    await pool.query(schemaSQL);
-    console.log('✅ Main schema executed successfully');
+    const tableCount = parseInt(tablesCheck.rows[0].count);
+    console.log(`📊 Found ${tableCount} tables in database`);
+    
+    if (tableCount > 0) {
+      console.log('✅ Tables already exist, skipping main schema creation');
+    } else {
+      // Read and execute the main schema file
+      const schemaPath = path.join(__dirname, '../../database/schema.sql');
+      const schemaSQL = await fs.readFile(schemaPath, 'utf8');
+      
+      console.log('📝 Executing main schema...');
+      await pool.query(schemaSQL);
+      console.log('✅ Main schema executed successfully');
+    }
     
     // Run additional migrations if they exist
     const migrationsPath = path.join(__dirname, '../../database/migrations');

@@ -13,6 +13,7 @@ import { SellerSidebar } from './SellerSidebar'
 import { AdminSidebar } from './AdminSidebar'
 import { BuyerSidebar } from './BuyerSidebar'
 import { api } from '@/lib/api'
+import { DashboardPageTransition } from '@/components/common/PageTransition'
 
 interface ApiNotification {
   id: number
@@ -266,7 +267,9 @@ export function DashboardLayout() {
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-auto min-w-0">
           <PageErrorBoundary key={pathname}>
-            <Outlet />
+            <DashboardPageTransition>
+              <Outlet />
+            </DashboardPageTransition>
           </PageErrorBoundary>
         </main>
       </div>

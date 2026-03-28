@@ -5,6 +5,7 @@ import { Navbar } from './Navbar'
 import { Footer } from './Footer'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { PageTransition } from '@/components/common/PageTransition'
 
 export function PublicLayout() {
   const location = useLocation()
@@ -22,7 +23,9 @@ export function PublicLayout() {
     <div className="flex flex-col min-h-screen bg-white dark:bg-slate-950">
       <Navbar />
       <main className="flex-1">
-        <Outlet />
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
       </main>
       <Footer />
 
