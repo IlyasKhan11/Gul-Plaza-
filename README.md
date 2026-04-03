@@ -283,3 +283,7 @@ To update:
 git pull origin main
 ./scripts/deploy.sh
 ```
+
+---
+
+*Last updated: April 2026*
