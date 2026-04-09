@@ -43,7 +43,9 @@ export function LoginPage() {
         {/* Logo */}
         <div className="relative z-10">
           <Link to="/" className="inline-flex items-center gap-3">
-            <img src={gulPlazaLogo} alt="Gul Plaza" className="h-10 w-auto object-contain" />
+            <div className="bg-white rounded-lg p-2 shadow-sm">
+              <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 w-auto md:h-12 lg:h-14 object-contain" />
+            </div>
           </Link>
         </div>
 
@@ -90,7 +92,9 @@ export function LoginPage() {
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <Link to="/">
-              <img src={gulPlazaLogo} alt="Gul Plaza" className="h-10 w-auto object-contain mx-auto" />
+              <div className="bg-white rounded-lg p-2 shadow-sm inline-block">
+                <img src={gulPlazaLogo} alt="GUL PLAZA" className="h-10 w-auto md:h-12 lg:h-14 object-contain" />
+              </div>
             </Link>
           </div>
 
